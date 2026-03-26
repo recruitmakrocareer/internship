@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { users, mentorStudents, roadmapProgress, roadmapSteps, roadmaps } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
@@ -15,70 +15,60 @@ export async function GET(
 
     const { id } = params;
 
-    const student = await prisma.user.findUnique({
-      where: { id, role: "STUDENT" },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        phone: true,
-        studentId: true,
-        university: true,
-        faculty: true,
-        major: true,
-        year: true,
-        startDate: true,
-        endDate: true,
-        company: true,
-        department: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        studentMentors: {
-          include: {
-            mentor: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                position: true,
-                expertise: true,
-              },
-            },
-          },
-        },
-        submissions: {
-          include: {
-            assignment: {
-              select: { id: true, title: true, dueDate: true, maxScore: true },
-            },
-          },
-          orderBy: { submittedAt: "desc" },
-        },
-        roadmapProgress: {
-          include: {
-            step: {
-              include: {
-                roadmap: { select: { id: true, title: true } },
-              },
-            },
-          },
-        },
-        receivedEvaluations: {
-          include: {
-            evaluator: { select: { id: true, name: true } },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-      },
-    });
+    const student = await users.findById(id);
 
-    if (!student) {
+    if (!student || student.role !== "STUDENT") {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    return NextResponse.json(student);
+    // Fetch mentor relationships
+    const mentorRelations = await mentorStudents.findMany({ studentId: id });
+    const studentMentors = await Promise.all(
+      mentorRelations.map(async (rel) => {
+        const mentor = await users.findById(rel.mentorId);
+        return {
+          ...rel,
+          mentor: mentor
+            ? {
+                id: mentor.id,
+                name: mentor.name,
+                email: mentor.email,
+                position: mentor.position || "",
+                expertise: mentor.expertise || "",
+              }
+            : null,
+        };
+      })
+    );
+
+    // Fetch roadmap progress
+    const progressRecords = await roadmapProgress.findMany({ userId: id });
+    const progressWithSteps = await Promise.all(
+      progressRecords.map(async (prog) => {
+        const step = await roadmapSteps.findById(prog.stepId);
+        let roadmap = null;
+        if (step) {
+          roadmap = await roadmaps.findById(step.roadmapId);
+        }
+        return {
+          ...prog,
+          step: step
+            ? {
+                ...step,
+                roadmap: roadmap
+                  ? { id: roadmap.id, title: roadmap.title }
+                  : null,
+              }
+            : null,
+        };
+      })
+    );
+
+    return NextResponse.json({
+      ...student,
+      studentMentors,
+      roadmapProgress: progressWithSteps,
+    });
   } catch (error) {
     console.error("GET /api/students/[id] error:", error);
     return NextResponse.json(
@@ -121,41 +111,21 @@ export async function PATCH(
       department,
     } = body;
 
-    const student = await prisma.user.update({
-      where: { id },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(phone !== undefined && { phone }),
-        ...(avatar !== undefined && { avatar }),
-        ...(studentId !== undefined && { studentId }),
-        ...(university !== undefined && { university }),
-        ...(faculty !== undefined && { faculty }),
-        ...(major !== undefined && { major }),
-        ...(year !== undefined && { year: parseInt(year, 10) }),
-        ...(startDate !== undefined && { startDate: new Date(startDate) }),
-        ...(endDate !== undefined && { endDate: new Date(endDate) }),
-        ...(company !== undefined && { company }),
-        ...(department !== undefined && { department }),
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        phone: true,
-        studentId: true,
-        university: true,
-        faculty: true,
-        major: true,
-        year: true,
-        startDate: true,
-        endDate: true,
-        company: true,
-        department: true,
-        isActive: true,
-        updatedAt: true,
-      },
-    });
+    const updateData: Record<string, string> = {};
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (studentId !== undefined) updateData.studentId = studentId;
+    if (university !== undefined) updateData.university = university;
+    if (faculty !== undefined) updateData.faculty = faculty;
+    if (major !== undefined) updateData.major = major;
+    if (year !== undefined) updateData.year = String(year);
+    if (startDate !== undefined) updateData.startDate = startDate;
+    if (endDate !== undefined) updateData.endDate = endDate;
+    if (company !== undefined) updateData.company = company;
+    if (department !== undefined) updateData.department = department;
+
+    const student = await users.update(id, updateData);
 
     return NextResponse.json(student);
   } catch (error) {
@@ -184,15 +154,19 @@ export async function DELETE(
 
     const { id } = params;
 
-    const student = await prisma.user.update({
-      where: { id },
-      data: { isActive: false },
-      select: { id: true, name: true, isActive: true },
-    });
+    const student = await users.update(id, { isActive: "false" });
+
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
 
     return NextResponse.json({
       message: "Student deactivated successfully",
-      student,
+      student: {
+        id: student.id,
+        name: student.name,
+        isActive: student.isActive,
+      },
     });
   } catch (error) {
     console.error("DELETE /api/students/[id] error:", error);

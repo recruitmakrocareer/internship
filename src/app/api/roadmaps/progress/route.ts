@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { roadmapProgress, roadmapSteps, roadmaps } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,21 +14,42 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId") || currentUser.id;
 
-    const progress = await prisma.roadmapProgress.findMany({
-      where: { userId },
-      include: {
-        step: {
-          include: {
-            roadmap: {
-              select: { id: true, title: true, category: true },
-            },
-          },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    const progressRecords = await roadmapProgress.findMany({ userId });
 
-    return NextResponse.json(progress);
+    // Enrich with step and roadmap data
+    const enriched = await Promise.all(
+      progressRecords.map(async (prog) => {
+        const step = await roadmapSteps.findById(prog.stepId);
+        let roadmap = null;
+        if (step) {
+          roadmap = await roadmaps.findById(step.roadmapId);
+        }
+        return {
+          ...prog,
+          step: step
+            ? {
+                ...step,
+                roadmap: roadmap
+                  ? {
+                      id: roadmap.id,
+                      title: roadmap.title,
+                      category: roadmap.category || "",
+                    }
+                  : null,
+              }
+            : null,
+        };
+      })
+    );
+
+    // Sort by updatedAt descending
+    enriched.sort(
+      (a, b) =>
+        new Date((b as Record<string, unknown>).updatedAt as string || "").getTime() -
+        new Date((a as Record<string, unknown>).updatedAt as string || "").getTime()
+    );
+
+    return NextResponse.json(enriched);
   } catch (error) {
     console.error("GET /api/roadmaps/progress error:", error);
     return NextResponse.json(
@@ -63,32 +84,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const progress = await prisma.roadmapProgress.upsert({
-      where: {
-        userId_stepId: { userId, stepId },
-      },
-      update: {
-        status,
-        note: note ?? undefined,
-        completedAt: status === "COMPLETED" ? new Date() : null,
-      },
-      create: {
-        userId,
-        stepId,
-        status,
-        note,
-        completedAt: status === "COMPLETED" ? new Date() : undefined,
-      },
-      include: {
-        step: {
-          include: {
-            roadmap: { select: { id: true, title: true } },
-          },
-        },
-      },
-    });
+    const progressData: Record<string, string> = {
+      status,
+      completedAt: status === "COMPLETED" ? new Date().toISOString() : "",
+    };
+    if (note !== undefined && note !== null) {
+      progressData.note = note;
+    }
 
-    return NextResponse.json(progress);
+    const progress = await roadmapProgress.upsert(userId, stepId, progressData);
+
+    if (!progress) {
+      return NextResponse.json({ error: "Failed to update progress" }, { status: 500 });
+    }
+
+    // Enrich with step and roadmap data
+    const step = await roadmapSteps.findById(progress.stepId || stepId);
+    let roadmap = null;
+    if (step) {
+      roadmap = await roadmaps.findById(step.roadmapId);
+    }
+
+    return NextResponse.json({
+      ...progress,
+      step: step
+        ? {
+            ...step,
+            roadmap: roadmap
+              ? { id: roadmap.id, title: roadmap.title }
+              : null,
+          }
+        : null,
+    });
   } catch (error) {
     console.error("POST /api/roadmaps/progress error:", error);
     return NextResponse.json(

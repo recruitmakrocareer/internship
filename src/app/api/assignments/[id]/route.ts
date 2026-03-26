@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { assignments, users } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
@@ -15,28 +15,43 @@ export async function GET(
 
     const { id } = params;
 
-    const assignment = await prisma.assignment.findUnique({
-      where: { id },
-      include: {
-        submissions: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, studentId: true },
-            },
-          },
-          orderBy: { submittedAt: "desc" },
-        },
-      },
-    });
+    const result = await assignments.findByIdWithSubmissions(id);
 
-    if (!assignment) {
+    if (!result) {
       return NextResponse.json(
         { error: "Assignment not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(assignment);
+    // Enrich submissions with user info and sort by submittedAt desc
+    const enrichedSubmissions = await Promise.all(
+      (result.submissions || []).map(async (sub: Record<string, string>) => {
+        const user = await users.findById(sub.userId);
+        return {
+          ...sub,
+          user: user
+            ? {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                studentId: user.studentId,
+              }
+            : null,
+        };
+      })
+    );
+
+    enrichedSubmissions.sort(
+      (a, b) =>
+        new Date((a as Record<string, unknown>).submittedAt as string || "").getTime() -
+        new Date((b as Record<string, unknown>).submittedAt as string || "").getTime()
+    ).reverse();
+
+    return NextResponse.json({
+      ...result,
+      submissions: enrichedSubmissions,
+    });
   } catch (error) {
     console.error("GET /api/assignments/[id] error:", error);
     return NextResponse.json(
@@ -65,18 +80,14 @@ export async function PATCH(
     const body = await req.json();
     const { title, description, dueDate, maxScore, isActive } = body;
 
-    const assignment = await prisma.assignment.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(dueDate !== undefined && {
-          dueDate: dueDate ? new Date(dueDate) : null,
-        }),
-        ...(maxScore !== undefined && { maxScore }),
-        ...(isActive !== undefined && { isActive }),
-      },
-    });
+    const updateData: Record<string, string | number | boolean | null | undefined> = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate).toISOString() : "";
+    if (maxScore !== undefined) updateData.maxScore = maxScore;
+    if (isActive !== undefined) updateData.isActive = String(isActive);
+
+    const assignment = await assignments.update(id, updateData);
 
     return NextResponse.json(assignment);
   } catch (error) {
@@ -105,7 +116,7 @@ export async function DELETE(
 
     const { id } = params;
 
-    await prisma.assignment.delete({ where: { id } });
+    await assignments.delete(id);
 
     return NextResponse.json({ message: "Assignment deleted successfully" });
   } catch (error) {

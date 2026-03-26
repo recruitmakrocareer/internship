@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { assignments, submissions } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,9 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: assignmentId },
-    });
+    const assignment = await assignments.findById(assignmentId);
 
     if (!assignment) {
       return NextResponse.json(
@@ -39,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!assignment.isActive) {
+    if (assignment.isActive !== "true") {
       return NextResponse.json(
         { error: "Assignment is no longer active" },
         { status: 400 }
@@ -47,52 +45,45 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if student already has a submission for this assignment
-    const existingSubmission = await prisma.submission.findFirst({
-      where: {
-        assignmentId,
-        userId: currentUser.id,
-      },
-    });
+    const existingSubmission = await submissions.findByAssignmentAndUser(
+      assignmentId,
+      currentUser.id
+    );
 
     let submission;
 
     if (existingSubmission) {
       // Update existing submission
-      submission = await prisma.submission.update({
-        where: { id: existingSubmission.id },
-        data: {
-          content,
-          fileUrl,
-          fileName,
-          status: "SUBMITTED",
-          submittedAt: new Date(),
-        },
-        include: {
-          assignment: {
-            select: { id: true, title: true },
-          },
-        },
+      submission = await submissions.update(existingSubmission.id, {
+        content: content ?? "",
+        fileUrl: fileUrl ?? "",
+        fileName: fileName ?? "",
+        status: "SUBMITTED",
+        submittedAt: new Date().toISOString(),
       });
     } else {
       // Create new submission
-      submission = await prisma.submission.create({
-        data: {
-          assignmentId,
-          userId: currentUser.id,
-          content,
-          fileUrl,
-          fileName,
-          status: "SUBMITTED",
-        },
-        include: {
-          assignment: {
-            select: { id: true, title: true },
-          },
-        },
+      submission = await submissions.create({
+        assignmentId,
+        userId: currentUser.id,
+        content: content ?? "",
+        fileUrl: fileUrl ?? "",
+        fileName: fileName ?? "",
+        status: "SUBMITTED",
+        submittedAt: new Date().toISOString(),
       });
     }
 
-    return NextResponse.json(submission, { status: 201 });
+    // Attach assignment info
+    const result = {
+      ...submission,
+      assignment: {
+        id: assignment.id,
+        title: assignment.title,
+      },
+    };
+
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("POST /api/assignments/submit error:", error);
     return NextResponse.json(

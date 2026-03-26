@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { resources, users } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
@@ -15,14 +15,7 @@ export async function GET(
 
     const { id } = params;
 
-    const resource = await prisma.resource.findUnique({
-      where: { id },
-      include: {
-        uploadedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+    const resource = await resources.findById(id);
 
     if (!resource) {
       return NextResponse.json(
@@ -31,7 +24,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(resource);
+    // Enrich with uploadedBy user info
+    const uploader = resource.uploadedById
+      ? await users.findById(resource.uploadedById)
+      : null;
+
+    return NextResponse.json({
+      ...resource,
+      uploadedBy: uploader
+        ? { id: uploader.id, name: uploader.name, email: uploader.email }
+        : null,
+    });
   } catch (error) {
     console.error("GET /api/resources/[id] error:", error);
     return NextResponse.json(
@@ -55,7 +58,7 @@ export async function PATCH(
     const { id } = params;
 
     // Only admin or the uploader can update
-    const existing = await prisma.resource.findUnique({ where: { id } });
+    const existing = await resources.findById(id);
     if (!existing) {
       return NextResponse.json(
         { error: "Resource not found" },
@@ -73,27 +76,34 @@ export async function PATCH(
     const body = await req.json();
     const { title, description, category, type, url, fileUrl, fileName, fileSize, isPublic } = body;
 
-    const resource = await prisma.resource.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(category !== undefined && { category }),
-        ...(type !== undefined && { type }),
-        ...(url !== undefined && { url }),
-        ...(fileUrl !== undefined && { fileUrl }),
-        ...(fileName !== undefined && { fileName }),
-        ...(fileSize !== undefined && { fileSize }),
-        ...(isPublic !== undefined && { isPublic }),
-      },
-      include: {
-        uploadedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+    const updateData: Record<string, string | number | boolean | null | undefined> = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (category !== undefined) updateData.category = category;
+    if (type !== undefined) updateData.type = type;
+    if (url !== undefined) updateData.url = url;
+    if (fileUrl !== undefined) updateData.fileUrl = fileUrl;
+    if (fileName !== undefined) updateData.fileName = fileName;
+    if (fileSize !== undefined) updateData.fileSize = fileSize;
+    if (isPublic !== undefined) updateData.isPublic = String(isPublic);
 
-    return NextResponse.json(resource);
+    const resource = await resources.update(id, updateData);
+
+    if (!resource) {
+      return NextResponse.json({ error: "Failed to update resource" }, { status: 500 });
+    }
+
+    // Enrich with uploadedBy user info
+    const uploader = resource.uploadedById
+      ? await users.findById(resource.uploadedById)
+      : null;
+
+    return NextResponse.json({
+      ...resource,
+      uploadedBy: uploader
+        ? { id: uploader.id, name: uploader.name, email: uploader.email }
+        : null,
+    });
   } catch (error) {
     console.error("PATCH /api/resources/[id] error:", error);
     return NextResponse.json(
@@ -116,7 +126,7 @@ export async function DELETE(
     const currentUser = session.user as { id: string; role: string };
     const { id } = params;
 
-    const existing = await prisma.resource.findUnique({ where: { id } });
+    const existing = await resources.findById(id);
     if (!existing) {
       return NextResponse.json(
         { error: "Resource not found" },
@@ -131,7 +141,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.resource.delete({ where: { id } });
+    await resources.delete(id);
 
     return NextResponse.json({ message: "Resource deleted successfully" });
   } catch (error) {

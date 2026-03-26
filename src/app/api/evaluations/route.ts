@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { evaluations, users } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,31 +16,56 @@ export async function GET(req: NextRequest) {
     const evaluatorId = searchParams.get("evaluatorId");
     const type = searchParams.get("type");
 
-    const where: Record<string, unknown> = {};
+    const filter: Record<string, string | undefined> = {};
 
-    if (evaluateeId) where.evaluateeId = evaluateeId;
-    if (evaluatorId) where.evaluatorId = evaluatorId;
-    if (type) where.type = type;
+    if (evaluateeId) filter.evaluateeId = evaluateeId;
+    if (evaluatorId) filter.evaluatorId = evaluatorId;
+    if (type) filter.type = type;
 
     // Students can only see their own evaluations
     if (currentUser.role === "STUDENT") {
-      where.evaluateeId = currentUser.id;
+      filter.evaluateeId = currentUser.id;
     }
 
-    const evaluations = await prisma.evaluation.findMany({
-      where,
-      include: {
-        evaluator: {
-          select: { id: true, name: true, email: true, role: true },
-        },
-        evaluatee: {
-          select: { id: true, name: true, email: true, role: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const allEvaluations = await evaluations.findMany(filter);
 
-    return NextResponse.json(evaluations);
+    // Sort by createdAt descending
+    allEvaluations.sort(
+      (a, b) =>
+        new Date(b.createdAt || "").getTime() -
+        new Date(a.createdAt || "").getTime()
+    );
+
+    // Enrich with evaluator and evaluatee info
+    const enriched = await Promise.all(
+      allEvaluations.map(async (ev) => {
+        const [evaluator, evaluatee] = await Promise.all([
+          users.findById(ev.evaluatorId),
+          users.findById(ev.evaluateeId),
+        ]);
+        return {
+          ...ev,
+          evaluator: evaluator
+            ? {
+                id: evaluator.id,
+                name: evaluator.name,
+                email: evaluator.email,
+                role: evaluator.role,
+              }
+            : null,
+          evaluatee: evaluatee
+            ? {
+                id: evaluatee.id,
+                name: evaluatee.name,
+                email: evaluatee.email,
+                role: evaluatee.role,
+              }
+            : null,
+        };
+      })
+    );
+
+    return NextResponse.json(enriched);
   } catch (error) {
     console.error("GET /api/evaluations error:", error);
     return NextResponse.json(
@@ -71,27 +96,34 @@ export async function POST(req: NextRequest) {
     // Ensure scores is a string (JSON)
     const scoresStr = typeof scores === "string" ? scores : JSON.stringify(scores);
 
-    const evaluation = await prisma.evaluation.create({
-      data: {
-        evaluatorId: currentUser.id,
-        evaluateeId,
-        type,
-        period,
-        scores: scoresStr,
-        comment,
-        overallScore: overallScore ? parseFloat(overallScore) : undefined,
-      },
-      include: {
-        evaluator: {
-          select: { id: true, name: true, email: true },
-        },
-        evaluatee: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+    const evaluation = await evaluations.create({
+      evaluatorId: currentUser.id,
+      evaluateeId,
+      type,
+      period: period ?? "",
+      scores: scoresStr,
+      comment: comment ?? "",
+      overallScore: overallScore ? String(parseFloat(overallScore)) : "",
     });
 
-    return NextResponse.json(evaluation, { status: 201 });
+    // Enrich with evaluator and evaluatee info
+    const [evaluator, evaluatee] = await Promise.all([
+      users.findById(currentUser.id),
+      users.findById(evaluateeId),
+    ]);
+
+    return NextResponse.json(
+      {
+        ...evaluation,
+        evaluator: evaluator
+          ? { id: evaluator.id, name: evaluator.name, email: evaluator.email }
+          : null,
+        evaluatee: evaluatee
+          ? { id: evaluatee.id, name: evaluatee.name, email: evaluatee.email }
+          : null,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/evaluations error:", error);
     return NextResponse.json(

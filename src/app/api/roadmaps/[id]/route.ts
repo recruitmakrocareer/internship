@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { roadmaps } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
@@ -15,17 +15,7 @@ export async function GET(
 
     const { id } = params;
 
-    const roadmap = await prisma.roadmap.findUnique({
-      where: { id },
-      include: {
-        steps: {
-          orderBy: { order: "asc" },
-          include: {
-            progress: true,
-          },
-        },
-      },
-    });
+    const roadmap = await roadmaps.findByIdWithSteps(id);
 
     if (!roadmap) {
       return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
@@ -60,21 +50,19 @@ export async function PATCH(
     const body = await req.json();
     const { title, description, category, order, isActive } = body;
 
-    const roadmap = await prisma.roadmap.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(category !== undefined && { category }),
-        ...(order !== undefined && { order }),
-        ...(isActive !== undefined && { isActive }),
-      },
-      include: {
-        steps: { orderBy: { order: "asc" } },
-      },
-    });
+    const updateData: Record<string, string> = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (category !== undefined) updateData.category = category;
+    if (order !== undefined) updateData.order = String(order);
+    if (isActive !== undefined) updateData.isActive = String(isActive);
 
-    return NextResponse.json(roadmap);
+    const updated = await roadmaps.update(id, updateData);
+
+    // Return with steps
+    const roadmap = await roadmaps.findByIdWithSteps(id);
+
+    return NextResponse.json(roadmap || updated);
   } catch (error) {
     console.error("PATCH /api/roadmaps/[id] error:", error);
     return NextResponse.json(
@@ -101,7 +89,7 @@ export async function DELETE(
 
     const { id } = params;
 
-    await prisma.roadmap.delete({ where: { id } });
+    await roadmaps.delete(id);
 
     return NextResponse.json({ message: "Roadmap deleted successfully" });
   } catch (error) {

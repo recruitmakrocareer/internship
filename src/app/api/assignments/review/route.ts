@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { assignments, submissions, users } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,9 +42,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existingSubmission = await prisma.submission.findUnique({
-      where: { id: submissionId },
-    });
+    const existingSubmission = await submissions.findById(submissionId);
 
     if (!existingSubmission) {
       return NextResponse.json(
@@ -53,25 +51,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const submission = await prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        status,
-        score: score !== undefined ? score : undefined,
-        feedback: feedback ?? undefined,
-        reviewedAt: new Date(),
-      },
-      include: {
-        assignment: {
-          select: { id: true, title: true },
-        },
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+    const updateData: Record<string, string | number | boolean | null | undefined> = {
+      status,
+      reviewedAt: new Date().toISOString(),
+    };
+    if (score !== undefined) updateData.score = score;
+    if (feedback !== undefined) updateData.feedback = feedback;
 
-    return NextResponse.json(submission);
+    const submission = await submissions.update(submissionId, updateData);
+
+    if (!submission) {
+      return NextResponse.json({ error: "Failed to update submission" }, { status: 500 });
+    }
+
+    // Enrich with assignment and user info
+    const assignment = await assignments.findById(submission.assignmentId);
+    const user = await users.findById(submission.userId);
+
+    return NextResponse.json({
+      ...submission,
+      assignment: assignment
+        ? { id: assignment.id, title: assignment.title }
+        : null,
+      user: user
+        ? { id: user.id, name: user.name, email: user.email }
+        : null,
+    });
   } catch (error) {
     console.error("POST /api/assignments/review error:", error);
     return NextResponse.json(

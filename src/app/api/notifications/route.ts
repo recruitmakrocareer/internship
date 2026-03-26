@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { notifications, users } from "@/lib/db";
 import { sendLineNotification } from "@/lib/line";
 
 export async function GET(req: NextRequest) {
@@ -18,26 +18,36 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { userId: currentUser.id };
+    const filter: Record<string, string | undefined> = {
+      userId: currentUser.id,
+    };
     if (unreadOnly) {
-      where.isRead = false;
+      filter.isRead = "false";
     }
 
-    const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.notification.count({ where }),
-      prisma.notification.count({
-        where: { userId: currentUser.id, isRead: false },
-      }),
-    ]);
+    const allNotifications = await notifications.findMany(filter);
+
+    // Sort by createdAt descending
+    allNotifications.sort(
+      (a, b) =>
+        new Date(b.createdAt || "").getTime() -
+        new Date(a.createdAt || "").getTime()
+    );
+
+    const total = allNotifications.length;
+    const paged = allNotifications.slice(skip, skip + limit);
+
+    // Count unread
+    const allForUser = unreadOnly
+      ? allNotifications
+      : await notifications.findMany({
+          userId: currentUser.id,
+          isRead: "false",
+        });
+    const unreadCount = unreadOnly ? total : allForUser.length;
 
     return NextResponse.json({
-      notifications,
+      notifications: paged,
       unreadCount,
       pagination: {
         page,
@@ -78,10 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the target user exists
-    const targetUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
+    const targetUser = await users.findById(userId);
 
     if (!targetUser) {
       return NextResponse.json(
@@ -96,14 +103,12 @@ export async function POST(req: NextRequest) {
       sentViaLine = await sendLineNotification(userId, title, message);
     }
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        title,
-        message,
-        type: type || "general",
-        sentViaLine,
-      },
+    const notification = await notifications.create({
+      userId,
+      title,
+      message,
+      type: type || "general",
+      sentViaLine: String(sentViaLine),
     });
 
     return NextResponse.json(notification, { status: 201 });
@@ -128,10 +133,7 @@ export async function PATCH(req: NextRequest) {
     const { notificationId, markAllRead } = body;
 
     if (markAllRead) {
-      await prisma.notification.updateMany({
-        where: { userId: currentUser.id, isRead: false },
-        data: { isRead: true },
-      });
+      await notifications.markAllRead(currentUser.id);
 
       return NextResponse.json({ message: "All notifications marked as read" });
     }
@@ -144,9 +146,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Verify ownership
-    const notification = await prisma.notification.findUnique({
-      where: { id: notificationId },
-    });
+    const notification = await notifications.findById(notificationId);
 
     if (!notification) {
       return NextResponse.json(
@@ -159,9 +159,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const updated = await prisma.notification.update({
-      where: { id: notificationId },
-      data: { isRead: true },
+    const updated = await notifications.update(notificationId, {
+      isRead: "true",
     });
 
     return NextResponse.json(updated);

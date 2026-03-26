@@ -39,12 +39,9 @@ export async function sendLineNotification(
   title: string,
   message: string
 ): Promise<boolean> {
-  const { prisma } = await import("./prisma");
+  const { users } = await import("./db");
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { lineUserId: true },
-  });
+  const user = await users.findById(userId);
 
   if (!user?.lineUserId) return false;
 

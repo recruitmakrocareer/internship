@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { users } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export async function GET(req: NextRequest) {
@@ -18,53 +18,36 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {
-      role: "STUDENT",
-    };
-
-    if (active !== null && active !== "") {
-      where.isActive = active === "true";
-    }
+    let students: Record<string, string>[];
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
-        { studentId: { contains: search, mode: "insensitive" } },
-        { university: { contains: search, mode: "insensitive" } },
-      ];
+      // Search across name, email, studentId, university
+      students = await users.search(search);
+      // Filter to only STUDENT role
+      students = students.filter((s) => s.role === "STUDENT");
+    } else {
+      students = await users.findMany({ role: "STUDENT" });
     }
 
-    const [students, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-          phone: true,
-          studentId: true,
-          university: true,
-          faculty: true,
-          major: true,
-          year: true,
-          startDate: true,
-          endDate: true,
-          company: true,
-          department: true,
-          isActive: true,
-          createdAt: true,
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.user.count({ where }),
-    ]);
+    // Filter by active status if specified
+    if (active !== null && active !== undefined && active !== "") {
+      students = students.filter((s) => s.isActive === active);
+    }
+
+    // Sort by createdAt descending
+    students.sort(
+      (a, b) =>
+        new Date(b.createdAt || "").getTime() -
+        new Date(a.createdAt || "").getTime()
+    );
+
+    const total = students.length;
+
+    // Paginate manually
+    const paginated = students.slice(skip, skip + limit);
 
     return NextResponse.json({
-      students,
+      students: paginated,
       pagination: {
         page,
         limit,
@@ -117,7 +100,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await users.findByEmail(email);
     if (existing) {
       return NextResponse.json(
         { error: "Email already exists" },
@@ -127,39 +110,22 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const student = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: "STUDENT",
-        phone,
-        studentId,
-        university,
-        faculty,
-        major,
-        year: year ? parseInt(year, 10) : undefined,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
-        company,
-        department,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        studentId: true,
-        university: true,
-        faculty: true,
-        major: true,
-        year: true,
-        startDate: true,
-        endDate: true,
-        company: true,
-        department: true,
-        isActive: true,
-        createdAt: true,
-      },
+    const student = await users.create({
+      email,
+      password: hashedPassword,
+      name,
+      role: "STUDENT",
+      phone: phone || "",
+      studentId: studentId || "",
+      university: university || "",
+      faculty: faculty || "",
+      major: major || "",
+      year: year ? String(year) : "",
+      startDate: startDate || "",
+      endDate: endDate || "",
+      company: company || "",
+      department: department || "",
+      isActive: "true",
     });
 
     return NextResponse.json(student, { status: 201 });

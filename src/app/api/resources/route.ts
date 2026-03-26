@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { resources, users } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,27 +17,39 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { isPublic: true };
-    if (category) where.category = category;
-    if (type) where.type = type;
+    const filter: Record<string, string | undefined> = { isPublic: "true" };
+    if (category) filter.category = category;
+    if (type) filter.type = type;
 
-    const [resources, total] = await Promise.all([
-      prisma.resource.findMany({
-        where,
-        include: {
-          uploadedBy: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.resource.count({ where }),
-    ]);
+    const allResources = await resources.findMany(filter);
+
+    // Sort by createdAt descending
+    allResources.sort(
+      (a, b) =>
+        new Date(b.createdAt || "").getTime() -
+        new Date(a.createdAt || "").getTime()
+    );
+
+    const total = allResources.length;
+    const paged = allResources.slice(skip, skip + limit);
+
+    // Enrich with uploadedBy user info
+    const enriched = await Promise.all(
+      paged.map(async (resource) => {
+        const uploader = resource.uploadedById
+          ? await users.findById(resource.uploadedById)
+          : null;
+        return {
+          ...resource,
+          uploadedBy: uploader
+            ? { id: uploader.id, name: uploader.name, email: uploader.email }
+            : null,
+        };
+      })
+    );
 
     return NextResponse.json({
-      resources,
+      resources: enriched,
       pagination: {
         page,
         limit,
@@ -82,27 +94,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resource = await prisma.resource.create({
-      data: {
-        title,
-        description,
-        category,
-        type,
-        url,
-        fileUrl,
-        fileName,
-        fileSize,
-        uploadedById: currentUser.id,
-        isPublic: isPublic ?? true,
-      },
-      include: {
-        uploadedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+    const resource = await resources.create({
+      title,
+      description: description ?? "",
+      category: category ?? "",
+      type,
+      url: url ?? "",
+      fileUrl: fileUrl ?? "",
+      fileName: fileName ?? "",
+      fileSize: fileSize ?? "",
+      uploadedById: currentUser.id,
+      isPublic: isPublic !== undefined ? String(isPublic) : "true",
     });
 
-    return NextResponse.json(resource, { status: 201 });
+    // Enrich with uploadedBy user info
+    const uploader = await users.findById(currentUser.id);
+
+    return NextResponse.json(
+      {
+        ...resource,
+        uploadedBy: uploader
+          ? { id: uploader.id, name: uploader.name, email: uploader.email }
+          : null,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/resources error:", error);
     return NextResponse.json(

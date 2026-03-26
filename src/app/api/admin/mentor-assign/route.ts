@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { users, mentorStudents } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,10 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify mentor exists and has MENTOR role
-    const mentor = await prisma.user.findUnique({
-      where: { id: mentorId },
-      select: { id: true, name: true, role: true },
-    });
+    const mentor = await users.findById(mentorId);
 
     if (!mentor) {
       return NextResponse.json(
@@ -46,10 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify student exists and has STUDENT role
-    const student = await prisma.user.findUnique({
-      where: { id: studentId },
-      select: { id: true, name: true, role: true },
-    });
+    const student = await users.findById(studentId);
 
     if (!student) {
       return NextResponse.json(
@@ -66,11 +60,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if assignment already exists
-    const existing = await prisma.mentorStudent.findUnique({
-      where: {
-        mentorId_studentId: { mentorId, studentId },
-      },
-    });
+    const existing = await mentorStudents.findByMentorAndStudent(
+      mentorId,
+      studentId
+    );
 
     if (existing) {
       return NextResponse.json(
@@ -79,28 +72,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const assignment = await prisma.mentorStudent.create({
-      data: {
-        mentorId,
-        studentId,
-      },
-      include: {
-        mentor: {
-          select: { id: true, name: true, email: true, position: true },
-        },
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            studentId: true,
-            university: true,
-          },
-        },
-      },
+    const assignment = await mentorStudents.create({
+      mentorId,
+      studentId,
     });
 
-    return NextResponse.json(assignment, { status: 201 });
+    // Return enriched response with mentor and student details
+    return NextResponse.json(
+      {
+        ...assignment,
+        mentor: {
+          id: mentor.id,
+          name: mentor.name,
+          email: mentor.email,
+          position: mentor.position || "",
+        },
+        student: {
+          id: student.id,
+          name: student.name,
+          email: student.email,
+          studentId: student.studentId || "",
+          university: student.university || "",
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/admin/mentor-assign error:", error);
     return NextResponse.json(

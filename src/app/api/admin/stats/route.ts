@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import {
+  users,
+  assignments,
+  submissions,
+  roadmapProgress,
+  evaluations,
+  resources,
+} from "@/lib/db";
 
 export async function GET() {
   try {
@@ -16,43 +23,47 @@ export async function GET() {
     }
 
     const [
-      totalStudents,
-      activeStudents,
+      allStudents,
       totalMentors,
-      totalAssignments,
-      totalSubmissions,
-      approvedSubmissions,
-      totalRoadmapSteps,
-      completedSteps,
-      totalEvaluations,
-      totalResources,
-      recentStudents,
+      allAssignments,
+      allSubmissions,
+      allProgress,
+      allEvaluations,
+      allResources,
     ] = await Promise.all([
-      prisma.user.count({ where: { role: "STUDENT" } }),
-      prisma.user.count({ where: { role: "STUDENT", isActive: true } }),
-      prisma.user.count({ where: { role: "MENTOR" } }),
-      prisma.assignment.count(),
-      prisma.submission.count(),
-      prisma.submission.count({ where: { status: "APPROVED" } }),
-      prisma.roadmapProgress.count(),
-      prisma.roadmapProgress.count({ where: { status: "COMPLETED" } }),
-      prisma.evaluation.count(),
-      prisma.resource.count(),
-      prisma.user.findMany({
-        where: { role: "STUDENT" },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          studentId: true,
-          university: true,
-          isActive: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
+      users.findMany({ role: "STUDENT" }),
+      users.count({ role: "MENTOR" }),
+      assignments.findMany(),
+      submissions.findMany(),
+      roadmapProgress.findMany(),
+      evaluations.findMany(),
+      resources.findMany(),
     ]);
+
+    const totalStudents = allStudents.length;
+    const activeStudents = allStudents.filter(
+      (s) => s.isActive === "true"
+    ).length;
+    const totalAssignments = allAssignments.length;
+    const totalSubmissions = allSubmissions.length;
+    const approvedSubmissions = allSubmissions.filter(
+      (s) => s.status === "APPROVED"
+    ).length;
+    const totalRoadmapSteps = allProgress.length;
+    const completedSteps = allProgress.filter(
+      (p) => p.status === "COMPLETED"
+    ).length;
+    const totalEvaluations = allEvaluations.length;
+    const totalResources = allResources.length;
+
+    // Get recent students (sorted by createdAt desc, take 5)
+    const recentStudents = allStudents
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt || "").getTime() -
+          new Date(a.createdAt || "").getTime()
+      )
+      .slice(0, 5);
 
     const assignmentCompletionRate =
       totalSubmissions > 0

@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { prisma } from "./prisma";
+import { users } from "./db";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,11 +16,9 @@ export const authOptions: NextAuthOptions = {
           throw new Error("กรุณากรอกอีเมลและรหัสผ่าน");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const user = await users.findByEmail(credentials.email);
 
-        if (!user || !user.isActive) {
+        if (!user || user.isActive === "false") {
           throw new Error("ไม่พบบัญชีผู้ใช้หรือบัญชีถูกระงับ");
         }
 
