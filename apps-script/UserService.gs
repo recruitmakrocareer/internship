@@ -1,0 +1,462 @@
+/**
+ * UserService.gs - User management functions
+ * Called from frontend via google.script.run
+ */
+
+/**
+ * Gets list of students with optional search and active filter.
+ * @param {string} search - Optional search query (matches name, email, studentId)
+ * @param {boolean} activeOnly - If true, only return active students
+ * @return {Object} Result with success status and students array
+ */
+function getStudents(search, activeOnly) {
+  try {
+    var users = getRows(CONFIG.SHEETS.USERS, { role: CONFIG.ROLES.STUDENT });
+
+    // Filter active only
+    if (activeOnly) {
+      users = users.filter(function(u) {
+        return String(u.isActive) !== 'false';
+      });
+    }
+
+    // Search filter
+    if (search && search.trim() !== '') {
+      var q = search.toLowerCase();
+      users = users.filter(function(u) {
+        return (u.firstName + ' ' + u.lastName).toLowerCase().indexOf(q) !== -1 ||
+               String(u.email).toLowerCase().indexOf(q) !== -1 ||
+               String(u.studentId).toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    // Remove password from results
+    var students = users.map(function(u) {
+      var copy = {};
+      var keys = Object.keys(u);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i] !== 'password') {
+          copy[keys[i]] = u[keys[i]];
+        }
+      }
+      return copy;
+    });
+
+    return { success: true, data: students };
+  } catch (err) {
+    Logger.log('Error in getStudents: ' + err.message);
+    return { success: false, message: 'ไม่สามารถดึงข้อมูลนักศึกษาได้: ' + err.message };
+  }
+}
+
+/**
+ * Gets a single student with mentor info.
+ * @param {string} id - Student user ID
+ * @return {Object} Result with student data and mentor info
+ */
+function getStudent(id) {
+  try {
+    var user = getRowById(CONFIG.SHEETS.USERS, id);
+    if (!user) {
+      return { success: false, message: 'ไม่พบข้อมูลนักศึกษา' };
+    }
+
+    // Remove password
+    delete user.password;
+
+    // Get mentor assignment
+    var mentorAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, {
+      studentId: id,
+      isActive: 'true'
+    });
+
+    var mentor = null;
+    if (mentorAssignments.length > 0) {
+      var mentorUser = getRowById(CONFIG.SHEETS.USERS, mentorAssignments[0].mentorId);
+      if (mentorUser) {
+        mentor = {
+          id: mentorUser.id,
+          firstName: mentorUser.firstName,
+          lastName: mentorUser.lastName,
+          email: mentorUser.email,
+          department: mentorUser.department
+        };
+      }
+    }
+
+    user.mentor = mentor;
+    return { success: true, data: user };
+  } catch (err) {
+    Logger.log('Error in getStudent: ' + err.message);
+    return { success: false, message: 'ไม่สามารถดึงข้อมูลนักศึกษาได้: ' + err.message };
+  }
+}
+
+/**
+ * Creates a new student user account.
+ * @param {Object} data - Student data (email, password, firstName, lastName, studentId, department, phone)
+ * @return {Object} Result with created student data
+ */
+function createStudent(data) {
+  try {
+    if (!data.email || !data.password || !data.firstName || !data.lastName) {
+      return { success: false, message: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน' };
+    }
+
+    // Check duplicate email
+    var existing = getRows(CONFIG.SHEETS.USERS, { email: data.email.trim().toLowerCase() });
+    if (existing.length > 0) {
+      return { success: false, message: 'อีเมลนี้ถูกใช้งานแล้ว' };
+    }
+
+    // Check duplicate studentId
+    if (data.studentId) {
+      var existingStudent = getRows(CONFIG.SHEETS.USERS, { studentId: data.studentId });
+      if (existingStudent.length > 0) {
+        return { success: false, message: 'รหัสนักศึกษานี้ถูกใช้งานแล้ว' };
+      }
+    }
+
+    var userData = {
+      email: data.email.trim().toLowerCase(),
+      password: hashPassword(data.password),
+      role: CONFIG.ROLES.STUDENT,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      studentId: data.studentId || '',
+      department: data.department || '',
+      phone: data.phone || '',
+      lineUserId: data.lineUserId || '',
+      profileImage: '',
+      isActive: 'true'
+    };
+
+    var newUser = appendRow(CONFIG.SHEETS.USERS, userData);
+    delete newUser.password;
+
+    return { success: true, data: newUser, message: 'สร้างบัญชีนักศึกษาสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in createStudent: ' + err.message);
+    return { success: false, message: 'ไม่สามารถสร้างบัญชีนักศึกษาได้: ' + err.message };
+  }
+}
+
+/**
+ * Updates student information.
+ * @param {string} id - Student user ID
+ * @param {Object} data - Fields to update
+ * @return {Object} Result with updated student data
+ */
+function updateStudent(id, data) {
+  try {
+    var user = getRowById(CONFIG.SHEETS.USERS, id);
+    if (!user) {
+      return { success: false, message: 'ไม่พบข้อมูลนักศึกษา' };
+    }
+
+    // Don't allow role change through this function
+    delete data.role;
+    delete data.id;
+
+    // Hash password if being updated
+    if (data.password) {
+      data.password = hashPassword(data.password);
+    }
+
+    var updated = updateRow(CONFIG.SHEETS.USERS, id, data);
+    delete updated.password;
+
+    return { success: true, data: updated, message: 'อัปเดตข้อมูลนักศึกษาสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in updateStudent: ' + err.message);
+    return { success: false, message: 'ไม่สามารถอัปเดตข้อมูลนักศึกษาได้: ' + err.message };
+  }
+}
+
+/**
+ * Deactivates a student account.
+ * @param {string} id - Student user ID
+ * @return {Object} Result with success status
+ */
+function deactivateStudent(id) {
+  try {
+    var user = getRowById(CONFIG.SHEETS.USERS, id);
+    if (!user) {
+      return { success: false, message: 'ไม่พบข้อมูลนักศึกษา' };
+    }
+
+    updateRow(CONFIG.SHEETS.USERS, id, { isActive: 'false' });
+
+    return { success: true, message: 'ระงับบัญชีนักศึกษาสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in deactivateStudent: ' + err.message);
+    return { success: false, message: 'ไม่สามารถระงับบัญชีนักศึกษาได้: ' + err.message };
+  }
+}
+
+/**
+ * Gets list of mentors.
+ * @return {Object} Result with mentors array
+ */
+function getMentors() {
+  try {
+    var users = getRows(CONFIG.SHEETS.USERS, { role: CONFIG.ROLES.MENTOR });
+
+    var mentors = users.map(function(u) {
+      return {
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        department: u.department,
+        phone: u.phone,
+        isActive: u.isActive
+      };
+    });
+
+    return { success: true, data: mentors };
+  } catch (err) {
+    Logger.log('Error in getMentors: ' + err.message);
+    return { success: false, message: 'ไม่สามารถดึงข้อมูลพี่เลี้ยงได้: ' + err.message };
+  }
+}
+
+/**
+ * Creates a new mentor user account.
+ * @param {Object} data - Mentor data (email, password, firstName, lastName, department, phone)
+ * @return {Object} Result with created mentor data
+ */
+function createMentor(data) {
+  try {
+    if (!data.email || !data.password || !data.firstName || !data.lastName) {
+      return { success: false, message: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน' };
+    }
+
+    // Check duplicate email
+    var existing = getRows(CONFIG.SHEETS.USERS, { email: data.email.trim().toLowerCase() });
+    if (existing.length > 0) {
+      return { success: false, message: 'อีเมลนี้ถูกใช้งานแล้ว' };
+    }
+
+    var userData = {
+      email: data.email.trim().toLowerCase(),
+      password: hashPassword(data.password),
+      role: CONFIG.ROLES.MENTOR,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      studentId: '',
+      department: data.department || '',
+      phone: data.phone || '',
+      lineUserId: data.lineUserId || '',
+      profileImage: '',
+      isActive: 'true'
+    };
+
+    var newUser = appendRow(CONFIG.SHEETS.USERS, userData);
+    delete newUser.password;
+
+    return { success: true, data: newUser, message: 'สร้างบัญชีพี่เลี้ยงสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in createMentor: ' + err.message);
+    return { success: false, message: 'ไม่สามารถสร้างบัญชีพี่เลี้ยงได้: ' + err.message };
+  }
+}
+
+/**
+ * Assigns a mentor to a student.
+ * @param {string} mentorId - Mentor user ID
+ * @param {string} studentId - Student user ID
+ * @return {Object} Result with success status
+ */
+function assignMentor(mentorId, studentId) {
+  try {
+    // Verify mentor exists and is a mentor
+    var mentor = getRowById(CONFIG.SHEETS.USERS, mentorId);
+    if (!mentor || mentor.role !== CONFIG.ROLES.MENTOR) {
+      return { success: false, message: 'ไม่พบข้อมูลพี่เลี้ยง' };
+    }
+
+    // Verify student exists and is a student
+    var student = getRowById(CONFIG.SHEETS.USERS, studentId);
+    if (!student || student.role !== CONFIG.ROLES.STUDENT) {
+      return { success: false, message: 'ไม่พบข้อมูลนักศึกษา' };
+    }
+
+    // Deactivate existing mentor assignments for this student
+    var existingAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, {
+      studentId: studentId,
+      isActive: 'true'
+    });
+
+    for (var i = 0; i < existingAssignments.length; i++) {
+      updateRow(CONFIG.SHEETS.MENTOR_STUDENTS, existingAssignments[i].id, { isActive: 'false' });
+    }
+
+    // Create new assignment
+    var assignment = {
+      mentorId: mentorId,
+      studentId: studentId,
+      isActive: 'true'
+    };
+
+    appendRow(CONFIG.SHEETS.MENTOR_STUDENTS, assignment);
+
+    // Notify student
+    try {
+      createNotification(
+        studentId,
+        'ได้รับพี่เลี้ยงใหม่',
+        'คุณได้รับมอบหมายพี่เลี้ยง: ' + mentor.firstName + ' ' + mentor.lastName,
+        'info'
+      );
+    } catch (notifErr) {
+      Logger.log('Warning: Could not send notification: ' + notifErr.message);
+    }
+
+    return { success: true, message: 'มอบหมายพี่เลี้ยงสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in assignMentor: ' + err.message);
+    return { success: false, message: 'ไม่สามารถมอบหมายพี่เลี้ยงได้: ' + err.message };
+  }
+}
+
+/**
+ * Gets students assigned to a specific mentor.
+ * @param {string} mentorId - Mentor user ID
+ * @return {Object} Result with students array
+ */
+function getStudentsByMentor(mentorId) {
+  try {
+    var assignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, {
+      mentorId: mentorId,
+      isActive: 'true'
+    });
+
+    var students = [];
+    for (var i = 0; i < assignments.length; i++) {
+      var student = getRowById(CONFIG.SHEETS.USERS, assignments[i].studentId);
+      if (student) {
+        delete student.password;
+        student.assignedAt = assignments[i].assignedAt;
+        students.push(student);
+      }
+    }
+
+    return { success: true, data: students };
+  } catch (err) {
+    Logger.log('Error in getStudentsByMentor: ' + err.message);
+    return { success: false, message: 'ไม่สามารถดึงข้อมูลนักศึกษาได้: ' + err.message };
+  }
+}
+
+/**
+ * Gets full user profile by ID.
+ * @param {string} userId - User ID
+ * @return {Object} Result with user profile data
+ */
+function getUserProfile(userId) {
+  try {
+    var user = getRowById(CONFIG.SHEETS.USERS, userId);
+    if (!user) {
+      return { success: false, message: 'ไม่พบข้อมูลผู้ใช้' };
+    }
+
+    delete user.password;
+
+    // If student, get mentor info
+    if (user.role === CONFIG.ROLES.STUDENT) {
+      var mentorAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, {
+        studentId: userId,
+        isActive: 'true'
+      });
+
+      if (mentorAssignments.length > 0) {
+        var mentorUser = getRowById(CONFIG.SHEETS.USERS, mentorAssignments[0].mentorId);
+        if (mentorUser) {
+          user.mentor = {
+            id: mentorUser.id,
+            firstName: mentorUser.firstName,
+            lastName: mentorUser.lastName,
+            email: mentorUser.email,
+            department: mentorUser.department
+          };
+        }
+      }
+    }
+
+    // If mentor, get student count
+    if (user.role === CONFIG.ROLES.MENTOR) {
+      var studentAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, {
+        mentorId: userId,
+        isActive: 'true'
+      });
+      user.studentCount = studentAssignments.length;
+    }
+
+    return { success: true, data: user };
+  } catch (err) {
+    Logger.log('Error in getUserProfile: ' + err.message);
+    return { success: false, message: 'ไม่สามารถดึงข้อมูลโปรไฟล์ได้: ' + err.message };
+  }
+}
+
+/**
+ * Updates own profile.
+ * @param {string} userId - User ID
+ * @param {Object} data - Fields to update (firstName, lastName, phone, lineUserId, profileImage)
+ * @return {Object} Result with updated profile data
+ */
+function updateProfile(userId, data) {
+  try {
+    var user = getRowById(CONFIG.SHEETS.USERS, userId);
+    if (!user) {
+      return { success: false, message: 'ไม่พบข้อมูลผู้ใช้' };
+    }
+
+    // Only allow updating certain fields
+    var allowedFields = ['firstName', 'lastName', 'phone', 'lineUserId', 'profileImage', 'department'];
+    var updateData = {};
+    for (var i = 0; i < allowedFields.length; i++) {
+      if (data[allowedFields[i]] !== undefined) {
+        updateData[allowedFields[i]] = data[allowedFields[i]];
+      }
+    }
+
+    // Handle password change
+    if (data.newPassword) {
+      if (!data.currentPassword) {
+        return { success: false, message: 'กรุณากรอกรหัสผ่านปัจจุบัน' };
+      }
+      if (hashPassword(data.currentPassword) !== user.password) {
+        return { success: false, message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' };
+      }
+      if (data.newPassword.length < 6) {
+        return { success: false, message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' };
+      }
+      updateData.password = hashPassword(data.newPassword);
+    }
+
+    var updated = updateRow(CONFIG.SHEETS.USERS, userId, updateData);
+    delete updated.password;
+
+    // Update session data
+    setCurrentUser({
+      id: updated.id,
+      email: updated.email,
+      role: updated.role,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      studentId: updated.studentId,
+      department: updated.department,
+      phone: updated.phone,
+      lineUserId: updated.lineUserId,
+      profileImage: updated.profileImage,
+      isActive: updated.isActive
+    });
+
+    return { success: true, data: updated, message: 'อัปเดตโปรไฟล์สำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in updateProfile: ' + err.message);
+    return { success: false, message: 'ไม่สามารถอัปเดตโปรไฟล์ได้: ' + err.message };
+  }
+}

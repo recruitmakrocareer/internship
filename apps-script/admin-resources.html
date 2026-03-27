@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการแหล่งความรู้ - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .modal-overlay { background: rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b"><h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1></div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold" id="page-title">จัดการแหล่งความรู้</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="resource-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-overlay">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800" id="modal-title">เพิ่มแหล่งความรู้</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      </div>
+      <form id="resource-form" onsubmit="saveResource(event)">
+        <input type="hidden" id="r-id">
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label><input type="text" id="r-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย</label><textarea id="r-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></textarea></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
+              <select id="r-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                <option value="เอกสาร">เอกสาร</option><option value="บทเรียน">บทเรียน</option><option value="วิดีโอ">วิดีโอ</option><option value="ลิงก์">ลิงก์</option>
+              </select></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">ประเภท</label>
+              <select id="r-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                <option value="document">เอกสาร</option><option value="lesson">บทเรียน</option><option value="video">วิดีโอ</option><option value="link">ลิงก์</option>
+              </select></div>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">URL</label><input type="url" id="r-url" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="https://..."></div>
+        </div>
+        <button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">บันทึก</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var scriptUrl = '';
+    var resourcesList = [];
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(url) { scriptUrl = url; }).getScriptUrl();
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        loadPageData();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) { google.script.run.withSuccessHandler(function(url) { window.top.location.href = url + '?page=' + page; }).getScriptUrl(); }
+    function logout() { google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout(); }
+    function getRoleLabel(role) { return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role; }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'admin-resources' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast ' + (isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white');
+      setTimeout(function() { toast.className = 'hidden'; }, 3000);
+    }
+
+    function openModal() { document.getElementById('resource-modal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('resource-modal').classList.add('hidden'); }
+
+    function getTypeIcon(type) {
+      return { 'document': '📄', 'lesson': '📖', 'video': '🎬', 'link': '🔗' }[type] || '📄';
+    }
+
+    function loadPageData() {
+      google.script.run.withSuccessHandler(function(list) {
+        resourcesList = list || [];
+        renderResources();
+      }).withFailureHandler(function() {
+        document.getElementById('content').innerHTML = '<p class="text-red-500 text-center">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getResources();
+    }
+
+    function renderResources() {
+      var html = '<div class="flex justify-between items-center mb-6">' +
+        '<h3 class="text-lg font-bold text-gray-800">แหล่งความรู้ทั้งหมด (' + resourcesList.length + ')</h3>' +
+        '<button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">+ เพิ่มแหล่งความรู้</button></div>';
+
+      if (!resourcesList.length) {
+        html += '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center"><p class="text-gray-400">ยังไม่มีแหล่งความรู้</p></div>';
+      } else {
+        html += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+        resourcesList.forEach(function(r) {
+          var catColors = { 'เอกสาร': 'bg-blue-100 text-blue-700', 'บทเรียน': 'bg-green-100 text-green-700', 'วิดีโอ': 'bg-red-100 text-red-700', 'ลิงก์': 'bg-purple-100 text-purple-700' };
+          html += '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">' +
+            '<div class="flex items-start gap-3 mb-3">' +
+            '<div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0">' + getTypeIcon(r.type) + '</div>' +
+            '<div class="flex-1 min-w-0">' +
+            '<h4 class="font-semibold text-gray-800 truncate">' + escapeHtml(r.title || '') + '</h4>' +
+            '<p class="text-sm text-gray-500 mt-1 line-clamp-2">' + escapeHtml(r.description || '') + '</p></div></div>' +
+            '<div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">' +
+            '<span class="text-xs px-2 py-0.5 rounded-full ' + (catColors[r.category] || 'bg-gray-100 text-gray-700') + '">' + escapeHtml(r.category || '') + '</span>' +
+            '<div class="flex gap-2">' +
+            '<button onclick="editResource(\'' + r.resourceId + '\')" class="text-blue-600 hover:text-blue-800 text-xs">แก้ไข</button>' +
+            '<button onclick="deleteResource(\'' + r.resourceId + '\')" class="text-red-600 hover:text-red-800 text-xs">ลบ</button>' +
+            '</div></div></div>';
+        });
+        html += '</div>';
+      }
+
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function openAddModal() {
+      document.getElementById('modal-title').textContent = 'เพิ่มแหล่งความรู้';
+      document.getElementById('resource-form').reset();
+      document.getElementById('r-id').value = '';
+      openModal();
+    }
+
+    function editResource(resourceId) {
+      var r = resourcesList.find(function(res) { return res.resourceId === resourceId; });
+      if (!r) return;
+      document.getElementById('modal-title').textContent = 'แก้ไขแหล่งความรู้';
+      document.getElementById('r-id').value = r.resourceId;
+      document.getElementById('r-title').value = r.title || '';
+      document.getElementById('r-description').value = r.description || '';
+      document.getElementById('r-category').value = r.category || 'เอกสาร';
+      document.getElementById('r-type').value = r.type || 'document';
+      document.getElementById('r-url').value = r.url || '';
+      openModal();
+    }
+
+    function saveResource(e) {
+      e.preventDefault();
+      var id = document.getElementById('r-id').value;
+      var data = {
+        title: document.getElementById('r-title').value.trim(),
+        description: document.getElementById('r-description').value.trim(),
+        category: document.getElementById('r-category').value,
+        type: document.getElementById('r-type').value,
+        url: document.getElementById('r-url').value.trim()
+      };
+
+      var handler = function(result) {
+        if (result && result.success) {
+          showToast(id ? 'แก้ไขสำเร็จ' : 'เพิ่มสำเร็จ');
+          closeModal();
+          loadPageData();
+        } else { showToast(result && result.message ? result.message : 'ไม่สามารถบันทึกได้', true); }
+      };
+      var errHandler = function(err) { showToast('เกิดข้อผิดพลาด: ' + err.message, true); };
+
+      if (id) {
+        data.resourceId = id;
+        google.script.run.withSuccessHandler(handler).withFailureHandler(errHandler).updateResource(data);
+      } else {
+        google.script.run.withSuccessHandler(handler).withFailureHandler(errHandler).createResource(data);
+      }
+    }
+
+    function deleteResource(resourceId) {
+      if (!confirm('ต้องการลบแหล่งความรู้นี้?')) return;
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          showToast('ลบสำเร็จ');
+          loadPageData();
+        } else { showToast('ไม่สามารถลบได้', true); }
+      }).withFailureHandler(function() {
+        showToast('เกิดข้อผิดพลาด', true);
+      }).deleteResource(resourceId);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>

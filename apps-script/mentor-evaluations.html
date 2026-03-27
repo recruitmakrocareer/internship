@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ประเมินผล - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .modal-overlay { background: rgba(0,0,0,0.5); }
+    input[type="range"] { -webkit-appearance: none; height: 8px; border-radius: 4px; background: #e5e7eb; outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #2563eb; cursor: pointer; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b"><h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1></div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold" id="page-title">ประเมินผล</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Evaluate Modal -->
+  <div id="eval-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-overlay">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800">ประเมินนักศึกษา</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      </div>
+      <p class="text-sm text-gray-600 mb-4" id="eval-student-name"></p>
+      <input type="hidden" id="eval-student-id">
+      <form id="eval-form" onsubmit="submitEvaluation(event)">
+        <div id="eval-criteria" class="space-y-5"></div>
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">ความคิดเห็นเพิ่มเติม</label>
+          <textarea id="eval-comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="ระบุความคิดเห็น..."></textarea>
+        </div>
+        <button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">ส่งแบบประเมิน</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var scriptUrl = '';
+    var criteria = [
+      { key: 'responsibility', label: 'ความรับผิดชอบ' },
+      { key: 'learning', label: 'ทักษะการเรียนรู้' },
+      { key: 'quality', label: 'คุณภาพงาน' },
+      { key: 'teamwork', label: 'การทำงานเป็นทีม' },
+      { key: 'punctuality', label: 'ความตรงต่อเวลา' }
+    ];
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(url) { scriptUrl = url; }).getScriptUrl();
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        buildCriteriaForm();
+        loadPageData();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) { google.script.run.withSuccessHandler(function(url) { window.top.location.href = url + '?page=' + page; }).getScriptUrl(); }
+    function logout() { google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout(); }
+    function getRoleLabel(role) { return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role; }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'mentor-evaluations' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast ' + (isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white');
+      setTimeout(function() { toast.className = 'hidden'; }, 3000);
+    }
+
+    function openModal() { document.getElementById('eval-modal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('eval-modal').classList.add('hidden'); }
+
+    function buildCriteriaForm() {
+      var html = '';
+      criteria.forEach(function(c) {
+        html += '<div>' +
+          '<div class="flex justify-between items-center mb-2">' +
+          '<label class="text-sm font-medium text-gray-700">' + c.label + '</label>' +
+          '<span id="val-' + c.key + '" class="text-sm font-bold text-blue-600">3</span></div>' +
+          '<input type="range" min="1" max="5" value="3" id="score-' + c.key + '" class="w-full" oninput="document.getElementById(\'val-' + c.key + '\').textContent=this.value">' +
+          '<div class="flex justify-between text-xs text-gray-400 mt-1"><span>1 - น้อยที่สุด</span><span>5 - มากที่สุด</span></div>' +
+          '</div>';
+      });
+      document.getElementById('eval-criteria').innerHTML = html;
+    }
+
+    function loadPageData() {
+      var content = document.getElementById('content');
+
+      var html = '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">';
+
+      // Section 1: Evaluate students
+      html += '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">' +
+        '<h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">' +
+        '<span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-sm">⭐</span>' +
+        'ประเมินนักศึกษา</h3>' +
+        '<div id="students-list"><div class="flex justify-center py-8"><div class="spinner"></div></div></div>' +
+        '</div>';
+
+      // Section 2: Received evaluations
+      html += '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">' +
+        '<h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">' +
+        '<span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm">📋</span>' +
+        'ผลประเมินจากนักศึกษา</h3>' +
+        '<div id="received-evals"><div class="flex justify-center py-8"><div class="spinner"></div></div></div>' +
+        '</div>';
+
+      html += '</div>';
+      content.innerHTML = html;
+
+      // Load assigned students
+      google.script.run.withSuccessHandler(function(students) {
+        var el = document.getElementById('students-list');
+        if (!students || !students.length) {
+          el.innerHTML = '<p class="text-gray-400 text-center py-4">ไม่มีนักศึกษาในดูแล</p>';
+          return;
+        }
+        var h = '<div class="space-y-3">';
+        students.forEach(function(s) {
+          h += '<div class="flex items-center justify-between py-3 px-4 border border-gray-100 rounded-lg">' +
+            '<div class="flex items-center gap-3">' +
+            '<div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">👤</div>' +
+            '<div><p class="text-sm font-medium text-gray-800">' + escapeHtml(s.name || '') + '</p>' +
+            '<p class="text-xs text-gray-400">' + escapeHtml(s.university || '') + ' - ' + escapeHtml(s.major || '') + '</p></div></div>' +
+            '<button onclick="openEvalModal(\'' + s.userId + '\', \'' + escapeHtml(s.name || '') + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm transition">ประเมิน</button>' +
+            '</div>';
+        });
+        h += '</div>';
+        el.innerHTML = h;
+      }).withFailureHandler(function() {
+        document.getElementById('students-list').innerHTML = '<p class="text-gray-400 text-center">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getMentorStudents();
+
+      // Load received evaluations
+      google.script.run.withSuccessHandler(function(evals) {
+        var el = document.getElementById('received-evals');
+        if (!evals || !evals.length) {
+          el.innerHTML = '<p class="text-gray-400 text-center py-4">ยังไม่มีผลประเมิน</p>';
+          return;
+        }
+        var h = '<div class="space-y-3">';
+        evals.forEach(function(ev) {
+          h += '<div class="border border-gray-100 rounded-lg p-4">' +
+            '<div class="flex justify-between items-center mb-2">' +
+            '<span class="text-sm font-semibold text-gray-700">' + escapeHtml(ev.evaluatorName || 'นักศึกษา') + '</span>' +
+            '<span class="text-xs text-gray-400">' + (ev.createdAt || '') + '</span></div>';
+          if (ev.scores) {
+            var scoreLabels = { teaching: 'การสอน', communication: 'การสื่อสาร', professionalism: 'ความเป็นมืออาชีพ', support: 'การสนับสนุน' };
+            Object.keys(ev.scores).forEach(function(k) {
+              h += '<div class="flex justify-between text-sm py-1"><span class="text-gray-600">' + (scoreLabels[k] || k) + '</span>' +
+                '<div class="flex gap-0.5">' + renderStars(ev.scores[k]) + '</div></div>';
+            });
+          }
+          if (ev.comment) {
+            h += '<p class="text-sm text-gray-500 mt-2 pt-2 border-t">' + escapeHtml(ev.comment) + '</p>';
+          }
+          h += '</div>';
+        });
+        h += '</div>';
+        el.innerHTML = h;
+      }).withFailureHandler(function() {
+        document.getElementById('received-evals').innerHTML = '<p class="text-gray-400 text-center">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getEvaluations({ evaluateeId: currentUser.userId, type: 'student_to_mentor' });
+    }
+
+    function renderStars(score) {
+      var s = '';
+      for (var i = 1; i <= 5; i++) {
+        s += '<span class="' + (i <= score ? 'text-yellow-400' : 'text-gray-300') + '">&#9733;</span>';
+      }
+      return s;
+    }
+
+    function openEvalModal(studentId, studentName) {
+      document.getElementById('eval-student-id').value = studentId;
+      document.getElementById('eval-student-name').textContent = 'นักศึกษา: ' + studentName;
+      document.getElementById('eval-comment').value = '';
+      criteria.forEach(function(c) {
+        document.getElementById('score-' + c.key).value = 3;
+        document.getElementById('val-' + c.key).textContent = '3';
+      });
+      openModal();
+    }
+
+    function submitEvaluation(e) {
+      e.preventDefault();
+      var scores = {};
+      criteria.forEach(function(c) {
+        scores[c.key] = parseInt(document.getElementById('score-' + c.key).value);
+      });
+
+      var data = {
+        type: 'mentor_to_student',
+        evaluatorId: currentUser.userId,
+        evaluateeId: document.getElementById('eval-student-id').value,
+        scores: scores,
+        comment: document.getElementById('eval-comment').value.trim()
+      };
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          showToast('ส่งแบบประเมินสำเร็จ');
+          closeModal();
+        } else { showToast(result && result.message ? result.message : 'ไม่สามารถส่งได้', true); }
+      }).withFailureHandler(function(err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, true);
+      }).createEvaluation(data);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>

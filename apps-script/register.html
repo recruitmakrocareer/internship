@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สมัครสมาชิก - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex items-center justify-center p-4">
+
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 my-8">
+    <div class="text-center mb-6">
+      <div class="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-800">สมัครสมาชิก</h1>
+      <p class="text-gray-500 mt-1">สร้างบัญชีนักศึกษาฝึกงาน</p>
+    </div>
+
+    <div id="error-msg" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm"></div>
+    <div id="success-msg" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm"></div>
+
+    <form id="register-form" onsubmit="handleRegister(event)">
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล <span class="text-red-500">*</span></label>
+          <input type="text" id="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="ชื่อ นามสกุล">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล <span class="text-red-500">*</span></label>
+          <input type="email" id="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="your@email.com">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน <span class="text-red-500">*</span></label>
+            <input type="password" id="password" required minlength="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="อย่างน้อย 6 ตัวอักษร">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่าน <span class="text-red-500">*</span></label>
+            <input type="password" id="confirm-password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="ยืนยันรหัสผ่าน">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">รหัสนักศึกษา <span class="text-red-500">*</span></label>
+          <input type="text" id="student-id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="เช่น 6401234567">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">มหาวิทยาลัย <span class="text-red-500">*</span></label>
+          <input type="text" id="university" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="ชื่อมหาวิทยาลัย">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">คณะ <span class="text-red-500">*</span></label>
+            <input type="text" id="faculty" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="คณะ">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">สาขา <span class="text-red-500">*</span></label>
+            <input type="text" id="major" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="สาขาวิชา">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชั้นปี <span class="text-red-500">*</span></label>
+          <select id="year" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            <option value="">เลือกชั้นปี</option>
+            <option value="1">ปี 1</option>
+            <option value="2">ปี 2</option>
+            <option value="3">ปี 3</option>
+            <option value="4">ปี 4</option>
+            <option value="5">ปี 5</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" id="submit-btn"
+        class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2">
+        <span id="btn-text">สมัครสมาชิก</span>
+        <span id="btn-spinner" class="spinner hidden"></span>
+      </button>
+    </form>
+
+    <div class="mt-4 text-center">
+      <p class="text-sm text-gray-500">มีบัญชีอยู่แล้ว?
+        <a href="#" onclick="navigateTo('login')" class="text-blue-600 hover:text-blue-800 font-medium">เข้าสู่ระบบ</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function handleRegister(e) {
+      e.preventDefault();
+      var password = document.getElementById('password').value;
+      var confirmPassword = document.getElementById('confirm-password').value;
+
+      if (password !== confirmPassword) {
+        showError('รหัสผ่านไม่ตรงกัน');
+        return;
+      }
+
+      var data = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: password,
+        studentId: document.getElementById('student-id').value.trim(),
+        university: document.getElementById('university').value.trim(),
+        faculty: document.getElementById('faculty').value.trim(),
+        major: document.getElementById('major').value.trim(),
+        year: document.getElementById('year').value
+      };
+
+      setLoading(true);
+      hideMessages();
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          setLoading(false);
+          if (result && result.success) {
+            showSuccess('สมัครสมาชิกสำเร็จ! กำลังนำคุณไปหน้าเข้าสู่ระบบ...');
+            setTimeout(function() { navigateTo('login'); }, 2000);
+          } else {
+            showError(result && result.message ? result.message : 'ไม่สามารถสมัครสมาชิกได้');
+          }
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          showError('เกิดข้อผิดพลาด: ' + (err.message || 'กรุณาลองใหม่อีกครั้ง'));
+        })
+        .register(data);
+    }
+
+    function setLoading(loading) {
+      var btn = document.getElementById('submit-btn');
+      var btnText = document.getElementById('btn-text');
+      var spinner = document.getElementById('btn-spinner');
+      btn.disabled = loading;
+      btnText.textContent = loading ? 'กำลังสมัคร...' : 'สมัครสมาชิก';
+      spinner.classList.toggle('hidden', !loading);
+      btn.classList.toggle('opacity-75', loading);
+    }
+
+    function showError(msg) {
+      var el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function showSuccess(msg) {
+      var el = document.getElementById('success-msg');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideMessages() {
+      document.getElementById('error-msg').classList.add('hidden');
+      document.getElementById('success-msg').classList.add('hidden');
+    }
+
+    function navigateTo(page) {
+      google.script.run.withSuccessHandler(function(url) {
+        window.top.location.href = url + '?page=' + page;
+      }).getScriptUrl();
+    }
+  </script>
+</body>
+</html>

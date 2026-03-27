@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แดชบอร์ด - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b">
+      <h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1>
+    </div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <!-- Navbar -->
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold" id="page-title">แดชบอร์ด</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var scriptUrl = '';
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(url) { scriptUrl = url; }).getScriptUrl();
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        loadPageData();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) {
+      google.script.run.withSuccessHandler(function(url) {
+        window.top.location.href = url + '?page=' + page;
+      }).getScriptUrl();
+    }
+
+    function logout() {
+      google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout();
+    }
+
+    function getRoleLabel(role) {
+      return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role;
+    }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'dashboard' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function loadPageData() {
+      var content = document.getElementById('content');
+      if (currentUser.role === 'ADMIN') {
+        loadAdminDashboard(content);
+      } else if (currentUser.role === 'STUDENT') {
+        loadStudentDashboard(content);
+      } else if (currentUser.role === 'MENTOR') {
+        loadMentorDashboard(content);
+      }
+    }
+
+    function loadAdminDashboard(content) {
+      content.innerHTML = '<div class="mb-6"><h3 class="text-xl font-bold text-gray-800">สวัสดี, ' + currentUser.name + '</h3><p class="text-gray-500">ภาพรวมระบบจัดการฝึกงาน</p></div><div id="stats-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="bg-white rounded-xl p-6 shadow-sm animate-pulse"><div class="h-16 bg-gray-200 rounded"></div></div><div class="bg-white rounded-xl p-6 shadow-sm animate-pulse"><div class="h-16 bg-gray-200 rounded"></div></div><div class="bg-white rounded-xl p-6 shadow-sm animate-pulse"><div class="h-16 bg-gray-200 rounded"></div></div><div class="bg-white rounded-xl p-6 shadow-sm animate-pulse"><div class="h-16 bg-gray-200 rounded"></div></div></div>';
+
+      google.script.run.withSuccessHandler(function(stats) {
+        if (!stats) stats = {};
+        document.getElementById('stats-grid').innerHTML =
+          buildStatCard('นักศึกษาทั้งหมด', stats.totalStudents || 0, 'bg-blue-500', '👨‍🎓') +
+          buildStatCard('พี่เลี้ยงทั้งหมด', stats.totalMentors || 0, 'bg-green-500', '👨‍🏫') +
+          buildStatCard('งานที่มอบหมาย', stats.totalAssignments || 0, 'bg-purple-500', '📝') +
+          buildStatCard('อัตราสำเร็จ', (stats.completionRate || 0) + '%', 'bg-orange-500', '✅');
+      }).withFailureHandler(function() {
+        document.getElementById('stats-grid').innerHTML = '<p class="text-red-500 col-span-4">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getAdminStats();
+    }
+
+    function buildStatCard(label, value, color, icon) {
+      return '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">' +
+        '<div class="flex items-center justify-between">' +
+        '<div><p class="text-sm text-gray-500">' + label + '</p><p class="text-3xl font-bold text-gray-800 mt-1">' + value + '</p></div>' +
+        '<div class="w-12 h-12 ' + color + ' rounded-lg flex items-center justify-center text-white text-xl">' + icon + '</div>' +
+        '</div></div>';
+    }
+
+    function loadStudentDashboard(content) {
+      content.innerHTML = '<div class="mb-6"><h3 class="text-xl font-bold text-gray-800">สวัสดี, ' + currentUser.name + '</h3><p class="text-gray-500">สถานะการฝึกงานของคุณ</p></div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-6">' +
+        '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">🗺️</div><h4 class="font-semibold text-gray-700">ความก้าวหน้า Roadmap</h4></div><div id="roadmap-progress"><div class="animate-pulse h-4 bg-gray-200 rounded"></div></div></div>' +
+        '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">📝</div><h4 class="font-semibold text-gray-700">งานที่รอส่ง</h4></div><div id="pending-assignments"><div class="animate-pulse h-4 bg-gray-200 rounded"></div></div></div>' +
+        '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">🔔</div><h4 class="font-semibold text-gray-700">การแจ้งเตือนล่าสุด</h4></div><div id="recent-notifications"><div class="animate-pulse h-4 bg-gray-200 rounded"></div></div></div>' +
+        '</div>';
+
+      google.script.run.withSuccessHandler(function(progress) {
+        var pct = progress && progress.percentage ? progress.percentage : 0;
+        document.getElementById('roadmap-progress').innerHTML =
+          '<div class="text-3xl font-bold text-blue-600 mb-2">' + pct + '%</div>' +
+          '<div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-blue-600 h-3 rounded-full" style="width:' + pct + '%"></div></div>';
+      }).withFailureHandler(function() {
+        document.getElementById('roadmap-progress').innerHTML = '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>';
+      }).getRoadmapProgress(currentUser.userId);
+
+      google.script.run.withSuccessHandler(function(assignments) {
+        var pending = 0;
+        if (assignments && assignments.length) {
+          pending = assignments.filter(function(a) { return !a.submitted; }).length;
+        }
+        document.getElementById('pending-assignments').innerHTML =
+          '<div class="text-3xl font-bold text-yellow-600">' + pending + '</div><p class="text-sm text-gray-500 mt-1">งานที่ต้องส่ง</p>';
+      }).withFailureHandler(function() {
+        document.getElementById('pending-assignments').innerHTML = '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>';
+      }).getAssignments();
+
+      google.script.run.withSuccessHandler(function(notifications) {
+        var html = '';
+        if (notifications && notifications.length) {
+          notifications.slice(0, 3).forEach(function(n) {
+            html += '<div class="py-2 border-b border-gray-100 last:border-0"><p class="text-sm font-medium text-gray-700">' + n.title + '</p><p class="text-xs text-gray-400">' + (n.createdAt || '') + '</p></div>';
+          });
+        } else {
+          html = '<p class="text-gray-400 text-sm">ไม่มีการแจ้งเตือน</p>';
+        }
+        document.getElementById('recent-notifications').innerHTML = html;
+      }).withFailureHandler(function() {
+        document.getElementById('recent-notifications').innerHTML = '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>';
+      }).getNotifications();
+    }
+
+    function loadMentorDashboard(content) {
+      content.innerHTML = '<div class="mb-6"><h3 class="text-xl font-bold text-gray-800">สวัสดี, ' + currentUser.name + '</h3><p class="text-gray-500">ภาพรวมการดูแลนักศึกษา</p></div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
+        '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">👨‍🎓</div><h4 class="font-semibold text-gray-700">นักศึกษาในดูแล</h4></div><div id="student-count"><div class="animate-pulse h-4 bg-gray-200 rounded"></div></div></div>' +
+        '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">📋</div><h4 class="font-semibold text-gray-700">รอตรวจงาน</h4></div><div id="pending-reviews"><div class="animate-pulse h-4 bg-gray-200 rounded"></div></div></div>' +
+        '</div>';
+
+      google.script.run.withSuccessHandler(function(students) {
+        var count = students ? students.length : 0;
+        document.getElementById('student-count').innerHTML =
+          '<div class="text-3xl font-bold text-blue-600">' + count + '</div><p class="text-sm text-gray-500 mt-1">คน</p>';
+      }).withFailureHandler(function() {
+        document.getElementById('student-count').innerHTML = '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>';
+      }).getMentorStudents();
+
+      google.script.run.withSuccessHandler(function(submissions) {
+        var pending = 0;
+        if (submissions && submissions.length) {
+          pending = submissions.filter(function(s) { return s.status === 'SUBMITTED'; }).length;
+        }
+        document.getElementById('pending-reviews').innerHTML =
+          '<div class="text-3xl font-bold text-orange-600">' + pending + '</div><p class="text-sm text-gray-500 mt-1">งาน</p>';
+      }).withFailureHandler(function() {
+        document.getElementById('pending-reviews').innerHTML = '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>';
+      }).getSubmissions({ mentorId: currentUser.userId });
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>

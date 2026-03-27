@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการพี่เลี้ยง - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .modal-overlay { background: rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b">
+      <h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1>
+    </div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold" id="page-title">จัดการพี่เลี้ยง</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Add Mentor Modal -->
+  <div id="add-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-overlay">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800">เพิ่มพี่เลี้ยง</h3>
+        <button onclick="closeModal('add-modal')" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      </div>
+      <form id="add-form" onsubmit="addMentor(event)">
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label><input type="text" id="add-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label><input type="email" id="add-email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label><input type="password" id="add-password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label><input type="text" id="add-position" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="เช่น Senior Developer"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ความเชี่ยวชาญ</label><input type="text" id="add-expertise" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="เช่น JavaScript, Python"></div>
+        </div>
+        <button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">เพิ่มพี่เลี้ยง</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var scriptUrl = '';
+    var mentorsList = [];
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(url) { scriptUrl = url; }).getScriptUrl();
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        loadPageData();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) { google.script.run.withSuccessHandler(function(url) { window.top.location.href = url + '?page=' + page; }).getScriptUrl(); }
+    function logout() { google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout(); }
+    function getRoleLabel(role) { return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role; }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'admin-mentors' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast ' + (isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white');
+      setTimeout(function() { toast.className = 'hidden'; }, 3000);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function loadPageData() {
+      google.script.run.withSuccessHandler(function(list) {
+        mentorsList = list || [];
+        renderMentors();
+      }).withFailureHandler(function() {
+        document.getElementById('content').innerHTML = '<p class="text-red-500 text-center">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getUsers({ role: 'MENTOR' });
+    }
+
+    function renderMentors() {
+      var html = '<div class="flex justify-between items-center mb-6">' +
+        '<h3 class="text-lg font-bold text-gray-800">พี่เลี้ยงทั้งหมด (' + mentorsList.length + ')</h3>' +
+        '<button onclick="openModal(\'add-modal\')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">+ เพิ่มพี่เลี้ยง</button>' +
+        '</div>';
+
+      html += '<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">' +
+        '<div class="overflow-x-auto"><table class="w-full">' +
+        '<thead><tr class="bg-gray-50 text-left text-sm text-gray-500">' +
+        '<th class="px-6 py-3 font-medium">ชื่อ</th>' +
+        '<th class="px-6 py-3 font-medium">ตำแหน่ง</th>' +
+        '<th class="px-6 py-3 font-medium">ความเชี่ยวชาญ</th>' +
+        '<th class="px-6 py-3 font-medium">จำนวนนักศึกษา</th>' +
+        '</tr></thead><tbody>';
+
+      if (!mentorsList.length) {
+        html += '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">ไม่พบข้อมูลพี่เลี้ยง</td></tr>';
+      } else {
+        mentorsList.forEach(function(m) {
+          html += '<tr class="border-t border-gray-100 hover:bg-gray-50">' +
+            '<td class="px-6 py-3"><div><p class="text-sm font-medium text-gray-800">' + escapeHtml(m.name || '') + '</p><p class="text-xs text-gray-400">' + escapeHtml(m.email || '') + '</p></div></td>' +
+            '<td class="px-6 py-3 text-sm text-gray-600">' + escapeHtml(m.position || '-') + '</td>' +
+            '<td class="px-6 py-3 text-sm text-gray-600">' + escapeHtml(m.expertise || '-') + '</td>' +
+            '<td class="px-6 py-3 text-sm text-gray-600">' + (m.studentCount || 0) + ' คน</td>' +
+            '</tr>';
+        });
+      }
+
+      html += '</tbody></table></div></div>';
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function addMentor(e) {
+      e.preventDefault();
+      var data = {
+        name: document.getElementById('add-name').value.trim(),
+        email: document.getElementById('add-email').value.trim(),
+        password: document.getElementById('add-password').value,
+        role: 'MENTOR',
+        position: document.getElementById('add-position').value.trim(),
+        expertise: document.getElementById('add-expertise').value.trim()
+      };
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          showToast('เพิ่มพี่เลี้ยงสำเร็จ');
+          closeModal('add-modal');
+          document.getElementById('add-form').reset();
+          loadPageData();
+        } else {
+          showToast(result && result.message ? result.message : 'ไม่สามารถเพิ่มได้', true);
+        }
+      }).withFailureHandler(function(err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, true);
+      }).register(data);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>

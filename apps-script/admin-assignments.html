@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการงาน - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .modal-overlay { background: rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b"><h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1></div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold" id="page-title">จัดการงาน</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Create Modal -->
+  <div id="create-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-overlay">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800">สร้างงานใหม่</h3>
+        <button onclick="closeModal('create-modal')" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      </div>
+      <form id="create-form" onsubmit="createAssignment(event)">
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ชื่องาน</label><input type="text" id="a-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย</label><textarea id="a-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></textarea></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">กำหนดส่ง</label><input type="date" id="a-duedate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">คะแนนเต็ม</label><input type="number" id="a-maxscore" required min="1" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"></div>
+          </div>
+        </div>
+        <button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">สร้างงาน</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Submissions Modal -->
+  <div id="subs-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-overlay">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 m-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800" id="subs-title">การส่งงาน</h3>
+        <button onclick="closeModal('subs-modal')" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      </div>
+      <div id="subs-content"></div>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var scriptUrl = '';
+    var assignmentsList = [];
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(url) { scriptUrl = url; }).getScriptUrl();
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        loadPageData();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) { google.script.run.withSuccessHandler(function(url) { window.top.location.href = url + '?page=' + page; }).getScriptUrl(); }
+    function logout() { google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout(); }
+    function getRoleLabel(role) { return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role; }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'admin-assignments' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast ' + (isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white');
+      setTimeout(function() { toast.className = 'hidden'; }, 3000);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function loadPageData() {
+      google.script.run.withSuccessHandler(function(list) {
+        assignmentsList = list || [];
+        renderAssignments();
+      }).withFailureHandler(function() {
+        document.getElementById('content').innerHTML = '<p class="text-red-500 text-center">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getAssignments();
+    }
+
+    function renderAssignments() {
+      var html = '<div class="flex justify-between items-center mb-6">' +
+        '<h3 class="text-lg font-bold text-gray-800">งานทั้งหมด (' + assignmentsList.length + ')</h3>' +
+        '<button onclick="openModal(\'create-modal\')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">+ สร้างงาน</button></div>';
+
+      html += '<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"><div class="overflow-x-auto"><table class="w-full">' +
+        '<thead><tr class="bg-gray-50 text-left text-sm text-gray-500">' +
+        '<th class="px-6 py-3 font-medium">ชื่องาน</th>' +
+        '<th class="px-6 py-3 font-medium">กำหนดส่ง</th>' +
+        '<th class="px-6 py-3 font-medium">คะแนนเต็ม</th>' +
+        '<th class="px-6 py-3 font-medium">จำนวนผู้ส่ง</th>' +
+        '<th class="px-6 py-3 font-medium">การดำเนินการ</th>' +
+        '</tr></thead><tbody>';
+
+      if (!assignmentsList.length) {
+        html += '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">ยังไม่มีงาน</td></tr>';
+      } else {
+        assignmentsList.forEach(function(a) {
+          html += '<tr class="border-t border-gray-100 hover:bg-gray-50">' +
+            '<td class="px-6 py-3"><p class="text-sm font-medium text-gray-800">' + escapeHtml(a.title || '') + '</p><p class="text-xs text-gray-400 mt-0.5">' + escapeHtml(a.description || '').substring(0, 60) + '</p></td>' +
+            '<td class="px-6 py-3 text-sm text-gray-600">' + (a.dueDate || '-') + '</td>' +
+            '<td class="px-6 py-3 text-sm text-gray-600">' + (a.maxScore || 0) + '</td>' +
+            '<td class="px-6 py-3 text-sm text-gray-600">' + (a.submissionCount || 0) + '</td>' +
+            '<td class="px-6 py-3"><button onclick="viewSubmissions(\'' + a.assignmentId + '\', \'' + escapeHtml(a.title || '') + '\')" class="text-blue-600 hover:text-blue-800 text-sm">ดูการส่งงาน</button></td>' +
+            '</tr>';
+        });
+      }
+
+      html += '</tbody></table></div></div>';
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function createAssignment(e) {
+      e.preventDefault();
+      var data = {
+        title: document.getElementById('a-title').value.trim(),
+        description: document.getElementById('a-description').value.trim(),
+        dueDate: document.getElementById('a-duedate').value,
+        maxScore: parseInt(document.getElementById('a-maxscore').value) || 100
+      };
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          showToast('สร้างงานสำเร็จ');
+          closeModal('create-modal');
+          document.getElementById('create-form').reset();
+          loadPageData();
+        } else { showToast(result && result.message ? result.message : 'ไม่สามารถสร้างได้', true); }
+      }).withFailureHandler(function(err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, true);
+      }).createAssignment(data);
+    }
+
+    function viewSubmissions(assignmentId, title) {
+      document.getElementById('subs-title').textContent = 'การส่งงาน: ' + title;
+      document.getElementById('subs-content').innerHTML = '<div class="flex justify-center py-8"><div class="spinner"></div></div>';
+      openModal('subs-modal');
+
+      google.script.run.withSuccessHandler(function(subs) {
+        var html = '';
+        if (!subs || !subs.length) {
+          html = '<p class="text-gray-400 text-center py-4">ยังไม่มีการส่งงาน</p>';
+        } else {
+          subs.forEach(function(s) {
+            var statusMap = {
+              'SUBMITTED': { label: 'ส่งแล้ว', cls: 'bg-blue-100 text-blue-700' },
+              'REVIEWED': { label: 'ตรวจแล้ว', cls: 'bg-purple-100 text-purple-700' },
+              'APPROVED': { label: 'อนุมัติ', cls: 'bg-green-100 text-green-700' },
+              'REVISION_REQUESTED': { label: 'ขอแก้ไข', cls: 'bg-orange-100 text-orange-700' }
+            };
+            var st = statusMap[s.status] || { label: s.status, cls: 'bg-gray-100 text-gray-700' };
+            html += '<div class="border border-gray-100 rounded-lg p-4 mb-3">' +
+              '<div class="flex justify-between items-center mb-2">' +
+              '<span class="font-medium text-sm text-gray-800">' + escapeHtml(s.studentName || s.userId || '') + '</span>' +
+              '<span class="text-xs px-2 py-1 rounded-full ' + st.cls + '">' + st.label + '</span></div>' +
+              '<p class="text-sm text-gray-600">' + escapeHtml(s.content || '') + '</p>' +
+              (s.fileUrl ? '<a href="' + escapeHtml(s.fileUrl) + '" target="_blank" class="text-blue-600 text-xs hover:underline">ดูไฟล์แนบ</a>' : '') +
+              (s.score !== undefined && s.score !== null ? '<p class="text-sm mt-1">คะแนน: <strong>' + s.score + '</strong></p>' : '') +
+              '</div>';
+          });
+        }
+        document.getElementById('subs-content').innerHTML = html;
+      }).withFailureHandler(function() {
+        document.getElementById('subs-content').innerHTML = '<p class="text-red-500 text-center">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getSubmissions({ assignmentId: assignmentId });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>
