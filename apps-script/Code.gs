@@ -1,42 +1,31 @@
 /**
  * Code.gs - Main entry point for the Internship Management System
  * ระบบจัดการนักศึกษาฝึกงาน
+ *
+ * ใช้ได้ 2 แบบ:
+ * 1. Apps Script Web App (standalone) - ใช้ doGet() serve HTML
+ * 2. REST API สำหรับ GitHub Pages - ใช้ doGet()/doPost() return JSON
  */
 
-/**
- * Serves the web app. Routes based on e.parameter.page.
- * @param {Object} e - Event parameter from web app request
- * @return {HtmlOutput} The HTML page to serve
- */
+// ============================================================
+// Mode 1: Apps Script Web App (serve HTML pages)
+// ============================================================
 function doGet(e) {
+  var action = e.parameter.action;
+
+  // ถ้ามี action parameter = เป็น API call จาก GitHub Pages
+  if (action) {
+    return handleApiRequest(e.parameter);
+  }
+
+  // ไม่มี action = serve HTML page
   var page = e.parameter.page || 'login';
-
-  // Define valid pages and their required roles
   var publicPages = ['login', 'register'];
-  var studentPages = ['dashboard', 'student-profile', 'student-roadmap', 'student-assignments', 'student-evaluations', 'student-resources'];
-  var adminPages = ['dashboard', 'admin-students', 'admin-mentors', 'admin-roadmaps', 'admin-assignments', 'admin-evaluations', 'admin-resources', 'admin-notifications'];
-  var mentorPages = ['dashboard', 'mentor-students', 'mentor-assignments', 'mentor-evaluations'];
 
-  // Check if page requires authentication
   if (publicPages.indexOf(page) === -1) {
     var user = getCurrentUser();
     if (!user) {
-      // Redirect to login if not authenticated
       page = 'login';
-    } else if (page === 'dashboard') {
-      // Route dashboard based on role
-      switch (user.role) {
-        case CONFIG.ROLES.ADMIN:
-          page = 'admin-dashboard';
-          break;
-        case CONFIG.ROLES.MENTOR:
-          page = 'mentor-dashboard';
-          break;
-        case CONFIG.ROLES.STUDENT:
-        default:
-          page = 'student-dashboard';
-          break;
-      }
     }
   }
 
@@ -47,7 +36,6 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   } catch (err) {
-    // If template not found, serve login page
     var template = HtmlService.createTemplateFromFile('login');
     return template.evaluate()
       .setTitle('ระบบจัดการนักศึกษาฝึกงาน')
@@ -56,19 +44,213 @@ function doGet(e) {
   }
 }
 
-/**
- * Includes an HTML file as a partial (for CSS/JS includes).
- * @param {string} filename - The name of the HTML file to include
- * @return {string} The content of the HTML file
- */
+// ============================================================
+// Mode 2: REST API for GitHub Pages
+// ============================================================
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var result = handleApiRequest(data);
+    return result;
+  } catch (err) {
+    return jsonResponse({ success: false, error: err.message }, 400);
+  }
+}
+
+function handleApiRequest(params) {
+  var action = params.action;
+
+  try {
+    var result;
+
+    switch (action) {
+      // === Auth ===
+      case 'login':
+        result = login(params.email, params.password);
+        break;
+      case 'register':
+        result = register(params);
+        break;
+      case 'logout':
+        result = logout();
+        break;
+      case 'getCurrentUser':
+        result = getCurrentUser();
+        break;
+
+      // === Users / Students ===
+      case 'getStudents':
+        result = getStudents(params.search, params.activeOnly);
+        break;
+      case 'getStudent':
+        result = getStudent(params.id);
+        break;
+      case 'createStudent':
+        result = createStudent(params);
+        break;
+      case 'updateStudent':
+        result = updateStudent(params.id, params);
+        break;
+      case 'deactivateStudent':
+        result = deactivateStudent(params.id);
+        break;
+      case 'getUserProfile':
+        result = getUserProfile(params.userId);
+        break;
+      case 'updateProfile':
+        result = updateProfile(params.userId, params);
+        break;
+
+      // === Mentors ===
+      case 'getMentors':
+        result = getMentors();
+        break;
+      case 'createMentor':
+        result = createMentor(params);
+        break;
+      case 'assignMentor':
+        result = assignMentor(params.mentorId, params.studentId);
+        break;
+      case 'getStudentsByMentor':
+        result = getStudentsByMentor(params.mentorId);
+        break;
+
+      // === Roadmaps ===
+      case 'getRoadmaps':
+        result = getRoadmaps();
+        break;
+      case 'getRoadmap':
+        result = getRoadmap(params.id);
+        break;
+      case 'createRoadmap':
+        result = createRoadmap(params);
+        break;
+      case 'updateRoadmap':
+        result = updateRoadmap(params.id, params);
+        break;
+      case 'deleteRoadmap':
+        result = deleteRoadmap(params.id);
+        break;
+      case 'createRoadmapStep':
+        result = createRoadmapStep(params);
+        break;
+      case 'updateRoadmapStep':
+        result = updateRoadmapStep(params.id, params);
+        break;
+      case 'deleteRoadmapStep':
+        result = deleteRoadmapStep(params.id);
+        break;
+      case 'getRoadmapProgress':
+        result = getRoadmapProgress(params.userId);
+        break;
+      case 'updateRoadmapProgress':
+        result = updateRoadmapProgress(params.userId, params.stepId, params.status, params.note);
+        break;
+
+      // === Assignments ===
+      case 'getAssignments':
+        result = getAssignments();
+        break;
+      case 'getAssignment':
+        result = getAssignment(params.id);
+        break;
+      case 'createAssignment':
+        result = createAssignment(params);
+        break;
+      case 'updateAssignment':
+        result = updateAssignment(params.id, params);
+        break;
+      case 'deleteAssignment':
+        result = deleteAssignment(params.id);
+        break;
+      case 'submitAssignment':
+        result = submitAssignment(params.assignmentId, params.userId, params.content, params.fileUrl, params.fileName);
+        break;
+      case 'getSubmissions':
+        result = getSubmissions(params);
+        break;
+      case 'reviewSubmission':
+        result = reviewSubmission(params.submissionId, params.status, params.score, params.feedback);
+        break;
+
+      // === Evaluations ===
+      case 'getEvaluations':
+        result = getEvaluations(params);
+        break;
+      case 'createEvaluation':
+        result = createEvaluation(params);
+        break;
+      case 'getEvaluationsByUser':
+        result = getEvaluationsByUser(params.userId, params.asEvaluator === 'true');
+        break;
+
+      // === Resources ===
+      case 'getResources':
+        result = getResources(params.category, params.type);
+        break;
+      case 'getResource':
+        result = getResource(params.id);
+        break;
+      case 'createResource':
+        result = createResource(params);
+        break;
+      case 'updateResource':
+        result = updateResource(params.id, params);
+        break;
+      case 'deleteResource':
+        result = deleteResource(params.id);
+        break;
+
+      // === Notifications ===
+      case 'getNotifications':
+        result = getNotifications(params.userId);
+        break;
+      case 'getUnreadCount':
+        result = getUnreadCount(params.userId);
+        break;
+      case 'markAsRead':
+        result = markAsRead(params.notificationId);
+        break;
+      case 'markAllAsRead':
+        result = markAllAsRead(params.userId);
+        break;
+      case 'sendBroadcast':
+        var recipientIds = params.recipientIds;
+        if (typeof recipientIds === 'string') {
+          recipientIds = JSON.parse(recipientIds);
+        }
+        result = sendBroadcast(params.title, params.message, recipientIds, params.sendLine === 'true');
+        break;
+
+      // === Admin ===
+      case 'getAdminStats':
+        result = getAdminStats();
+        break;
+      case 'setupSystem':
+        result = setupSystem();
+        break;
+
+      default:
+        result = { success: false, error: 'Unknown action: ' + action };
+    }
+
+    return jsonResponse(result);
+
+  } catch (err) {
+    return jsonResponse({ success: false, error: err.message }, 500);
+  }
+}
+
+function jsonResponse(data, statusCode) {
+  var output = ContentService.createTextOutput(JSON.stringify(data));
+  output.setMimeType(ContentService.MimeType.JSON);
+  return output;
+}
+
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-/**
- * Returns the URL of the deployed web app.
- * @return {string} The web app URL
- */
 function getScriptUrl() {
   return ScriptApp.getService().getUrl();
 }
