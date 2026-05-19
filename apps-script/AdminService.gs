@@ -207,22 +207,33 @@ function setupSystem() {
       isActive: 'true'
     });
 
-    // Seed data: Roadmap
+    // Seed data: Makro Fresh Food 16-Week Training Passport Roadmap
     var roadmap1 = appendRow(CONFIG.SHEETS.ROADMAPS, {
-      title: 'แผนการฝึกงาน - พัฒนาเว็บแอปพลิเคชัน',
-      description: 'แผนการฝึกงานสำหรับนักศึกษาสาขาพัฒนาเว็บแอปพลิเคชัน ครอบคลุมตั้งแต่พื้นฐานจนถึงการพัฒนาโปรเจค',
-      department: 'วิศวกรรมซอฟต์แวร์',
+      title: 'Training Passport - Makro Fresh Food (16 สัปดาห์)',
+      description: 'แผนการฝึกอบรม Makro Fresh Food Supervisor 16 สัปดาห์ ครอบคลุมตั้งแต่การปฐมนิเทศจนถึงการนำเสนอโปรเจค',
+      department: 'Fresh Food',
       isActive: 'true',
       createdBy: adminUser.id
     });
 
-    // Roadmap steps
+    // 16-week Training Passport steps
     var steps = [
-      { stepNumber: 1, title: 'ปฐมนิเทศและแนะนำองค์กร', description: 'ทำความรู้จักกับองค์กร ทีมงาน และระบบที่ใช้', dueDate: '' },
-      { stepNumber: 2, title: 'ศึกษาเทคโนโลยีที่ใช้', description: 'ศึกษา HTML, CSS, JavaScript, และ Framework ที่ใช้ในโปรเจค', dueDate: '' },
-      { stepNumber: 3, title: 'ทดลองพัฒนาโปรเจคขนาดเล็ก', description: 'ฝึกพัฒนาเว็บแอปพลิเคชันขนาดเล็กเพื่อทดสอบความเข้าใจ', dueDate: '' },
-      { stepNumber: 4, title: 'เข้าร่วมโปรเจคจริง', description: 'เริ่มทำงานร่วมกับทีมในโปรเจคจริง', dueDate: '' },
-      { stepNumber: 5, title: 'นำเสนอผลงานและสรุปการฝึกงาน', description: 'จัดทำรายงานและนำเสนอสิ่งที่ได้เรียนรู้', dueDate: '' }
+      { stepNumber: 0, title: 'ก่อนลงสโตร์: ปฐมนิเทศ HO & Store', description: 'HO Orientation: แนะนำองค์กร นโยบาย ระเบียบข้อบังคับ / Store Orientation: แนะนำสโตร์ ทีมงาน สภาพแวดล้อมการทำงาน (สถานที่ฝึก: HO/Store, เครื่องมือ: OJT/ZOOM)', dueDate: '' },
+      { stepNumber: 1, title: 'สัปดาห์ 1-2: ศึกษาแผนก Fresh Food & OJT', description: 'ศึกษาแผนกอาหารสด: F&V (ผักและผลไม้), Fish & Seafood (ปลาและอาหารทะเล), Butchery (เนื้อสัตว์), Dairy Chilled & Frozen (นมแช่เย็นและแช่แข็ง), Bakery (เบเกอรี่) พร้อม On-the-Job Training (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 2, title: 'สัปดาห์ 3: OPL Ordering', description: 'เรียนรู้ระบบการสั่งซื้อสินค้า (OPL Ordering) การวางแผนการสั่งซื้อ การจัดการ Stock ตามความต้องการ (สถานที่ฝึก: Store, เครื่องมือ: OJT/M-learning)', dueDate: '' },
+      { stepNumber: 3, title: 'สัปดาห์ 4: Food Safety, GMP/HACCP', description: 'ความปลอดภัยอาหาร มาตรฐาน GMP (Good Manufacturing Practice) และ HACCP (Hazard Analysis Critical Control Point) (สถานที่ฝึก: Store/HO, เครื่องมือ: OJT/ZOOM)', dueDate: '' },
+      { stepNumber: 4, title: 'สัปดาห์ 5: Receiving Management & Quality Check', description: 'การจัดการรับสินค้า การตรวจสอบคุณภาพสินค้าที่รับเข้า เกณฑ์การตรวจรับ (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 5, title: 'สัปดาห์ 6: Storage Management, Cold System, FIFO/FEFO', description: 'การจัดการคลังสินค้า ระบบความเย็น (Cold Chain) หลักการ FIFO (First In First Out) และ FEFO (First Expired First Out) (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 6, title: 'สัปดาห์ 7: Display Management, Plan-O-Gram, Merchandising', description: 'การจัดการการจัดแสดงสินค้า Plan-O-Gram การจัดเรียงสินค้า หลักการ Merchandising (สถานที่ฝึก: Store, เครื่องมือ: OJT/M-learning)', dueDate: '' },
+      { stepNumber: 7, title: 'สัปดาห์ 8: Sale Analysis & Price Management', description: 'การวิเคราะห์ยอดขาย SGM Empowerment, BPM Price Change การจัดการราคาสินค้า (สถานที่ฝึก: Store, เครื่องมือ: OJT/M-learning)', dueDate: '' },
+      { stepNumber: 8, title: 'สัปดาห์ 9: Stock Management & Inventory Adjustment', description: 'การจัดการสต็อกสินค้า การปรับปรุงสต็อก (Inventory Adjustment) การตรวจนับสินค้า (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 9, title: 'สัปดาห์ 10: Shrinkage Management (+ Innovation Project)', description: 'การจัดการการสูญเสีย (Shrinkage) การวิเคราะห์สาเหตุและแนวทางลดการสูญเสีย + เข้าเรียน Innovation Project Class จาก HO (สถานที่ฝึก: Store/HO, เครื่องมือ: OJT/ZOOM)', dueDate: '' },
+      { stepNumber: 10, title: 'สัปดาห์ 11: Aging/NBS Management', description: 'การจัดการสินค้าใกล้หมดอายุ (Aging) และ NBS (Near Best-before/Sell-by) การลดราคา การจัดการสินค้าเสื่อมคุณภาพ (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 11, title: 'สัปดาห์ 12: Report Analysis (Trading/BI Report)', description: 'การวิเคราะห์รายงาน Trading Report และ BI Report การอ่านและตีความข้อมูล การนำข้อมูลไปใช้ในการตัดสินใจ (สถานที่ฝึก: Store, เครื่องมือ: OJT/M-learning)', dueDate: '' },
+      { stepNumber: 12, title: 'สัปดาห์ 13: Customer Development', description: 'การพัฒนาลูกค้า การบริการลูกค้า การสร้างความพึงพอใจ การจัดการข้อร้องเรียน (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 13, title: 'สัปดาห์ 14: Soft Skill Management', description: 'ทักษะการเป็น Supervisor: การบริหารเวลา (Time Management), การแก้ปัญหา (Problem Solving), ทักษะการสื่อสาร (สถานที่ฝึก: Store/HO, เครื่องมือ: OJT/ZOOM)', dueDate: '' },
+      { stepNumber: 14, title: 'สัปดาห์ 15: Supervisor Function Job', description: 'ปฏิบัติหน้าที่ Supervisor จริง รับผิดชอบงานเต็มรูปแบบ ดูแลทีมงาน จัดการงานประจำวัน (สถานที่ฝึก: Store, เครื่องมือ: OJT)', dueDate: '' },
+      { stepNumber: 15, title: 'สัปดาห์ 16: Supervisor Function Job + Project Presentation', description: 'ปฏิบัติหน้าที่ Supervisor ต่อเนื่อง + นำเสนอ Innovation Project สรุปผลการฝึกอบรมทั้งหมด (สถานที่ฝึก: Store/HO, เครื่องมือ: OJT/ZOOM)', dueDate: '' }
     ];
 
     for (var s = 0; s < steps.length; s++) {
@@ -232,6 +243,35 @@ function setupSystem() {
         title: steps[s].title,
         description: steps[s].description,
         dueDate: steps[s].dueDate,
+        isActive: 'true'
+      });
+    }
+
+    // Seed data: Knowledge Management Roadmap (6 topics)
+    var kmRoadmap = appendRow(CONFIG.SHEETS.ROADMAPS, {
+      title: 'Knowledge Management',
+      description: 'การจัดการความรู้ 6 หัวข้อ สำหรับการประเมินผลการฝึกอบรม (25% ของคะแนนรวม) นักศึกษาต้องบันทึกความรู้ทั้ง 6 หัวข้อ และเลือก 1 หัวข้อเพื่อนำเสนอ',
+      department: 'Fresh Food',
+      isActive: 'true',
+      createdBy: adminUser.id
+    });
+
+    var kmSteps = [
+      { stepNumber: 1, title: 'การจัดการทรัพยากรบุคคล (Human Resource Management)', description: 'บันทึกความรู้เรื่องการจัดการทรัพยากรบุคคล: สิ่งที่ได้เรียนรู้, ปัญหาและแนวทางแก้ไข, การนำไปประยุกต์ใช้, ฟีดแบคและข้อเสนอแนะ' },
+      { stepNumber: 2, title: 'การบริการลูกค้า (Customer Service)', description: 'บันทึกความรู้เรื่องการบริการลูกค้า: สิ่งที่ได้เรียนรู้, ปัญหาและแนวทางแก้ไข, การนำไปประยุกต์ใช้, ฟีดแบคและข้อเสนอแนะ' },
+      { stepNumber: 3, title: 'การจัดการสินค้า (Merchandising)', description: 'บันทึกความรู้เรื่องการจัดการสินค้า: สิ่งที่ได้เรียนรู้, ปัญหาและแนวทางแก้ไข, การนำไปประยุกต์ใช้, ฟีดแบคและข้อเสนอแนะ' },
+      { stepNumber: 4, title: 'การจัดการผลกำไรขาดทุน (Profit & Loss)', description: 'บันทึกความรู้เรื่องการจัดการผลกำไรขาดทุน: สิ่งที่ได้เรียนรู้, ปัญหาและแนวทางแก้ไข, การนำไปประยุกต์ใช้, ฟีดแบคและข้อเสนอแนะ' },
+      { stepNumber: 5, title: 'ความปลอดภัยอาหาร (Food Safety)', description: 'บันทึกความรู้เรื่องความปลอดภัยอาหาร: สิ่งที่ได้เรียนรู้, ปัญหาและแนวทางแก้ไข, การนำไปประยุกต์ใช้, ฟีดแบคและข้อเสนอแนะ' },
+      { stepNumber: 6, title: 'ความปลอดภัยการปฏิบัติงาน (Work Safety)', description: 'บันทึกความรู้เรื่องความปลอดภัยการปฏิบัติงาน: สิ่งที่ได้เรียนรู้, ปัญหาและแนวทางแก้ไข, การนำไปประยุกต์ใช้, ฟีดแบคและข้อเสนอแนะ' }
+    ];
+
+    for (var k = 0; k < kmSteps.length; k++) {
+      appendRow(CONFIG.SHEETS.ROADMAP_STEPS, {
+        roadmapId: kmRoadmap.id,
+        stepNumber: kmSteps[k].stepNumber,
+        title: kmSteps[k].title,
+        description: kmSteps[k].description,
+        dueDate: '',
         isActive: 'true'
       });
     }

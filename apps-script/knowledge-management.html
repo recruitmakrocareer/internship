@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Management - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .modal-overlay { background: rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b">
+      <h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1>
+    </div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6" id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold">Knowledge Management</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var kmEntries = [];
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        loadKMData();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) {
+      google.script.run.withSuccessHandler(function(url) {
+        window.top.location.href = url + '?page=' + page;
+      }).getScriptUrl();
+    }
+
+    function logout() { google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout(); }
+    function getRoleLabel(role) { return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role; }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Training Passport', page: 'training-passport', icon: '📋' },
+          { label: 'Knowledge Management', page: 'knowledge-management', icon: '📖' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'Training Passport', page: 'mentor-training-passport', icon: '📋' },
+          { label: 'ให้คะแนน KM', page: 'mentor-km-scoring', icon: '📖' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'knowledge-management' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast ' + (isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white');
+      setTimeout(function() { toast.className = 'hidden'; }, 3000);
+    }
+
+    function loadKMData() {
+      var content = document.getElementById('content');
+      content.innerHTML = '<div class="flex items-center justify-center h-64"><div class="spinner"></div></div>';
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          kmEntries = result.data;
+          renderKM();
+        } else {
+          content.innerHTML = '<div class="text-center py-16"><p class="text-gray-500">ไม่พบข้อมูล</p></div>';
+        }
+      }).withFailureHandler(function() {
+        content.innerHTML = '<p class="text-red-500 text-center py-8">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getKnowledgeEntries(currentUser.userId);
+    }
+
+    function renderKM() {
+      var content = document.getElementById('content');
+      var completedCount = kmEntries.filter(function(e) { return e.hasContent; }).length;
+      var selectedTopic = null;
+
+      for (var i = 0; i < kmEntries.length; i++) {
+        if (kmEntries[i].isSelectedForPresentation) {
+          selectedTopic = kmEntries[i];
+          break;
+        }
+      }
+
+      var html = '<div class="mb-8">' +
+        '<h3 class="text-2xl font-bold text-gray-800 mb-2">Knowledge Management</h3>' +
+        '<p class="text-gray-500 mb-4">บันทึกความรู้ 6 หัวข้อ (25% ของคะแนนรวม)</p>' +
+        '<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">' +
+        '<div class="flex items-center justify-between mb-3">' +
+        '<div class="flex items-center gap-6">' +
+        '<div class="text-center"><span class="text-3xl font-bold text-blue-600">' + completedCount + '/6</span><p class="text-xs text-gray-400">หัวข้อที่บันทึกแล้ว</p></div>' +
+        '<div class="text-center border-l pl-6">' +
+        (selectedTopic ?
+          '<span class="text-sm font-semibold text-purple-600">' + escapeHtml(selectedTopic.topicName) + '</span><p class="text-xs text-gray-400">หัวข้อนำเสนอ</p>' :
+          '<span class="text-sm text-gray-400">ยังไม่เลือก</span><p class="text-xs text-gray-400">หัวข้อนำเสนอ</p>') +
+        '</div>' +
+        (selectedTopic && selectedTopic.presentationScore ?
+          '<div class="text-center border-l pl-6"><span class="text-2xl font-bold text-green-600">' + selectedTopic.presentationScore + '</span><span class="text-gray-400">/100</span><p class="text-xs text-gray-400">คะแนนนำเสนอ</p></div>' : '') +
+        '</div></div>' +
+        '<div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all" style="width:' + Math.round((completedCount / 6) * 100) + '%"></div></div>' +
+        '</div></div>';
+
+      // Topic cards grid
+      var topicColors = [
+        { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'bg-blue-500', hoverBorder: 'hover:border-blue-400' },
+        { bg: 'bg-green-50', border: 'border-green-200', icon: 'bg-green-500', hoverBorder: 'hover:border-green-400' },
+        { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'bg-purple-500', hoverBorder: 'hover:border-purple-400' },
+        { bg: 'bg-orange-50', border: 'border-orange-200', icon: 'bg-orange-500', hoverBorder: 'hover:border-orange-400' },
+        { bg: 'bg-red-50', border: 'border-red-200', icon: 'bg-red-500', hoverBorder: 'hover:border-red-400' },
+        { bg: 'bg-teal-50', border: 'border-teal-200', icon: 'bg-teal-500', hoverBorder: 'hover:border-teal-400' }
+      ];
+
+      var topicIcons = ['👥', '🤝', '📦', '💰', '🍴', '🛡️'];
+
+      html += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+
+      for (var j = 0; j < kmEntries.length; j++) {
+        var entry = kmEntries[j];
+        var color = topicColors[j] || topicColors[0];
+        var icon = topicIcons[j] || '📝';
+
+        html += '<div class="bg-white rounded-xl shadow-sm border ' + color.border + ' ' + color.hoverBorder + ' p-5 cursor-pointer transition hover:shadow-md" onclick="openTopicForm(' + j + ')">' +
+          '<div class="flex items-start justify-between mb-3">' +
+          '<div class="w-10 h-10 rounded-lg ' + color.icon + ' flex items-center justify-center text-white text-lg">' + icon + '</div>' +
+          '<div class="flex items-center gap-2">' +
+          (entry.isSelectedForPresentation ? '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">หัวข้อนำเสนอ</span>' : '') +
+          (entry.hasContent ?
+            '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">บันทึกแล้ว</span>' :
+            '<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">ยังไม่บันทึก</span>') +
+          '</div></div>' +
+          '<h4 class="font-semibold text-gray-800 text-sm mb-1">หัวข้อ ' + entry.topicNumber + '</h4>' +
+          '<p class="text-xs text-gray-500 leading-relaxed">' + escapeHtml(entry.topicName) + '</p>' +
+          (entry.presentationScore ? '<div class="mt-3 bg-green-50 rounded-lg p-2 text-center"><span class="text-sm font-bold text-green-600">' + entry.presentationScore + '/100</span><p class="text-xs text-gray-400">คะแนนนำเสนอ</p></div>' : '') +
+          '</div>';
+      }
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function openTopicForm(idx) {
+      var entry = kmEntries[idx];
+      var modal = document.getElementById('modal');
+      var modalContent = document.getElementById('modal-content');
+
+      var html = '<div class="flex items-center justify-between mb-6">' +
+        '<div><h3 class="text-xl font-bold text-gray-800">หัวข้อ ' + entry.topicNumber + '</h3>' +
+        '<p class="text-sm text-gray-500">' + escapeHtml(entry.topicName) + '</p></div>' +
+        '<button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div>';
+
+      html += '<div class="space-y-4">' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1">สิ่งที่ได้เรียนรู้ (Key Takeaways)</label>' +
+        '<textarea id="km-takeaways" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="บันทึกสิ่งที่ได้เรียนรู้จากหัวข้อนี้...">' + escapeHtml(entry.keyTakeaways) + '</textarea></div>' +
+
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1">ปัญหาหรืออุปสรรคที่พบ และแนวทางแก้ไข (Challenges and Solutions)</label>' +
+        '<textarea id="km-challenges" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="บันทึกปัญหาและแนวทางแก้ไข...">' + escapeHtml(entry.challenges) + '</textarea></div>' +
+
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1">การนำไปประยุกต์ใช้ในงานจริง (Knowledge Apply)</label>' +
+        '<textarea id="km-apply" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="บันทึกการนำความรู้ไปประยุกต์ใช้...">' + escapeHtml(entry.knowledgeApply) + '</textarea></div>' +
+
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1">ฟีดแบค และข้อเสนอแนะ (Feedback and Suggestion)</label>' +
+        '<textarea id="km-feedback" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="บันทึกฟีดแบคและข้อเสนอแนะ...">' + escapeHtml(entry.feedback) + '</textarea></div>' +
+
+        '<div class="flex items-center gap-3 pt-2 border-t border-gray-100">' +
+        '<label class="flex items-center gap-2 cursor-pointer">' +
+        '<input type="radio" name="km-presentation" id="km-select-presentation" ' + (entry.isSelectedForPresentation ? 'checked' : '') + ' class="w-4 h-4 text-purple-600">' +
+        '<span class="text-sm text-gray-700 font-medium">เลือกหัวข้อนี้สำหรับนำเสนอ</span></label></div>';
+
+      if (entry.presentationScore) {
+        html += '<div class="bg-green-50 rounded-lg p-4 border border-green-200">' +
+          '<h4 class="font-semibold text-green-700 mb-2">คะแนนการนำเสนอ</h4>' +
+          '<div class="text-3xl font-bold text-green-600 mb-2">' + entry.presentationScore + '<span class="text-lg text-gray-400">/100</span></div>';
+
+        if (entry.presentationScoreDetail) {
+          var d = entry.presentationScoreDetail;
+          html += '<div class="grid grid-cols-5 gap-2 text-center text-xs">' +
+            '<div><p class="text-gray-500">รูปแบบ</p><p class="font-bold">' + (d.format || '-') + '/10</p><p class="text-gray-400">15%</p></div>' +
+            '<div><p class="text-gray-500">เนื้อหา</p><p class="font-bold">' + (d.content || '-') + '/10</p><p class="text-gray-400">40%</p></div>' +
+            '<div><p class="text-gray-500">เวลา</p><p class="font-bold">' + (d.timeManagement || '-') + '/10</p><p class="text-gray-400">15%</p></div>' +
+            '<div><p class="text-gray-500">ทักษะ</p><p class="font-bold">' + (d.presentationSkill || '-') + '/10</p><p class="text-gray-400">15%</p></div>' +
+            '<div><p class="text-gray-500">ไหวพริบ</p><p class="font-bold">' + (d.qaSkill || '-') + '/10</p><p class="text-gray-400">15%</p></div></div>';
+        }
+        html += '</div>';
+      }
+
+      html += '<div class="flex gap-3 pt-4">' +
+        '<button onclick="saveKMEntry(' + idx + ')" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition">บันทึก</button>' +
+        '<button onclick="closeModal()" class="px-6 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">ยกเลิก</button>' +
+        '</div></div>';
+
+      modalContent.innerHTML = html;
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+    }
+
+    function saveKMEntry(idx) {
+      var entry = kmEntries[idx];
+      var data = {
+        keyTakeaways: document.getElementById('km-takeaways').value,
+        challenges: document.getElementById('km-challenges').value,
+        knowledgeApply: document.getElementById('km-apply').value,
+        feedback: document.getElementById('km-feedback').value
+      };
+
+      var selectRadio = document.getElementById('km-select-presentation');
+      var wantPresentation = selectRadio && selectRadio.checked;
+
+      // Save entry first
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          // If presentation topic selection changed
+          if (wantPresentation && !entry.isSelectedForPresentation) {
+            google.script.run.withSuccessHandler(function() {
+              showToast('บันทึกสำเร็จ');
+              closeModal();
+              loadKMData();
+            }).withFailureHandler(function() {
+              showToast('บันทึกข้อมูลสำเร็จ แต่ไม่สามารถเลือกหัวข้อนำเสนอได้', true);
+              closeModal();
+              loadKMData();
+            }).selectPresentationTopic(currentUser.userId, entry.topicNumber);
+          } else {
+            showToast('บันทึกสำเร็จ');
+            closeModal();
+            loadKMData();
+          }
+        } else {
+          showToast(result ? result.message : 'เกิดข้อผิดพลาด', true);
+        }
+      }).withFailureHandler(function() {
+        showToast('เกิดข้อผิดพลาด', true);
+      }).saveKnowledgeEntry(currentUser.userId, entry.topicNumber, data);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>

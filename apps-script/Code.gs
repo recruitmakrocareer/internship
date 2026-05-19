@@ -222,6 +222,50 @@ function handleApiRequest(params) {
         result = sendBroadcast(params.title, params.message, recipientIds, params.sendLine === 'true');
         break;
 
+      // === Training Passport ===
+      case 'getTrainingPassport':
+        result = getTrainingPassport(params.userId);
+        break;
+      case 'signOffWeek':
+        result = signOffWeek(params.userId, params.weekNumber, params.role, params.notes);
+        break;
+      case 'getTrainingPassportSummary':
+        result = getTrainingPassportSummary(params.userId);
+        break;
+      case 'getTrainingPassportByMentor':
+        result = getTrainingPassportByMentor(params.mentorId);
+        break;
+      case 'getTrainingPassportOverview':
+        result = getTrainingPassportOverview();
+        break;
+
+      // === Knowledge Management ===
+      case 'getKnowledgeEntries':
+        result = getKnowledgeEntries(params.userId);
+        break;
+      case 'saveKnowledgeEntry':
+        result = saveKnowledgeEntry(params.userId, params.topicNumber, params);
+        break;
+      case 'selectPresentationTopic':
+        result = selectPresentationTopic(params.userId, params.topicNumber);
+        break;
+      case 'scorePresentationKM':
+        var scores = {
+          format: params.format,
+          content: params.content,
+          timeManagement: params.timeManagement,
+          presentationSkill: params.presentationSkill,
+          qaSkill: params.qaSkill
+        };
+        result = scorePresentationKM(params.userId, params.evaluatorId, scores);
+        break;
+      case 'getKnowledgeSummary':
+        result = getKnowledgeSummary(params.userId);
+        break;
+      case 'getAllKnowledgeSummaries':
+        result = getAllKnowledgeSummaries();
+        break;
+
       // === Admin ===
       case 'getAdminStats':
         result = getAdminStats();

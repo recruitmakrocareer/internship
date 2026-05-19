@@ -24,7 +24,8 @@ var CONFIG = {
     SUBMISSIONS: 'Submissions',
     EVALUATIONS: 'Evaluations',
     RESOURCES: 'Resources',
-    NOTIFICATIONS: 'Notifications'
+    NOTIFICATIONS: 'Notifications',
+    KNOWLEDGE_ENTRIES: 'KnowledgeEntries'
   },
 
   // Column headers for each sheet
@@ -71,6 +72,12 @@ var CONFIG = {
     Notifications: [
       'id', 'userId', 'title', 'message', 'type',
       'isRead', 'relatedId', 'createdAt'
+    ],
+    KnowledgeEntries: [
+      'id', 'userId', 'topicNumber', 'topicName', 'keyTakeaways',
+      'challenges', 'knowledgeApply', 'feedback', 'isSelectedForPresentation',
+      'presentationScore', 'presentationScoreDetail', 'evaluatorId',
+      'createdAt', 'updatedAt'
     ]
   },
 
