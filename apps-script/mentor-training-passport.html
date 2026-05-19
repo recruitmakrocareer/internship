@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Passport (พี่เลี้ยง) - ระบบจัดการนักศึกษาฝึกงาน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .expand-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .expand-content.open { max-height: 2000px; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+    <div class="p-6 border-b">
+      <h1 class="text-lg font-bold text-blue-700">ระบบจัดการฝึกงาน</h1>
+    </div>
+    <nav class="p-4" id="nav-menu"></nav>
+  </div>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <div class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+      <h2 class="text-lg font-semibold">Training Passport - นักศึกษาในดูแล</h2>
+      <div class="flex items-center gap-4">
+        <span id="user-name" class="text-sm text-gray-600"></span>
+        <span id="user-role" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"></span>
+        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="p-6" id="content">
+      <div class="flex items-center justify-center h-64"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script>
+    var currentUser = null;
+    var studentsData = [];
+    var selectedStudentId = null;
+    var selectedPassport = null;
+
+    function initPage() {
+      google.script.run.withSuccessHandler(function(user) {
+        if (!user) { navigateTo('login'); return; }
+        currentUser = user;
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-role').textContent = getRoleLabel(user.role);
+        buildNavMenu(user.role);
+        loadStudentList();
+      }).withFailureHandler(function() { navigateTo('login'); }).getCurrentUser();
+    }
+
+    function navigateTo(page) {
+      google.script.run.withSuccessHandler(function(url) { window.top.location.href = url + '?page=' + page; }).getScriptUrl();
+    }
+    function logout() { google.script.run.withSuccessHandler(function() { navigateTo('login'); }).logout(); }
+    function getRoleLabel(role) { return { STUDENT: 'นักศึกษา', MENTOR: 'พี่เลี้ยง', ADMIN: 'ผู้ดูแลระบบ' }[role] || role; }
+
+    function buildNavMenu(role) {
+      var menus = {
+        ADMIN: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'จัดการนักศึกษา', page: 'admin-students', icon: '👨‍🎓' },
+          { label: 'จัดการพี่เลี้ยง', page: 'admin-mentors', icon: '👨‍🏫' },
+          { label: 'จัดการ Roadmap', page: 'admin-roadmaps', icon: '🗺️' },
+          { label: 'จัดการงาน', page: 'admin-assignments', icon: '📝' },
+          { label: 'ผลประเมิน', page: 'admin-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'admin-resources', icon: '📚' },
+          { label: 'แจ้งเตือน', page: 'admin-notifications', icon: '🔔' }
+        ],
+        STUDENT: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'โปรไฟล์', page: 'student-profile', icon: '👤' },
+          { label: 'Training Passport', page: 'training-passport', icon: '📋' },
+          { label: 'Knowledge Management', page: 'knowledge-management', icon: '📖' },
+          { label: 'Roadmap', page: 'student-roadmap', icon: '🗺️' },
+          { label: 'งานที่ได้รับ', page: 'student-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'student-evaluations', icon: '⭐' },
+          { label: 'แหล่งความรู้', page: 'student-resources', icon: '📚' }
+        ],
+        MENTOR: [
+          { label: 'แดชบอร์ด', page: 'dashboard', icon: '📊' },
+          { label: 'นักศึกษาในดูแล', page: 'mentor-students', icon: '👨‍🎓' },
+          { label: 'Training Passport', page: 'mentor-training-passport', icon: '📋' },
+          { label: 'ให้คะแนน KM', page: 'mentor-km-scoring', icon: '📖' },
+          { label: 'ตรวจงาน', page: 'mentor-assignments', icon: '📝' },
+          { label: 'ประเมินผล', page: 'mentor-evaluations', icon: '⭐' }
+        ]
+      };
+      var items = menus[role] || [];
+      var nav = document.getElementById('nav-menu');
+      nav.innerHTML = items.map(function(item) {
+        var active = item.page === 'mentor-training-passport' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50';
+        return '<a href="#" onclick="navigateTo(\'' + item.page + '\')" class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ' + active + '">' +
+          '<span>' + item.icon + '</span><span>' + item.label + '</span></a>';
+      }).join('');
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast ' + (isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white');
+      setTimeout(function() { toast.className = 'hidden'; }, 3000);
+    }
+
+    function loadStudentList() {
+      var content = document.getElementById('content');
+      content.innerHTML = '<div class="flex items-center justify-center h-64"><div class="spinner"></div></div>';
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          studentsData = result.data || [];
+          renderStudentList();
+        } else {
+          content.innerHTML = '<div class="text-center py-16"><p class="text-gray-500">ไม่พบข้อมูลนักศึกษา</p></div>';
+        }
+      }).withFailureHandler(function() {
+        content.innerHTML = '<p class="text-red-500 text-center py-8">ไม่สามารถโหลดข้อมูลได้</p>';
+      }).getTrainingPassportByMentor(currentUser.userId);
+    }
+
+    function renderStudentList() {
+      var content = document.getElementById('content');
+
+      if (!studentsData.length) {
+        content.innerHTML = '<div class="text-center py-16"><div class="text-4xl mb-4">👨‍🎓</div><p class="text-gray-500">ยังไม่มีนักศึกษาในดูแล</p></div>';
+        return;
+      }
+
+      var html = '<div class="mb-6">' +
+        '<h3 class="text-xl font-bold text-gray-800 mb-1">Training Passport - นักศึกษาในดูแล</h3>' +
+        '<p class="text-gray-500 text-sm">ดูและลงชื่อรับรองสัปดาห์การฝึกอบรมของนักศึกษา</p></div>';
+
+      // Student cards
+      html += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">';
+
+      for (var i = 0; i < studentsData.length; i++) {
+        var s = studentsData[i];
+        var p = s.passport;
+        var pct = p ? p.progressPercent : 0;
+        var completed = p ? p.completedWeeks : 0;
+        var total = p ? p.totalWeeks : 16;
+        var isSelected = selectedStudentId === s.userId;
+
+        html += '<div class="bg-white rounded-xl shadow-sm border ' + (isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-100') + ' p-5 cursor-pointer hover:shadow-md transition" onclick="selectStudent(\'' + s.userId + '\')">' +
+          '<div class="flex items-center gap-3 mb-3">' +
+          '<div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg">👤</div>' +
+          '<div><h4 class="font-semibold text-gray-800 text-sm">' + escapeHtml(s.name) + '</h4>' +
+          '<p class="text-xs text-gray-400">' + escapeHtml(s.studentId || '') + ' - ' + escapeHtml(s.department || '') + '</p></div></div>' +
+          '<div class="flex justify-between text-xs mb-1">' +
+          '<span class="text-gray-500">ความก้าวหน้า</span>' +
+          '<span class="font-semibold text-blue-600">' + completed + '/' + total + ' (' + pct + '%)</span></div>' +
+          '<div class="w-full bg-gray-200 rounded-full h-2.5">' +
+          '<div class="bg-gradient-to-r from-blue-500 to-green-500 h-2.5 rounded-full" style="width:' + pct + '%"></div></div>' +
+          (p && p.pendingTrainerSignOffs > 0 ?
+            '<p class="text-xs text-orange-500 mt-2 font-medium">รอลงชื่อ: ' + p.pendingTrainerSignOffs + ' สัปดาห์</p>' : '') +
+          '</div>';
+      }
+
+      html += '</div>';
+
+      // Selected student passport detail
+      html += '<div id="student-passport-detail"></div>';
+
+      content.innerHTML = html;
+
+      // If student was previously selected, reload their passport
+      if (selectedStudentId) {
+        loadStudentPassport(selectedStudentId);
+      }
+    }
+
+    function selectStudent(studentId) {
+      selectedStudentId = studentId;
+      // Re-render student list to update selection highlight
+      renderStudentList();
+      loadStudentPassport(studentId);
+    }
+
+    function loadStudentPassport(studentId) {
+      var detail = document.getElementById('student-passport-detail');
+      detail.innerHTML = '<div class="flex items-center justify-center py-8"><div class="spinner"></div></div>';
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          selectedPassport = result.data;
+          renderStudentPassport();
+        } else {
+          detail.innerHTML = '<p class="text-gray-500 text-center py-4">ไม่สามารถโหลดข้อมูลได้</p>';
+        }
+      }).withFailureHandler(function() {
+        detail.innerHTML = '<p class="text-red-500 text-center py-4">เกิดข้อผิดพลาด</p>';
+      }).getTrainingPassport(studentId);
+    }
+
+    function renderStudentPassport() {
+      var detail = document.getElementById('student-passport-detail');
+      if (!selectedPassport) { detail.innerHTML = ''; return; }
+
+      var weeks = selectedPassport.weeks;
+      var studentInfo = null;
+      for (var i = 0; i < studentsData.length; i++) {
+        if (studentsData[i].userId === selectedStudentId) {
+          studentInfo = studentsData[i];
+          break;
+        }
+      }
+
+      var html = '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">' +
+        '<h3 class="text-lg font-bold text-gray-800 mb-4">Training Passport: ' + escapeHtml(studentInfo ? studentInfo.name : '') + '</h3>' +
+        '<div class="space-y-2">';
+
+      for (var w = 0; w < weeks.length; w++) {
+        var week = weeks[w];
+        var weekLabel = week.weekNumber === 0 ? 'Pre' : ('W' + week.weekNumber);
+        var statusColor = {
+          'not_started': 'bg-gray-400',
+          'in_progress': 'bg-blue-500',
+          'trainer_signed': 'bg-yellow-500',
+          'completed': 'bg-green-500'
+        }[week.status] || 'bg-gray-400';
+
+        var statusLabel = {
+          'not_started': 'ยังไม่เริ่ม',
+          'in_progress': 'กำลังดำเนินการ',
+          'trainer_signed': 'ผู้สอนลงชื่อแล้ว',
+          'completed': 'สำเร็จ'
+        }[week.status] || 'ยังไม่เริ่ม';
+
+        html += '<div class="border border-gray-100 rounded-lg">' +
+          '<div class="p-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50" onclick="toggleMentorWeek(' + w + ')">' +
+          '<div class="w-9 h-9 rounded-full ' + statusColor + ' flex items-center justify-center text-white text-xs font-bold flex-shrink-0">' +
+          (week.status === 'completed' ? '&#10003;' : weekLabel) + '</div>' +
+          '<div class="flex-1 min-w-0">' +
+          '<p class="text-sm font-medium text-gray-800 truncate">' + escapeHtml(week.title) + '</p>' +
+          '<p class="text-xs text-gray-400">' + statusLabel + '</p></div>' +
+          '<div class="flex items-center gap-2 flex-shrink-0">' +
+          '<span class="text-xs ' + (week.signOff.trainerSigned ? 'text-green-600 font-semibold' : 'text-gray-300') + '">ผู้สอน ' + (week.signOff.trainerSigned ? '&#10003;' : '-') + '</span>' +
+          '<span class="text-xs ' + (week.signOff.studentSigned ? 'text-green-600 font-semibold' : 'text-gray-300') + '">นศ. ' + (week.signOff.studentSigned ? '&#10003;' : '-') + '</span>' +
+          '<svg class="w-4 h-4 text-gray-400 transform transition-transform" id="m-arrow-' + w + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>' +
+          '</div></div>';
+
+        // Expandable detail
+        html += '<div id="m-week-detail-' + w + '" class="expand-content">' +
+          '<div class="px-3 pb-3 border-t border-gray-100 pt-3">' +
+          '<p class="text-xs text-gray-500 mb-3">' + escapeHtml(week.description) + '</p>' +
+          '<div class="grid grid-cols-2 gap-2 mb-3 text-xs">' +
+          '<div class="bg-gray-50 rounded p-2"><span class="text-gray-400">สถานที่:</span> ' + escapeHtml(week.trainingPlace) + '</div>' +
+          '<div class="bg-gray-50 rounded p-2"><span class="text-gray-400">เครื่องมือ:</span> ' + escapeHtml(week.trainingTool) + '</div></div>';
+
+        // Sign-off info
+        if (week.signOff.trainerSigned) {
+          html += '<div class="bg-green-50 rounded p-2 mb-2 text-xs"><span class="text-green-700 font-semibold">ผู้สอนลงชื่อแล้ว</span> (' + week.signOff.trainerDate + ')' +
+            (week.signOff.trainerNotes ? '<br>หมายเหตุ: ' + escapeHtml(week.signOff.trainerNotes) : '') + '</div>';
+        }
+        if (week.signOff.studentSigned) {
+          html += '<div class="bg-blue-50 rounded p-2 mb-2 text-xs"><span class="text-blue-700 font-semibold">นักศึกษาลงชื่อแล้ว</span> (' + week.signOff.studentDate + ')' +
+            (week.signOff.studentNotes ? '<br>หมายเหตุ: ' + escapeHtml(week.signOff.studentNotes) : '') + '</div>';
+        }
+
+        // Trainer sign-off button
+        if (!week.signOff.trainerSigned) {
+          html += '<div class="pt-2">' +
+            '<textarea id="m-note-' + w + '" class="w-full border border-gray-200 rounded p-2 text-xs mb-2" rows="2" placeholder="หมายเหตุผู้สอน (ไม่บังคับ)"></textarea>' +
+            '<button onclick="trainerSignOff(\'' + selectedStudentId + '\', ' + week.weekNumber + ', ' + w + ')" class="bg-yellow-500 text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-yellow-600 transition">ลงชื่อรับรอง (ผู้สอน)</button></div>';
+        }
+
+        html += '</div></div></div>';
+      }
+
+      html += '</div></div>';
+      detail.innerHTML = html;
+    }
+
+    function toggleMentorWeek(idx) {
+      var el = document.getElementById('m-week-detail-' + idx);
+      var arrow = document.getElementById('m-arrow-' + idx);
+      if (el.classList.contains('open')) {
+        el.classList.remove('open');
+        if (arrow) arrow.classList.remove('rotate-180');
+      } else {
+        el.classList.add('open');
+        if (arrow) arrow.classList.add('rotate-180');
+      }
+    }
+
+    function trainerSignOff(studentId, weekNumber, idx) {
+      var noteEl = document.getElementById('m-note-' + idx);
+      var notes = noteEl ? noteEl.value : '';
+
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.success) {
+          showToast('ลงชื่อรับรองสำเร็จ');
+          loadStudentList();
+        } else {
+          showToast(result ? result.message : 'เกิดข้อผิดพลาด', true);
+        }
+      }).withFailureHandler(function() {
+        showToast('เกิดข้อผิดพลาด', true);
+      }).signOffWeek(studentId, weekNumber, 'trainer', notes);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    window.onload = initPage;
+  </script>
+</body>
+</html>
