@@ -22,6 +22,37 @@ async function callApi(action, params = {}) {
   }
 }
 
+async function callApiPost(action, params = {}) {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...params }),
+      redirect: 'follow'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('API Post Error:', error);
+    throw error;
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
  * บันทึกข้อมูลผู้ใช้ลง localStorage
  * @param {object} userData - ข้อมูลผู้ใช้

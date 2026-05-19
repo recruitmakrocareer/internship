@@ -266,6 +266,20 @@ function handleApiRequest(params) {
         result = getAllKnowledgeSummaries();
         break;
 
+      // === File Upload (Google Drive) ===
+      case 'uploadFile':
+        result = uploadFile(params);
+        break;
+      case 'deleteFile':
+        result = deleteFile(params.fileId);
+        break;
+      case 'getFileUrl':
+        result = getFileUrl(params.fileId);
+        break;
+      case 'listFiles':
+        result = listFiles(params.subfolder);
+        break;
+
       // === Admin ===
       case 'getAdminStats':
         result = getAdminStats();
