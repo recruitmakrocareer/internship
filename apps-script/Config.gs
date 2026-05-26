@@ -33,7 +33,16 @@ var CONFIG = {
     Users: [
       'id', 'email', 'password', 'role', 'firstName', 'lastName',
       'studentId', 'department', 'phone', 'lineUserId', 'profileImage',
-      'isActive', 'createdAt', 'updatedAt'
+      'isActive', 'createdAt', 'updatedAt',
+      'nickname', 'birthDate', 'idCardNumber',
+      'university', 'faculty', 'major', 'year', 'gpa',
+      'internshipType', 'startDate', 'endDate',
+      'address', 'universityAddress', 'skills', 'interests',
+      'advisorName', 'advisorContact',
+      'employeeId', 'branch', 'position',
+      'cvFileUrl', 'cvFileName', 'transcriptFileUrl', 'transcriptFileName',
+      'idCardFileUrl', 'idCardFileName', 'photoFileUrl', 'photoFileName',
+      'name'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'
@@ -44,7 +53,8 @@ var CONFIG = {
     ],
     RoadmapSteps: [
       'id', 'roadmapId', 'stepNumber', 'title', 'description',
-      'dueDate', 'isActive', 'createdAt', 'updatedAt'
+      'dueDate', 'isActive', 'createdAt', 'updatedAt',
+      'durationDays', 'resources', 'fileUrl', 'fileName'
     ],
     RoadmapProgress: [
       'id', 'userId', 'roadmapId', 'stepId', 'status',
@@ -52,7 +62,8 @@ var CONFIG = {
     ],
     Assignments: [
       'id', 'title', 'description', 'dueDate', 'maxScore',
-      'assignedTo', 'createdBy', 'isActive', 'createdAt', 'updatedAt'
+      'assignedTo', 'createdBy', 'isActive', 'createdAt', 'updatedAt',
+      'source', 'professorName'
     ],
     Submissions: [
       'id', 'assignmentId', 'userId', 'content', 'fileUrl',
@@ -77,7 +88,8 @@ var CONFIG = {
       'id', 'userId', 'topicNumber', 'topicName', 'keyTakeaways',
       'challenges', 'knowledgeApply', 'feedback', 'isSelectedForPresentation',
       'presentationScore', 'presentationScoreDetail', 'evaluatorId',
-      'createdAt', 'updatedAt'
+      'createdAt', 'updatedAt',
+      'fileUrl', 'fileName'
     ]
   },
 

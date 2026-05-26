@@ -123,12 +123,22 @@ function createStudent(data) {
       role: CONFIG.ROLES.STUDENT,
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
+      name: data.name || (data.firstName.trim() + ' ' + data.lastName.trim()),
       studentId: data.studentId || '',
       department: data.department || '',
       phone: data.phone || '',
       lineUserId: data.lineUserId || '',
       profileImage: '',
-      isActive: 'true'
+      isActive: 'true',
+      university: data.university || '',
+      faculty: data.faculty || '',
+      major: data.major || '',
+      internshipType: data.internshipType || '',
+      startDate: data.startDate || '',
+      endDate: data.endDate || '',
+      branch: data.branch || '',
+      position: data.position || '',
+      employeeId: data.employeeId || ''
     };
 
     var newUser = appendRow(CONFIG.SHEETS.USERS, userData);
@@ -413,12 +423,13 @@ function updateProfile(userId, data) {
       return { success: false, message: 'ไม่พบข้อมูลผู้ใช้' };
     }
 
-    // Only allow updating certain fields
-    var allowedFields = ['firstName', 'lastName', 'phone', 'lineUserId', 'profileImage', 'department'];
+    // Allow updating profile fields (exclude sensitive fields)
+    var blockedFields = ['id', 'email', 'password', 'role', 'isActive', 'createdAt'];
     var updateData = {};
-    for (var i = 0; i < allowedFields.length; i++) {
-      if (data[allowedFields[i]] !== undefined) {
-        updateData[allowedFields[i]] = data[allowedFields[i]];
+    var keys = Object.keys(data);
+    for (var i = 0; i < keys.length; i++) {
+      if (blockedFields.indexOf(keys[i]) === -1 && data[keys[i]] !== undefined) {
+        updateData[keys[i]] = data[keys[i]];
       }
     }
 

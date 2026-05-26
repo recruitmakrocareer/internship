@@ -41,21 +41,26 @@ async function loadAdminRoadmaps() {
       return;
     }
 
-    container.innerHTML = roadmaps.map(r => `
+    container.innerHTML = roadmaps.map(r => {
+      const stepCount = (r.steps || []).filter(s => s.isActive !== 'false').length;
+      return `
       <div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow cursor-pointer" onclick="viewRoadmapDetail('${r.id}')">
         <div class="flex justify-between items-start">
           <div>
             <h3 class="font-bold text-gray-800 text-lg">${r.title || ''}</h3>
             <p class="text-sm text-gray-500 mt-1">${r.description || ''}</p>
-            <span class="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 mt-2 inline-block">${r.department || 'ทั่วไป'}</span>
+            <div class="flex gap-2 mt-2">
+              <span class="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">${r.department || 'ทั่วไป'}</span>
+              <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">${stepCount} ขั้นตอน</span>
+            </div>
           </div>
           <div class="flex gap-2">
             <button onclick="event.stopPropagation();editRoadmapInfo('${r.id}')" class="text-sm text-blue-600 hover:underline">แก้ไข</button>
             <button onclick="event.stopPropagation();deleteRoadmapById('${r.id}')" class="text-sm text-red-600 hover:underline">ลบ</button>
           </div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   } catch (e) {
     container.innerHTML = '<div class="text-center py-8 text-red-500">เกิดข้อผิดพลาด</div>';
   }
@@ -93,7 +98,10 @@ async function saveNewRoadmap() {
   hideLoading();
 }
 
+var _currentRoadmapId = null;
+
 async function viewRoadmapDetail(id) {
+  _currentRoadmapId = id;
   document.getElementById('roadmap-modal-title').textContent = 'รายละเอียด Roadmap';
   document.getElementById('roadmap-modal-content').innerHTML = '<div class="text-center py-4 text-gray-400">กำลังโหลด...</div>';
   document.getElementById('roadmap-modal').classList.remove('hidden');
@@ -101,64 +109,322 @@ async function viewRoadmapDetail(id) {
   try {
     const res = await callApi('getRoadmap', { id });
     const roadmap = res.data || res;
-    const steps = roadmap.steps || [];
+    const steps = (roadmap.steps || []).filter(s => s.isActive !== 'false');
 
     document.getElementById('roadmap-modal-title').textContent = roadmap.title || 'Roadmap';
     document.getElementById('roadmap-modal-content').innerHTML = `
       <p class="text-sm text-gray-500 mb-4">${roadmap.description || ''}</p>
       <div class="flex justify-between items-center mb-3">
         <h4 class="font-bold text-gray-700">ขั้นตอน (${steps.length})</h4>
-        <button onclick="addStepForm('${id}')" class="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">+ เพิ่มขั้นตอน</button>
+        <button id="btn-add-step" onclick="toggleStepForm()" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">+ เพิ่มขั้นตอน</button>
       </div>
-      <div id="steps-container" class="space-y-2">
-        ${steps.length === 0 ? '<div class="text-center py-4 text-gray-400">ยังไม่มีขั้นตอน</div>' :
-          steps.sort((a,b) => (Number(a.stepNumber)||0) - (Number(b.stepNumber)||0)).map(s => `
-            <div class="border rounded-lg p-3 flex justify-between items-start">
-              <div>
-                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mr-2">ขั้นตอน ${s.stepNumber || s.order || '?'}</span>
-                <span class="font-medium text-gray-800">${s.title || ''}</span>
-                <p class="text-xs text-gray-500 mt-1">${s.description || ''}</p>
-              </div>
-              <button onclick="deleteStepById('${s.id}')" class="text-xs text-red-500 hover:underline">ลบ</button>
-            </div>
-          `).join('')}
-      </div>
-      <div id="new-step-form" class="hidden mt-4 border rounded-lg p-4 bg-gray-50">
+
+      <div id="new-step-form" class="hidden mb-4 border-2 border-green-200 rounded-lg p-4 bg-green-50">
+        <h5 class="font-medium text-gray-700 mb-3">เพิ่มขั้นตอนใหม่</h5>
         <div class="grid grid-cols-2 gap-3 mb-3">
           <div><label class="block text-xs text-gray-600 mb-1">ลำดับ</label>
-            <input type="number" id="step-num" class="w-full border rounded p-2 text-sm" value="${steps.length + 1}" /></div>
+            <input type="number" id="step-num" class="w-full border rounded p-2 text-sm" value="${steps.length + 1}" min="1" /></div>
+          <div><label class="block text-xs text-gray-600 mb-1">ระยะเวลา (วัน)</label>
+            <input type="number" id="step-duration" class="w-full border rounded p-2 text-sm" min="1" /></div>
+        </div>
+        <div class="mb-3"><label class="block text-xs text-gray-600 mb-1">ชื่อขั้นตอน *</label>
+          <input type="text" id="step-title" class="w-full border rounded p-2 text-sm" placeholder="ระบุชื่อขั้นตอน" /></div>
+        <div class="mb-3"><label class="block text-xs text-gray-600 mb-1">รายละเอียด</label>
+          <textarea id="step-desc" class="w-full border rounded p-2 text-sm" rows="2" placeholder="อธิบายรายละเอียดขั้นตอน"></textarea></div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
           <div><label class="block text-xs text-gray-600 mb-1">กำหนดเสร็จ</label>
             <input type="date" id="step-due" class="w-full border rounded p-2 text-sm" /></div>
+          <div><label class="block text-xs text-gray-600 mb-1">แหล่งเรียนรู้ (URL)</label>
+            <input type="text" id="step-resources" class="w-full border rounded p-2 text-sm" placeholder="https://..." /></div>
         </div>
-        <div class="mb-3"><label class="block text-xs text-gray-600 mb-1">ชื่อ</label>
-          <input type="text" id="step-title" class="w-full border rounded p-2 text-sm" /></div>
-        <div class="mb-3"><label class="block text-xs text-gray-600 mb-1">รายละเอียด</label>
-          <textarea id="step-desc" class="w-full border rounded p-2 text-sm" rows="2"></textarea></div>
-        <button onclick="saveNewStep('${id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">บันทึกขั้นตอน</button>
+        <div class="mb-3"><label class="block text-xs text-gray-600 mb-1">ไฟล์แนบ</label>
+          <div id="step-file-box" class="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-blue-400 transition-colors" onclick="document.getElementById('step-file-input').click()">
+            <input type="file" id="step-file-input" class="hidden" onchange="handleStepFileSelect(this)" />
+            <p class="text-sm text-gray-500">คลิกเพื่อเลือกไฟล์</p>
+            <p class="text-xs text-gray-400 mt-1">PDF, Word, Excel, รูปภาพ (สูงสุด 10MB)</p>
+          </div>
+          <div id="step-file-preview" class="hidden mt-2 flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2 rounded">
+            <span id="step-file-name"></span>
+            <button onclick="clearStepFile()" class="text-red-500 hover:text-red-700 ml-auto text-xs">ลบ</button>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="saveNewStep()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 flex-1">บันทึกขั้นตอน</button>
+          <button onclick="toggleStepForm()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-400">ยกเลิก</button>
+        </div>
+      </div>
+
+      <div id="steps-container" class="space-y-2">
+        ${steps.length === 0 ? '<div class="text-center py-4 text-gray-400">ยังไม่มีขั้นตอน</div>' :
+          steps.sort((a,b) => (Number(a.stepNumber)||0) - (Number(b.stepNumber)||0)).map(s => renderStepCard(s)).join('')}
       </div>`;
   } catch (e) {
     document.getElementById('roadmap-modal-content').innerHTML = '<div class="text-center py-8 text-red-500">เกิดข้อผิดพลาด</div>';
   }
 }
 
-function addStepForm(roadmapId) {
-  document.getElementById('new-step-form').classList.remove('hidden');
+function renderStepCard(s) {
+  const hasFile = s.fileUrl && s.fileUrl.trim();
+  const hasResources = s.resources && s.resources.trim();
+  const duration = s.durationDays ? `${s.durationDays} วัน` : '';
+  const dueDate = s.dueDate || '';
+
+  return `
+    <div class="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">ขั้นตอน ${s.stepNumber || '?'}</span>
+            ${duration ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">${duration}</span>` : ''}
+            ${dueDate ? `<span class="text-xs text-gray-400">กำหนด: ${dueDate}</span>` : ''}
+          </div>
+          <h5 class="font-medium text-gray-800">${s.title || ''}</h5>
+          ${s.description ? `<p class="text-xs text-gray-500 mt-1">${s.description}</p>` : ''}
+          <div class="flex gap-3 mt-2">
+            ${hasFile ? `<a href="${s.fileUrl}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              ${s.fileName || 'ไฟล์แนบ'}</a>` : ''}
+            ${hasResources ? `<a href="${s.resources}" target="_blank" class="text-xs text-green-600 hover:underline flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              แหล่งเรียนรู้</a>` : ''}
+          </div>
+        </div>
+        <div class="flex gap-2 ml-3">
+          <button onclick="event.stopPropagation();openEditStep('${s.id}')" class="text-xs text-blue-500 hover:underline">แก้ไข</button>
+          <button onclick="event.stopPropagation();deleteStepById('${s.id}')" class="text-xs text-red-500 hover:underline">ลบ</button>
+        </div>
+      </div>
+    </div>`;
 }
 
-async function saveNewStep(roadmapId) {
+var _stepFileData = null;
+var _stepFileName = null;
+var _stepFileMime = null;
+
+function handleStepFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('ไฟล์มีขนาดเกิน 10MB', 'error');
+    input.value = '';
+    return;
+  }
+  _stepFileName = file.name;
+  _stepFileMime = file.type;
+  document.getElementById('step-file-name').textContent = file.name;
+  document.getElementById('step-file-preview').classList.remove('hidden');
+  document.getElementById('step-file-box').classList.add('hidden');
+
+  fileToBase64(file).then(base64 => { _stepFileData = base64; });
+}
+
+function clearStepFile() {
+  _stepFileData = null;
+  _stepFileName = null;
+  _stepFileMime = null;
+  const input = document.getElementById('step-file-input');
+  if (input) input.value = '';
+  document.getElementById('step-file-preview').classList.add('hidden');
+  document.getElementById('step-file-box').classList.remove('hidden');
+}
+
+function toggleStepForm() {
+  const form = document.getElementById('new-step-form');
+  if (form) {
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+      clearStepFile();
+      const titleInput = document.getElementById('step-title');
+      if (titleInput) titleInput.focus();
+    }
+  }
+}
+
+async function saveNewStep() {
+  const title = document.getElementById('step-title').value.trim();
+  if (!title) {
+    showToast('กรุณาระบุชื่อขั้นตอน', 'error');
+    return;
+  }
+  if (!_currentRoadmapId) {
+    showToast('ไม่พบ Roadmap ID', 'error');
+    return;
+  }
+
   showLoading();
   try {
+    let fileUrl = '';
+    let fileName = '';
+
+    if (_stepFileData && _stepFileName) {
+      const uploadRes = await callApiPost('uploadFile', {
+        fileName: _stepFileName,
+        fileData: _stepFileData,
+        mimeType: _stepFileMime || 'application/octet-stream',
+        subfolder: 'resources'
+      });
+      if (uploadRes.success && uploadRes.data) {
+        fileUrl = uploadRes.data.fileUrl || uploadRes.data.url || '';
+        fileName = _stepFileName;
+      }
+    }
+
     await callApiPost('createRoadmapStep', {
-      roadmapId,
+      roadmapId: _currentRoadmapId,
       stepNumber: document.getElementById('step-num').value,
-      title: document.getElementById('step-title').value,
+      title: title,
       description: document.getElementById('step-desc').value,
       dueDate: document.getElementById('step-due').value,
+      durationDays: document.getElementById('step-duration').value,
+      resources: document.getElementById('step-resources').value,
+      fileUrl: fileUrl,
+      fileName: fileName,
       isActive: 'true'
     });
+
+    clearStepFile();
     showToast('เพิ่มขั้นตอนสำเร็จ', 'success');
-    await viewRoadmapDetail(roadmapId);
+    await viewRoadmapDetail(_currentRoadmapId);
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message, 'error'); }
+  hideLoading();
+}
+
+var _editStepData = null;
+
+async function openEditStep(stepId) {
+  if (!_currentRoadmapId) return;
+
+  try {
+    const res = await callApi('getRoadmap', { id: _currentRoadmapId });
+    const roadmap = res.data || res;
+    const step = (roadmap.steps || []).find(s => s.id === stepId);
+    if (!step) { showToast('ไม่พบข้อมูลขั้นตอน', 'error'); return; }
+
+    _editStepData = step;
+
+    document.getElementById('roadmap-modal-title').textContent = 'แก้ไขขั้นตอน';
+    document.getElementById('roadmap-modal-content').innerHTML = `
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-600 mb-1">ลำดับ</label>
+            <input type="number" id="edit-step-num" class="w-full border rounded p-2 text-sm" value="${step.stepNumber || ''}" min="1" /></div>
+          <div><label class="block text-xs text-gray-600 mb-1">ระยะเวลา (วัน)</label>
+            <input type="number" id="edit-step-duration" class="w-full border rounded p-2 text-sm" value="${step.durationDays || ''}" min="1" /></div>
+        </div>
+        <div><label class="block text-xs text-gray-600 mb-1">ชื่อขั้นตอน *</label>
+          <input type="text" id="edit-step-title" class="w-full border rounded p-2 text-sm" value="${step.title || ''}" /></div>
+        <div><label class="block text-xs text-gray-600 mb-1">รายละเอียด</label>
+          <textarea id="edit-step-desc" class="w-full border rounded p-2 text-sm" rows="2">${step.description || ''}</textarea></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-600 mb-1">กำหนดเสร็จ</label>
+            <input type="date" id="edit-step-due" class="w-full border rounded p-2 text-sm" value="${step.dueDate || ''}" /></div>
+          <div><label class="block text-xs text-gray-600 mb-1">แหล่งเรียนรู้ (URL)</label>
+            <input type="text" id="edit-step-resources" class="w-full border rounded p-2 text-sm" value="${step.resources || ''}" /></div>
+        </div>
+        <div><label class="block text-xs text-gray-600 mb-1">ไฟล์แนบ</label>
+          ${step.fileUrl ? `
+            <div id="edit-existing-file" class="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2 rounded mb-2">
+              <a href="${step.fileUrl}" target="_blank" class="hover:underline flex-1">${step.fileName || 'ไฟล์แนบ'}</a>
+              <button onclick="document.getElementById('edit-existing-file').remove();document.getElementById('edit-step-remove-file').value='true';document.getElementById('edit-file-upload-box').classList.remove('hidden')" class="text-red-500 text-xs hover:text-red-700">เปลี่ยนไฟล์</button>
+            </div>` : ''}
+          <input type="hidden" id="edit-step-remove-file" value="false" />
+          <div id="edit-file-upload-box" class="${step.fileUrl ? 'hidden' : ''} border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-blue-400 transition-colors" onclick="document.getElementById('edit-step-file-input').click()">
+            <input type="file" id="edit-step-file-input" class="hidden" onchange="handleEditStepFile(this)" />
+            <p class="text-sm text-gray-500">คลิกเพื่อเลือกไฟล์</p>
+          </div>
+          <div id="edit-step-file-preview" class="hidden mt-2 flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2 rounded">
+            <span id="edit-step-file-name"></span>
+            <button onclick="clearEditStepFile()" class="text-red-500 text-xs hover:text-red-700 ml-auto">ลบ</button>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button onclick="submitEditStep('${stepId}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 flex-1">บันทึก</button>
+          <button onclick="viewRoadmapDetail('${_currentRoadmapId}')" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-400">ยกเลิก</button>
+        </div>
+      </div>`;
   } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
+}
+
+var _editStepFileData = null;
+var _editStepFileName = null;
+var _editStepFileMime = null;
+
+function handleEditStepFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('ไฟล์มีขนาดเกิน 10MB', 'error');
+    input.value = '';
+    return;
+  }
+  _editStepFileName = file.name;
+  _editStepFileMime = file.type;
+  document.getElementById('edit-step-file-name').textContent = file.name;
+  document.getElementById('edit-step-file-preview').classList.remove('hidden');
+  document.getElementById('edit-file-upload-box').classList.add('hidden');
+
+  fileToBase64(file).then(base64 => { _editStepFileData = base64; });
+}
+
+function clearEditStepFile() {
+  _editStepFileData = null;
+  _editStepFileName = null;
+  _editStepFileMime = null;
+  const input = document.getElementById('edit-step-file-input');
+  if (input) input.value = '';
+  document.getElementById('edit-step-file-preview').classList.add('hidden');
+  document.getElementById('edit-file-upload-box').classList.remove('hidden');
+}
+
+async function submitEditStep(stepId) {
+  const title = document.getElementById('edit-step-title').value.trim();
+  if (!title) {
+    showToast('กรุณาระบุชื่อขั้นตอน', 'error');
+    return;
+  }
+
+  showLoading();
+  try {
+    let fileUrl = _editStepData ? (_editStepData.fileUrl || '') : '';
+    let fileName = _editStepData ? (_editStepData.fileName || '') : '';
+    const removeFile = document.getElementById('edit-step-remove-file').value === 'true';
+
+    if (_editStepFileData && _editStepFileName) {
+      const uploadRes = await callApiPost('uploadFile', {
+        fileName: _editStepFileName,
+        fileData: _editStepFileData,
+        mimeType: _editStepFileMime || 'application/octet-stream',
+        subfolder: 'resources'
+      });
+      if (uploadRes.success && uploadRes.data) {
+        fileUrl = uploadRes.data.fileUrl || uploadRes.data.url || '';
+        fileName = _editStepFileName;
+      }
+    } else if (removeFile) {
+      fileUrl = '';
+      fileName = '';
+    }
+
+    await callApiPost('updateRoadmapStep', {
+      id: stepId,
+      stepNumber: document.getElementById('edit-step-num').value,
+      title: title,
+      description: document.getElementById('edit-step-desc').value,
+      dueDate: document.getElementById('edit-step-due').value,
+      durationDays: document.getElementById('edit-step-duration').value,
+      resources: document.getElementById('edit-step-resources').value,
+      fileUrl: fileUrl,
+      fileName: fileName
+    });
+
+    _editStepFileData = null;
+    _editStepFileName = null;
+    _editStepFileMime = null;
+    _editStepData = null;
+
+    showToast('อัปเดตขั้นตอนสำเร็จ', 'success');
+    await viewRoadmapDetail(_currentRoadmapId);
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message, 'error'); }
   hideLoading();
 }
 
@@ -203,7 +469,10 @@ async function deleteRoadmapById(id) {
 async function deleteStepById(id) {
   if (!confirm('ต้องการลบขั้นตอนนี้?')) return;
   showLoading();
-  try { await callApiPost('deleteRoadmapStep', { id }); showToast('ลบขั้นตอนสำเร็จ', 'success'); }
-  catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
+  try {
+    await callApiPost('deleteRoadmapStep', { id });
+    showToast('ลบขั้นตอนสำเร็จ', 'success');
+    if (_currentRoadmapId) await viewRoadmapDetail(_currentRoadmapId);
+  } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
   hideLoading();
 }

@@ -169,7 +169,11 @@ function createRoadmapStep(data) {
       title: data.title.trim(),
       description: data.description || '',
       dueDate: data.dueDate || '',
-      isActive: 'true'
+      isActive: 'true',
+      durationDays: data.durationDays || '',
+      resources: data.resources || '',
+      fileUrl: data.fileUrl || '',
+      fileName: data.fileName || ''
     };
 
     var newStep = appendRow(CONFIG.SHEETS.ROADMAP_STEPS, stepData);
