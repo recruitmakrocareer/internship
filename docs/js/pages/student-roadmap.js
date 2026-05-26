@@ -305,7 +305,7 @@ async function saveStepProgress(stepId) {
 
   showLoading();
   try {
-    const result = await callApi('updateRoadmapProgress', {
+    const result = await callApiPost('updateRoadmapProgress', {
       userId: user.id,
       stepId: stepId,
       status: status,

@@ -57,7 +57,11 @@ async function renderStudentProfile() {
               {value: '1', text: 'ปี 1'}, {value: '2', text: 'ปี 2'},
               {value: '3', text: 'ปี 3'}, {value: '4', text: 'ปี 4'}, {value: '5', text: 'ปี 5'}
             ], profile.year || '')}
-            ${inputField('profile-gpa', 'GPA', 'number', profile.gpa || '', '0.00 - 4.00', false)}
+            <div class="mb-4">
+              <label for="profile-gpa" class="block text-sm font-medium text-gray-700 mb-1">GPA</label>
+              <input type="number" id="profile-gpa" value="${profile.gpa || ''}" placeholder="0.00 - 4.00" min="0" max="4" step="0.01"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
           </div>
           ${textareaField('profile-address', 'ที่อยู่', profile.address || '', 'ที่อยู่ปัจจุบัน', 3)}
           ${textareaField('profile-skills', 'ทักษะ/ความสามารถ', profile.skills || '', 'เช่น JavaScript, Python, Design', 2)}
@@ -94,7 +98,7 @@ async function renderStudentProfile() {
       };
 
       try {
-        const result = await callApi('updateProfile', data);
+        const result = await callApiPost('updateProfile', data);
         if (result.success) {
           // อัปเดต localStorage
           const updatedUser = { ...user, name: data.name, email: data.email };

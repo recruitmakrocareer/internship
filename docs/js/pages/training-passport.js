@@ -271,7 +271,7 @@ async function updateWeekStatus(stepId, status, weekIndex) {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApi('updateRoadmapProgress', { userId: user.id, stepId, status });
+    await callApiPost('updateRoadmapProgress', { userId: user.id, stepId, status });
     showToast('อัพเดทสถานะสำเร็จ', 'success');
     closeModal();
     await loadTrainingPassport();
@@ -285,7 +285,7 @@ async function signOff(stepId, role, weekIndex) {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApi('signOffWeek', { userId: user.id, weekNumber: String(weekIndex), role, notes: '' });
+    await callApiPost('signOffWeek', { userId: user.id, weekNumber: String(weekIndex), role, notes: '' });
     showToast('ลงชื่อสำเร็จ', 'success');
     closeModal();
     await loadTrainingPassport();
@@ -300,7 +300,7 @@ async function saveWeekNotes(stepId, weekIndex) {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApi('updateRoadmapProgress', { userId: user.id, stepId, status: 'IN_PROGRESS', note: notes });
+    await callApiPost('updateRoadmapProgress', { userId: user.id, stepId, status: 'IN_PROGRESS', note: notes });
     showToast('บันทึกสำเร็จ', 'success');
   } catch (e) {
     showToast('เกิดข้อผิดพลาด', 'error');
