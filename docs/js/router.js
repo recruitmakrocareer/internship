@@ -21,6 +21,7 @@ const routes = {
   'mentor-evaluations': renderMentorEvaluations,
   'training-passport': renderTrainingPassport,
   'knowledge-management': renderKnowledgeManagement,
+  'survey': renderSurvey,
 };
 
 function router() {

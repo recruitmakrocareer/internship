@@ -66,9 +66,13 @@ async function loadStudentAssignments() {
           <div class="flex justify-between items-start mb-3">
             <div>
               <h3 class="font-bold text-gray-800">${a.title || ''}</h3>
+              ${a.source === 'มหาวิทยาลัย' && a.professorName ? `<p class="text-sm text-purple-600 mt-1">อาจารย์ที่ปรึกษา: ${a.professorName}</p>` : ''}
               <p class="text-sm text-gray-500 mt-1">${a.description || ''}</p>
             </div>
-            <span class="px-3 py-1 text-xs font-medium rounded-full ${statusColor}">${statusLabel}</span>
+            <div class="flex items-center gap-2">
+              ${a.source === 'มหาวิทยาลัย' ? '<span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">มหาวิทยาลัย</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Makro</span>'}
+              <span class="px-3 py-1 text-xs font-medium rounded-full ${statusColor}">${statusLabel}</span>
+            </div>
           </div>
           <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
             ${a.dueDate ? `<span>กำหนดส่ง: ${formatDate(a.dueDate)}</span>` : ''}

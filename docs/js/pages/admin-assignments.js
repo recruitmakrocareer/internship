@@ -47,6 +47,7 @@ async function loadAdminAssignments() {
           <thead class="bg-gray-50">
             <tr>
               <th class="text-left p-3 font-medium text-gray-600">ชื่องาน</th>
+              <th class="text-left p-3 font-medium text-gray-600">ที่มา</th>
               <th class="text-left p-3 font-medium text-gray-600">กำหนดส่ง</th>
               <th class="text-left p-3 font-medium text-gray-600">คะแนนเต็ม</th>
               <th class="text-left p-3 font-medium text-gray-600">สถานะ</th>
@@ -60,6 +61,7 @@ async function loadAdminAssignments() {
                   <div class="font-medium text-gray-800">${a.title || ''}</div>
                   <div class="text-xs text-gray-500">${(a.description || '').substring(0, 60)}...</div>
                 </td>
+                <td class="p-3">${a.source === 'มหาวิทยาลัย' ? '<span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">มหาวิทยาลัย</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Makro</span>'}</td>
                 <td class="p-3 text-gray-600">${a.dueDate ? formatDate(a.dueDate) : '-'}</td>
                 <td class="p-3 text-gray-600">${a.maxScore || '-'}</td>
                 <td class="p-3"><span class="px-2 py-1 text-xs rounded-full ${a.isActive === 'true' || a.isActive === true ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">${a.isActive === 'true' || a.isActive === true ? 'เปิดใช้งาน' : 'ปิด'}</span></td>
@@ -86,6 +88,15 @@ function openCreateAssignment() {
       <div><label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
         <textarea id="aa-desc" class="w-full border rounded-lg p-3 text-sm" rows="4"></textarea></div>
       <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">ที่มา</label>
+          <select id="aa-source" class="w-full border rounded-lg p-2">
+            <option value="Makro" selected>Makro</option>
+            <option value="มหาวิทยาลัย">มหาวิทยาลัย</option>
+          </select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">อาจารย์ที่ปรึกษา</label>
+          <input type="text" id="aa-professor" class="w-full border rounded-lg p-2" placeholder="ชื่ออาจารย์ที่ปรึกษา" /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-gray-700 mb-1">กำหนดส่ง</label>
           <input type="date" id="aa-due" class="w-full border rounded-lg p-2" /></div>
         <div><label class="block text-sm font-medium text-gray-700 mb-1">คะแนนเต็ม</label>
@@ -103,6 +114,8 @@ async function saveNewAssignment() {
     await callApiPost('createAssignment', {
       title: document.getElementById('aa-title').value,
       description: document.getElementById('aa-desc').value,
+      source: document.getElementById('aa-source').value,
+      professorName: document.getElementById('aa-professor').value,
       dueDate: document.getElementById('aa-due').value,
       maxScore: document.getElementById('aa-score').value,
       assignedTo: 'all',
@@ -130,6 +143,15 @@ async function editAssignment(id) {
         <div><label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
           <textarea id="aa-desc" class="w-full border rounded-lg p-3 text-sm" rows="4">${a.description||''}</textarea></div>
         <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ที่มา</label>
+            <select id="aa-source" class="w-full border rounded-lg p-2">
+              <option value="Makro" ${(a.source||'Makro')==='Makro'?'selected':''}>Makro</option>
+              <option value="มหาวิทยาลัย" ${a.source==='มหาวิทยาลัย'?'selected':''}>มหาวิทยาลัย</option>
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">อาจารย์ที่ปรึกษา</label>
+            <input type="text" id="aa-professor" class="w-full border rounded-lg p-2" placeholder="ชื่ออาจารย์ที่ปรึกษา" value="${a.professorName||''}" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
           <div><label class="block text-sm font-medium text-gray-700 mb-1">กำหนดส่ง</label>
             <input type="date" id="aa-due" class="w-full border rounded-lg p-2" value="${a.dueDate||''}" /></div>
           <div><label class="block text-sm font-medium text-gray-700 mb-1">คะแนนเต็ม</label>
@@ -144,7 +166,7 @@ async function editAssignment(id) {
 async function updateAssignmentById(id) {
   showLoading();
   try {
-    await callApiPost('updateAssignment', { id, title: document.getElementById('aa-title').value, description: document.getElementById('aa-desc').value, dueDate: document.getElementById('aa-due').value, maxScore: document.getElementById('aa-score').value });
+    await callApiPost('updateAssignment', { id, title: document.getElementById('aa-title').value, description: document.getElementById('aa-desc').value, source: document.getElementById('aa-source').value, professorName: document.getElementById('aa-professor').value, dueDate: document.getElementById('aa-due').value, maxScore: document.getElementById('aa-score').value });
     showToast('อัปเดตสำเร็จ', 'success');
     document.getElementById('assign-modal').classList.add('hidden');
     await loadAdminAssignments();

@@ -33,6 +33,17 @@ function renderKnowledgeManagement() {
           <div id="km-progress-bar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all" style="width:0%"></div>
         </div>
 
+        <!-- Presentation Schedule -->
+        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-5 mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-indigo-800">📅 กำหนดการนำเสนอ Report-Out</h3>
+            ${user.role === 'ADMIN' ? '<button onclick="openScheduleModal()" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700">ตั้งค่ากำหนดการ</button>' : ''}
+          </div>
+          <div id="km-schedule" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="text-center text-sm text-gray-400 col-span-full">กำลังโหลด...</div>
+          </div>
+        </div>
+
         <!-- Instruction Card -->
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
           <h3 class="font-semibold text-blue-800 mb-2">📋 คำแนะนำ</h3>
@@ -66,9 +77,97 @@ function renderKnowledgeManagement() {
         <div class="p-6" id="km-modal-content"></div>
       </div>
     </div>
+
+    <!-- Schedule Modal (Admin) -->
+    <div id="km-schedule-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4">
+        <div class="p-6 border-b flex justify-between items-center">
+          <h3 class="text-lg font-bold">ตั้งค่ากำหนดการนำเสนอ</h3>
+          <button onclick="document.getElementById('km-schedule-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="p-6" id="km-schedule-form"></div>
+      </div>
+    </div>
   `;
 
   loadKnowledgeEntries();
+  loadKmSchedule();
+}
+
+async function loadKmSchedule() {
+  const scheduleDiv = document.getElementById('km-schedule');
+  try {
+    const res = await callApi('getResources', { category: 'km-schedule' });
+    const resources = Array.isArray(res.data || res) ? (res.data || res) : [];
+    const schedules = resources.filter(r => r.category === 'km-schedule');
+
+    if (schedules.length === 0) {
+      scheduleDiv.innerHTML = '<div class="text-center text-sm text-gray-400 col-span-full">ยังไม่ได้กำหนดวันนำเสนอ</div>';
+      return;
+    }
+
+    const roundLabels = ['รอบที่ 1', 'รอบที่ 2', 'รอบที่ 3'];
+    const roundColors = ['bg-indigo-100 border-indigo-300 text-indigo-800', 'bg-purple-100 border-purple-300 text-purple-800', 'bg-pink-100 border-pink-300 text-pink-800'];
+
+    scheduleDiv.innerHTML = schedules.slice(0, 3).map((s, i) => `
+      <div class="rounded-lg border p-3 ${roundColors[i] || roundColors[0]}">
+        <div class="font-semibold text-sm">${roundLabels[i] || 'รอบที่ ' + (i+1)}</div>
+        <div class="text-lg font-bold mt-1">${s.title ? formatDate(s.title) : '-'}</div>
+        ${s.description ? '<div class="text-xs mt-1 opacity-80">' + s.description + '</div>' : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    scheduleDiv.innerHTML = '<div class="text-center text-sm text-gray-400 col-span-full">ไม่สามารถโหลดกำหนดการ</div>';
+  }
+}
+
+function openScheduleModal() {
+  document.getElementById('km-schedule-form').innerHTML = `
+    <div class="space-y-4">
+      <p class="text-sm text-gray-500 mb-4">กำหนดวันนำเสนอ Report-Out (สูงสุด 3 รอบ)</p>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">รอบที่ 1</label>
+        <input type="date" id="sched-date-1" class="w-full border rounded-lg p-2 text-sm">
+        <input type="text" id="sched-note-1" class="w-full border rounded-lg p-2 text-sm mt-2" placeholder="หมายเหตุ (ไม่บังคับ)">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">รอบที่ 2</label>
+        <input type="date" id="sched-date-2" class="w-full border rounded-lg p-2 text-sm">
+        <input type="text" id="sched-note-2" class="w-full border rounded-lg p-2 text-sm mt-2" placeholder="หมายเหตุ (ไม่บังคับ)">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">รอบที่ 3</label>
+        <input type="date" id="sched-date-3" class="w-full border rounded-lg p-2 text-sm">
+        <input type="text" id="sched-note-3" class="w-full border rounded-lg p-2 text-sm mt-2" placeholder="หมายเหตุ (ไม่บังคับ)">
+      </div>
+      <button onclick="saveKmSchedule()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700">บันทึกกำหนดการ</button>
+    </div>`;
+  document.getElementById('km-schedule-modal').classList.remove('hidden');
+}
+
+async function saveKmSchedule() {
+  const user = getCurrentUser();
+  showLoading();
+  try {
+    for (let i = 1; i <= 3; i++) {
+      const date = document.getElementById('sched-date-' + i).value;
+      if (date) {
+        await callApiPost('createResource', {
+          title: date,
+          description: document.getElementById('sched-note-' + i).value || '',
+          category: 'km-schedule',
+          type: 'document',
+          createdBy: user.id
+        });
+      }
+    }
+    showToast('บันทึกกำหนดการสำเร็จ', 'success');
+    document.getElementById('km-schedule-modal').classList.add('hidden');
+    await loadKmSchedule();
+  } catch (e) {
+    showToast('เกิดข้อผิดพลาด', 'error');
+  }
+  hideLoading();
 }
 
 async function loadKnowledgeEntries() {
