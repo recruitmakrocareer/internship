@@ -253,6 +253,24 @@ function initLayout(user) {
     toggleBtn.addEventListener('click', () => {
       sidebar.classList.toggle('-translate-x-full');
     });
+
+    // Close sidebar on mobile when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+        if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+          sidebar.classList.add('-translate-x-full');
+        }
+      }
+    });
+
+    // Handle window resize - properly collapse/expand sidebar
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024) {
+        sidebar.classList.remove('-translate-x-full');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+      }
+    });
   }
 
   return document.getElementById('content');

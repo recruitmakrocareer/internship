@@ -8,7 +8,13 @@ function renderStudentAssignments() {
     <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">งานที่ได้รับมอบหมาย</h1>
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold text-gray-800">งานที่ได้รับมอบหมาย</h1>
+          <button onclick="openAddStudentAssignment()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            เพิ่มงาน/โปรเจค
+          </button>
+        </div>
         <div id="assignments-list" class="space-y-4">
           <div class="text-center py-8 text-gray-400">กำลังโหลด...</div>
         </div>
@@ -30,6 +36,35 @@ function renderStudentAssignments() {
             <input type="file" id="submit-file" class="w-full border rounded-lg p-2 text-sm" />
           </div>
           <button id="submit-btn" onclick="submitWork()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">ส่งงาน</button>
+        </div>
+      </div>
+    </div>
+    <div id="add-assignment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+        <div class="p-6 border-b flex justify-between items-center">
+          <h3 class="text-lg font-bold">เพิ่มงาน/โปรเจคจากมหาวิทยาลัย</h3>
+          <button onclick="document.getElementById('add-assignment-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่องาน/โปรเจค <span class="text-red-500">*</span></label>
+            <input type="text" id="add-assign-title" class="w-full border rounded-lg p-3 text-sm" placeholder="ชื่อหัวข้องาน หรือ Project">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
+            <textarea id="add-assign-desc" class="w-full border rounded-lg p-3 text-sm" rows="3" placeholder="รายละเอียดงาน..."></textarea>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">อาจารย์ที่สั่ง</label>
+              <input type="text" id="add-assign-professor" class="w-full border rounded-lg p-3 text-sm" placeholder="ชื่ออาจารย์">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">กำหนดส่ง</label>
+              <input type="date" id="add-assign-due" class="w-full border rounded-lg p-3 text-sm">
+            </div>
+          </div>
+          <button onclick="saveStudentAssignment()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700">บันทึก</button>
         </div>
       </div>
     </div>
@@ -131,6 +166,39 @@ async function submitWork() {
     });
     showToast('ส่งงานสำเร็จ', 'success');
     document.getElementById('submit-modal').classList.add('hidden');
+    await loadStudentAssignments();
+  } catch (e) {
+    showToast('เกิดข้อผิดพลาด', 'error');
+  }
+  hideLoading();
+}
+
+function openAddStudentAssignment() {
+  document.getElementById('add-assign-title').value = '';
+  document.getElementById('add-assign-desc').value = '';
+  document.getElementById('add-assign-professor').value = '';
+  document.getElementById('add-assign-due').value = '';
+  document.getElementById('add-assignment-modal').classList.remove('hidden');
+}
+
+async function saveStudentAssignment() {
+  const title = document.getElementById('add-assign-title').value.trim();
+  if (!title) { showToast('กรุณากรอกชื่องาน', 'error'); return; }
+
+  const user = getCurrentUser();
+  showLoading();
+  try {
+    await callApiPost('createAssignment', {
+      title: title,
+      description: document.getElementById('add-assign-desc').value.trim(),
+      professorName: document.getElementById('add-assign-professor').value.trim(),
+      source: 'มหาวิทยาลัย',
+      dueDate: document.getElementById('add-assign-due').value,
+      assignedTo: user.id,
+      createdBy: user.id
+    });
+    showToast('เพิ่มงานสำเร็จ', 'success');
+    document.getElementById('add-assignment-modal').classList.add('hidden');
     await loadStudentAssignments();
   } catch (e) {
     showToast('เกิดข้อผิดพลาด', 'error');

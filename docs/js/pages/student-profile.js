@@ -31,8 +31,10 @@ async function renderStudentProfile() {
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="bg-gradient-to-r from-primary-500 to-primary-700 p-6">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-              <span class="text-primary-700 font-bold text-2xl">${(firstName || 'U').charAt(0).toUpperCase()}</span>
+            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
+              ${profile.photoFileUrl
+                ? '<img src="' + profile.photoFileUrl + '" alt="Photo" class="w-full h-full object-cover">'
+                : '<span class="text-primary-700 font-bold text-2xl">' + (firstName || 'U').charAt(0).toUpperCase() + '</span>'}
             </div>
             <div class="text-white">
               <h3 class="text-xl font-bold">${firstName} ${lastName}</h3>
@@ -70,9 +72,21 @@ async function renderStudentProfile() {
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div>
-                <label for="profile-employee-id" class="block text-sm font-medium text-gray-700 mb-1">รหัสพนักงาน</label>
-                <input type="text" id="profile-employee-id" value="${profile.employeeId || ''}" placeholder="รหัสพนักงาน Makro"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">รหัสพนักงาน <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
+                <input type="text" value="${profile.employeeId || '-'}" disabled
+                  class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">แผนกที่ฝึก <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
+                <input type="text" value="${profile.department || '-'}" disabled
+                  class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ฝึก <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
+                <input type="text" value="${profile.branch || '-'}" disabled
+                  class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
               </div>
             </div>
             ${inputField('profile-email', 'อีเมล', 'email', profile.email || '')}
@@ -120,6 +134,27 @@ async function renderStudentProfile() {
           <!-- Section: เอกสาร -->
           <div>
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">เอกสารประกอบ</h3>
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">สถานะเอกสาร</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="${profile.cvFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.cvFileUrl ? '✓' : '○'}</span>
+                  <span class="text-sm ${profile.cvFileUrl ? 'text-green-700' : 'text-gray-500'}">Resume/CV</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="${profile.transcriptFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.transcriptFileUrl ? '✓' : '○'}</span>
+                  <span class="text-sm ${profile.transcriptFileUrl ? 'text-green-700' : 'text-gray-500'}">ใบรับรองผลการเรียน</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="${profile.idCardFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.idCardFileUrl ? '✓' : '○'}</span>
+                  <span class="text-sm ${profile.idCardFileUrl ? 'text-green-700' : 'text-gray-500'}">สำเนาบัตรประชาชน</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="${profile.photoFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.photoFileUrl ? '✓' : '○'}</span>
+                  <span class="text-sm ${profile.photoFileUrl ? 'text-green-700' : 'text-gray-500'}">รูปถ่าย</span>
+                </div>
+              </div>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
                 <label for="profile-doc-cv" class="cursor-pointer block">
@@ -195,7 +230,6 @@ async function renderStudentProfile() {
         firstName: fName,
         lastName: lName,
         nickname: document.getElementById('profile-nickname').value.trim(),
-        employeeId: document.getElementById('profile-employee-id').value.trim(),
         studentId: document.getElementById('profile-student-id').value.trim(),
         email: document.getElementById('profile-email').value.trim(),
         phone: document.getElementById('profile-phone').value.trim(),

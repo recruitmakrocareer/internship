@@ -63,7 +63,16 @@ async function loadStudentRoadmaps() {
     window._studentRoadmaps = Array.isArray(roadmaps) ? roadmaps : [];
     window._studentProgressMap = progressMap;
 
-    renderRoadmapCards(window._studentRoadmaps, progressMap);
+    // Filter to only show roadmaps that have been assigned to this student
+    // A roadmap is "assigned" if any of its steps have progress entries for this user
+    const assignedRoadmaps = window._studentRoadmaps.filter(roadmap => {
+      if (!roadmap.steps || roadmap.steps.length === 0) return false;
+      return roadmap.steps.some(step => progressMap[step.id]);
+    });
+    // Show assigned roadmaps if any, otherwise show all (for new students)
+    const displayRoadmaps = assignedRoadmaps.length > 0 ? assignedRoadmaps : window._studentRoadmaps;
+
+    renderRoadmapCards(displayRoadmaps, progressMap);
   } catch (error) {
     hideLoading();
     console.error('Error loading roadmaps:', error);
@@ -172,7 +181,10 @@ function renderRoadmapCards(roadmaps, progressMap) {
             }
 
             return `
-              <div class="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer ${statusClass}" onclick="openStepModal('${step.id}', ${rIndex}, ${sIndex})">
+              <div class="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer ${statusClass}" draggable="true" data-roadmap="${rIndex}" data-step="${sIndex}" data-step-id="${step.id}" onclick="openStepModal('${step.id}', ${rIndex}, ${sIndex})" ondragstart="handleStepDragStart(event)" ondragover="handleStepDragOver(event)" ondrop="handleStepDrop(event)" ondragend="handleStepDragEnd(event)">
+                <div class="flex-shrink-0 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing" onmousedown="event.stopPropagation()">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm8-16a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>
+                </div>
                 <div class="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
                   ${sIndex + 1}
                 </div>
@@ -324,4 +336,49 @@ async function saveStepProgress(stepId) {
     console.error('Error saving step progress:', error);
   }
   hideLoading();
+}
+
+window._draggedStep = null;
+
+function handleStepDragStart(e) {
+  window._draggedStep = e.currentTarget;
+  e.currentTarget.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleStepDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target !== window._draggedStep && target.dataset.roadmap === window._draggedStep.dataset.roadmap) {
+    target.style.borderTop = '2px solid #3b82f6';
+  }
+}
+
+function handleStepDrop(e) {
+  e.preventDefault();
+  const target = e.currentTarget;
+  target.style.borderTop = '';
+
+  if (!window._draggedStep || target === window._draggedStep) return;
+  if (target.dataset.roadmap !== window._draggedStep.dataset.roadmap) return;
+
+  const rIndex = parseInt(window._draggedStep.dataset.roadmap);
+  const fromIndex = parseInt(window._draggedStep.dataset.step);
+  const toIndex = parseInt(target.dataset.step);
+
+  // Reorder the steps array
+  const roadmap = window._studentRoadmaps[rIndex];
+  if (roadmap && roadmap.steps) {
+    const [movedStep] = roadmap.steps.splice(fromIndex, 1);
+    roadmap.steps.splice(toIndex, 0, movedStep);
+    renderRoadmapCards(window._studentRoadmaps.filter(r => r.steps && r.steps.length > 0), window._studentProgressMap);
+    showToast('เรียงลำดับใหม่สำเร็จ', 'success');
+  }
+}
+
+function handleStepDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('[data-step]').forEach(el => { el.style.borderTop = ''; });
+  window._draggedStep = null;
 }

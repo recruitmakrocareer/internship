@@ -89,10 +89,49 @@ function buildSurveyForm() {
 
         <hr class="border-gray-200">
 
-        <!-- ==================== Section 2: ทักษะที่ได้รับ ==================== -->
+        <!-- ==================== Section 2: ประเมินผู้สอนในหัวข้อต่างๆ ==================== -->
         <div>
           <div class="flex items-center gap-2 mb-4">
             <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">2</span>
+            <h2 class="text-lg font-semibold text-gray-800">ประเมินผู้สอนในหัวข้อต่างๆ</h2>
+          </div>
+          <div class="space-y-3 pl-9">
+            <p class="text-sm text-gray-500 mb-2">ให้คะแนนผู้สอนในแต่ละหัวข้อ (1 = น้อยที่สุด, 5 = มากที่สุด)</p>
+            ${[
+              { id: 'orientation', label: 'Orientation / ปฐมนิเทศ' },
+              { id: 'fresh-food', label: 'Fresh Food Department Study' },
+              { id: 'food-safety', label: 'Food Safety & GMP/HACCP' },
+              { id: 'ordering', label: 'OPL Ordering / การสั่งซื้อสินค้า' },
+              { id: 'receiving', label: 'Receiving & Storage Management' },
+              { id: 'merchandising', label: 'Display & Merchandising' },
+              { id: 'sale-analysis', label: 'Sale Analysis & Price Management' },
+              { id: 'stock-mgmt', label: 'Stock & Inventory Management' },
+              { id: 'shrinkage', label: 'Shrinkage Management' },
+              { id: 'customer-dev', label: 'Customer Development' },
+              { id: 'soft-skill', label: 'Soft Skill Management' },
+              { id: 'supervisor', label: 'Supervisor Function Job' }
+            ].map(topic => `
+              <div class="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                <span class="text-sm text-gray-700 flex-1">${topic.label}</span>
+                <div class="flex gap-1">
+                  ${[1,2,3,4,5].map(n => `
+                    <label class="cursor-pointer">
+                      <input type="radio" name="trainer_${topic.id}" value="${n}" class="hidden">
+                      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors trainer-rating border border-gray-200 hover:bg-primary-100 hover:border-primary-400" data-group="trainer_${topic.id}" data-value="${n}">${n}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <hr class="border-gray-200">
+
+        <!-- ==================== Section 3: ทักษะที่ได้รับ ==================== -->
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">3</span>
             <h2 class="text-lg font-semibold text-gray-800">ทักษะที่ได้รับ</h2>
           </div>
           <div class="space-y-3 pl-9">
@@ -124,10 +163,10 @@ function buildSurveyForm() {
 
         <hr class="border-gray-200">
 
-        <!-- ==================== Section 3: ข้อเสนอแนะ ==================== -->
+        <!-- ==================== Section 4: ข้อเสนอแนะ ==================== -->
         <div>
           <div class="flex items-center gap-2 mb-4">
-            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">3</span>
+            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">4</span>
             <h2 class="text-lg font-semibold text-gray-800">ข้อเสนอแนะ</h2>
           </div>
           <div class="space-y-4 pl-9">
@@ -151,10 +190,10 @@ function buildSurveyForm() {
 
         <hr class="border-gray-200">
 
-        <!-- ==================== Section 4: อนาคต ==================== -->
+        <!-- ==================== Section 5: อนาคต ==================== -->
         <div>
           <div class="flex items-center gap-2 mb-4">
-            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">4</span>
+            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">5</span>
             <h2 class="text-lg font-semibold text-gray-800">อนาคต</h2>
           </div>
           <div class="space-y-4 pl-9">
@@ -183,6 +222,23 @@ function buildSurveyForm() {
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input type="radio" name="interest_makro" value="maybe" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
                   <span class="text-sm text-gray-700">อาจจะ</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">สนใจเข้าร่วมโครงการ Operation Trainees หรือไม่</label>
+              <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="interest_ot" value="yes" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                  <span class="text-sm text-gray-700">สนใจ</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="interest_ot" value="no" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                  <span class="text-sm text-gray-700">ไม่สนใจ</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="interest_ot" value="need-info" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                  <span class="text-sm text-gray-700">ต้องการข้อมูลเพิ่มเติม</span>
                 </label>
               </div>
             </div>
@@ -259,6 +315,25 @@ function initSurveyForm(user) {
     });
   }
 
+  // Trainer rating number circles
+  document.querySelectorAll('.trainer-rating').forEach(span => {
+    span.addEventListener('click', () => {
+      const group = span.dataset.group;
+      const value = span.dataset.value;
+      const radio = document.querySelector(`input[name="${group}"][value="${value}"]`);
+      if (radio) radio.checked = true;
+      document.querySelectorAll(`.trainer-rating[data-group="${group}"]`).forEach(s => {
+        if (parseInt(s.dataset.value) <= parseInt(value)) {
+          s.classList.remove('border-gray-200', 'bg-white');
+          s.classList.add('bg-primary-500', 'text-white', 'border-primary-500');
+        } else {
+          s.classList.remove('bg-primary-500', 'text-white', 'border-primary-500');
+          s.classList.add('border-gray-200', 'bg-white');
+        }
+      });
+    });
+  });
+
   // "Other" skill checkbox toggle
   const otherCheck = document.getElementById('skill-other-check');
   const otherText = document.getElementById('skill-other-text');
@@ -317,15 +392,24 @@ function initSurveyForm(user) {
         skills.push('other:' + otherText.value.trim());
       }
 
+      // Collect trainer ratings
+      const trainerRatings = {};
+      ['orientation','fresh-food','food-safety','ordering','receiving','merchandising','sale-analysis','stock-mgmt','shrinkage','customer-dev','soft-skill','supervisor'].forEach(id => {
+        const radio = form.querySelector(`input[name="trainer_${id}"]:checked`);
+        if (radio) trainerRatings[id] = parseInt(radio.value);
+      });
+
       const surveyData = {
         satisfaction: parseInt(satisfactionEl.value),
         recommend: recommendEl.value,
+        trainerRatings: trainerRatings,
         skills: skills,
         liked: document.getElementById('survey-liked').value.trim(),
         improve: document.getElementById('survey-improve').value.trim(),
         suggestions: document.getElementById('survey-suggestions').value.trim(),
         futurePlan: futurePlan,
-        interestMakro: interestMakroEl.value
+        interestMakro: interestMakroEl.value,
+        interestOT: form.querySelector('input[name="interest_ot"]:checked')?.value || ''
       };
 
       errorDiv.classList.add('hidden');

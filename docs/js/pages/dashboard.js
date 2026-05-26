@@ -131,7 +131,17 @@ async function renderStudentDashboard(content) {
   content.innerHTML = `
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-2">สวัสดี, ${user.name || 'นักศึกษา'}</h2>
-      <p class="text-gray-500 mb-6">ยินดีต้อนรับเข้าสู่ระบบจัดการนักศึกษาฝึกงาน</p>
+      <p class="text-gray-500 mb-4">ยินดีต้อนรับเข้าสู่ระบบจัดการนักศึกษาฝึกงาน</p>
+      <div id="dash-profile-info" class="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
+          <div><span class="text-gray-500">แผนก:</span> <span class="font-medium text-gray-800" id="dash-dept">-</span></div>
+          <div><span class="text-gray-500">ตำแหน่ง:</span> <span class="font-medium text-gray-800" id="dash-position">-</span></div>
+          <div><span class="text-gray-500">สาขาที่ฝึก:</span> <span class="font-medium text-gray-800" id="dash-branch">-</span></div>
+          <div><span class="text-gray-500">มหาวิทยาลัย:</span> <span class="font-medium text-gray-800" id="dash-university">-</span></div>
+          <div><span class="text-gray-500">สาขาวิชา:</span> <span class="font-medium text-gray-800" id="dash-major">-</span></div>
+          <div><span class="text-gray-500">ประเภท:</span> <span class="font-medium text-gray-800" id="dash-internship-type">-</span></div>
+        </div>
+      </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-primary-500">
@@ -166,15 +176,27 @@ async function renderStudentDashboard(content) {
   `;
 
   try {
-    const [progressRes, submissionRes, notifRes] = await Promise.all([
+    const [progressRes, submissionRes, notifRes, profileRes] = await Promise.all([
       callApi('getRoadmapProgress', { userId: user.id }),
       callApi('getSubmissions', { userId: user.id }),
-      callApi('getNotifications', { userId: user.id })
+      callApi('getNotifications', { userId: user.id }),
+      callApi('getUserProfile', { userId: user.id })
     ]);
 
     const progressList = Array.isArray(progressRes.data || progressRes) ? (progressRes.data || progressRes) : [];
     const submissions = Array.isArray(submissionRes.data || submissionRes) ? (submissionRes.data || submissionRes) : [];
     const notifications = Array.isArray(notifRes.data || notifRes) ? (notifRes.data || notifRes) : [];
+
+    const profile = profileRes.success ? profileRes.data : {};
+    if (profile) {
+      const setField = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
+      setField('dash-dept', profile.department);
+      setField('dash-position', profile.position);
+      setField('dash-branch', profile.branch);
+      setField('dash-university', profile.university);
+      setField('dash-major', profile.major);
+      setField('dash-internship-type', profile.internshipType);
+    }
 
     const completedCount = progressList.filter(p => p.status === 'COMPLETED').length;
     const totalCount = progressList.length;

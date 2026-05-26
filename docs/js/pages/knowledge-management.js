@@ -224,6 +224,7 @@ async function loadKnowledgeEntries() {
                 <div>${entry.challenges ? '✓' : '○'} ปัญหาและแนวทางแก้ไข</div>
                 <div>${entry.knowledgeApply ? '✓' : '○'} การนำไปประยุกต์ใช้</div>
                 <div>${entry.feedback ? '✓' : '○'} ฟีดแบคและข้อเสนอแนะ</div>
+                ${entry.fileUrl ? '<div class="mt-2"><a href="' + entry.fileUrl + '" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-1 text-blue-600 hover:underline">📎 ' + (entry.fileName || 'ไฟล์แนบ') + '</a></div>' : ''}
               </div>
             ` : ''}
           </div>

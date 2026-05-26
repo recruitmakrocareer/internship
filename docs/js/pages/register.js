@@ -140,6 +140,23 @@ function renderRegister() {
                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                 </div>
               </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="reg-advisor" class="block text-sm font-medium text-gray-700 mb-1">อาจารย์ที่ปรึกษา/เจ้าหน้าที่</label>
+                  <input type="text" id="reg-advisor" placeholder="ชื่ออาจารย์ที่ปรึกษา"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                </div>
+                <div>
+                  <label for="reg-advisor-phone" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร/อีเมลอาจารย์</label>
+                  <input type="text" id="reg-advisor-phone" placeholder="เบอร์โทรหรืออีเมล"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                </div>
+              </div>
+              <div>
+                <label for="reg-uni-address" class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่มหาวิทยาลัย</label>
+                <textarea id="reg-uni-address" rows="2" placeholder="ที่อยู่ของมหาวิทยาลัย"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+              </div>
             </div>
           </div>
 
@@ -199,6 +216,26 @@ function renderRegister() {
                 <label for="reg-interests" class="block text-sm font-medium text-gray-700 mb-1">ความสนใจ</label>
                 <textarea id="reg-interests" rows="2" placeholder="สิ่งที่สนใจหรืออยากเรียนรู้"
                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
+                  <label for="reg-cv-file" class="cursor-pointer block">
+                    <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <p class="text-sm font-medium text-gray-700">อัปโหลด CV / Resume</p>
+                    <p class="text-xs text-gray-400 mt-1">PDF, DOC (สูงสุด 10MB)</p>
+                    <input type="file" id="reg-cv-file" accept=".pdf,.doc,.docx" class="hidden">
+                  </label>
+                  <div id="reg-cv-status" class="mt-2 text-xs text-gray-400"></div>
+                </div>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
+                  <label for="reg-photo-file" class="cursor-pointer block">
+                    <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <p class="text-sm font-medium text-gray-700">อัปโหลดรูปถ่าย</p>
+                    <p class="text-xs text-gray-400 mt-1">JPG, PNG (สูงสุด 5MB)</p>
+                    <input type="file" id="reg-photo-file" accept=".jpg,.jpeg,.png" class="hidden">
+                  </label>
+                  <div id="reg-photo-status" class="mt-2 text-xs text-gray-400"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -261,13 +298,42 @@ function renderRegister() {
       endDate: document.getElementById('reg-end-date').value,
       address: document.getElementById('reg-address').value.trim(),
       skills: document.getElementById('reg-skills').value.trim(),
-      interests: document.getElementById('reg-interests').value.trim()
+      interests: document.getElementById('reg-interests').value.trim(),
+      advisorName: document.getElementById('reg-advisor').value.trim(),
+      advisorContact: document.getElementById('reg-advisor-phone').value.trim(),
+      universityAddress: document.getElementById('reg-uni-address').value.trim()
     };
 
     errorDiv.classList.add('hidden');
     successDiv.classList.add('hidden');
     btn.disabled = true;
     btn.textContent = 'กำลังสมัครสมาชิก...';
+
+    // Upload CV if selected
+    const cvFile = document.getElementById('reg-cv-file').files[0];
+    if (cvFile) {
+      try {
+        const cvBase64 = await fileToBase64(cvFile);
+        const cvUpload = await callApiPost('uploadFile', { fileName: cvFile.name, fileData: cvBase64, mimeType: cvFile.type, subfolder: 'profiles' });
+        if (cvUpload.success !== false && cvUpload.data) {
+          data.cvFileUrl = cvUpload.data.fileUrl;
+          data.cvFileName = cvUpload.data.fileName;
+        }
+      } catch (err) { console.error('CV upload error:', err); }
+    }
+
+    // Upload photo if selected
+    const photoFile = document.getElementById('reg-photo-file').files[0];
+    if (photoFile) {
+      try {
+        const photoBase64 = await fileToBase64(photoFile);
+        const photoUpload = await callApiPost('uploadFile', { fileName: photoFile.name, fileData: photoBase64, mimeType: photoFile.type, subfolder: 'profiles' });
+        if (photoUpload.success !== false && photoUpload.data) {
+          data.photoFileUrl = photoUpload.data.fileUrl;
+          data.photoFileName = photoUpload.data.fileName;
+        }
+      } catch (err) { console.error('Photo upload error:', err); }
+    }
 
     try {
       const result = await callApiPost('register', data);
@@ -289,6 +355,22 @@ function renderRegister() {
     } finally {
       btn.disabled = false;
       btn.textContent = 'สมัครสมาชิก';
+    }
+  });
+
+  // File select handlers for registration
+  document.getElementById('reg-cv-file').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { showToast('ไฟล์ CV มีขนาดใหญ่เกินไป (สูงสุด 10MB)', 'error'); this.value = ''; return; }
+      document.getElementById('reg-cv-status').innerHTML = '<span class="text-blue-600">' + file.name + '</span>';
+    }
+  });
+  document.getElementById('reg-photo-file').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { showToast('รูปถ่ายมีขนาดใหญ่เกินไป (สูงสุด 5MB)', 'error'); this.value = ''; return; }
+      document.getElementById('reg-photo-status').innerHTML = '<span class="text-blue-600">' + file.name + '</span>';
     }
   });
 }

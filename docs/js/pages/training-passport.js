@@ -166,7 +166,6 @@ function renderTimeline(steps, progressMap) {
                 <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">${weekLabel}</span>
                 <span class="text-xs ${statusBg} px-2 py-1 rounded-full">${statusText}</span>
                 ${trainerSigned ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">✓ Trainer</span>' : ''}
-                ${studentSigned ? '<span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">✓ Student</span>' : ''}
               </div>
               <h3 class="font-semibold text-gray-800">${step.title || weekData.subject}</h3>
               <p class="text-sm text-gray-500 mt-1">${step.description || weekData.objectives || ''}</p>
@@ -240,14 +239,10 @@ function openWeekDetail(weekIndex, stepId) {
               : '<p class="text-gray-400 text-sm">รอผู้ฝึกสอนลงชื่อ</p>')
           }
         </div>
-        <div class="border rounded-lg p-4 ${studentSigned ? 'border-green-300 bg-green-50' : 'border-gray-200'}">
-          <h4 class="font-medium text-gray-700 mb-2">นักศึกษาลงชื่อ</h4>
-          ${studentSigned
-            ? '<p class="text-green-600 font-medium">✓ ลงชื่อแล้ว</p><p class="text-xs text-gray-500 mt-1">' + (noteData.studentDate || '') + '</p>'
-            : (user.role === 'STUDENT'
-              ? '<button onclick="signOff(\'' + stepId + '\', \'student\', ' + weekIndex + ')" class="bg-purple-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600">ลงชื่อนักศึกษา</button>'
-              : '<p class="text-gray-400 text-sm">รอนักศึกษาลงชื่อ</p>')
-          }
+        <div class="border rounded-lg p-4 border-green-300 bg-green-50">
+          <h4 class="font-medium text-gray-700 mb-2">นักศึกษา</h4>
+          <p class="text-green-600 font-medium">✓ ${user.name || user.email || 'นักศึกษา'}</p>
+          <p class="text-xs text-gray-400 mt-1">ลงชื่ออัตโนมัติ (Sync กับผู้ใช้)</p>
         </div>
       </div>
 
