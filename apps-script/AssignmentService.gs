@@ -90,8 +90,11 @@ function getAssignment(id) {
 function createAssignment(data) {
   try {
     var user = getCurrentUser();
-    if (!user || (user.role !== CONFIG.ROLES.ADMIN && user.role !== CONFIG.ROLES.MENTOR)) {
-      return { success: false, message: 'คุณไม่มีสิทธิ์สร้างงานที่มอบหมาย' };
+    if (!user) {
+      return { success: false, message: 'กรุณาเข้าสู่ระบบ' };
+    }
+    if (user.role === CONFIG.ROLES.STUDENT && data.source !== 'มหาวิทยาลัย') {
+      return { success: false, message: 'นักศึกษาสามารถเพิ่มได้เฉพาะงานจากมหาวิทยาลัย' };
     }
 
     if (!data.title) {
@@ -104,8 +107,10 @@ function createAssignment(data) {
       dueDate: data.dueDate || '',
       maxScore: data.maxScore || '100',
       assignedTo: data.assignedTo || 'all',
-      createdBy: user.id,
-      isActive: 'true'
+      createdBy: data.createdBy || user.id,
+      isActive: 'true',
+      source: data.source || '',
+      professorName: data.professorName || ''
     };
 
     var newAssignment = appendRow(CONFIG.SHEETS.ASSIGNMENTS, assignmentData);

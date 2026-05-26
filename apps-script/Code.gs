@@ -108,6 +108,9 @@ function handleApiRequest(params) {
       case 'createMentor':
         result = createMentor(params);
         break;
+      case 'updateMentor':
+        result = updateMentor(params.id, params);
+        break;
       case 'assignMentor':
         result = assignMentor(params.mentorId, params.studentId);
         break;

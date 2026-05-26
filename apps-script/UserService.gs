@@ -130,12 +130,23 @@ function createStudent(data) {
       lineUserId: data.lineUserId || '',
       profileImage: '',
       isActive: 'true',
+      nickname: data.nickname || '',
+      birthDate: data.birthDate || '',
+      idCardNumber: data.idCardNumber || '',
       university: data.university || '',
       faculty: data.faculty || '',
       major: data.major || '',
+      year: data.year || '',
+      gpa: data.gpa || '',
       internshipType: data.internshipType || '',
       startDate: data.startDate || '',
       endDate: data.endDate || '',
+      address: data.address || '',
+      universityAddress: data.universityAddress || '',
+      skills: data.skills || '',
+      interests: data.interests || '',
+      advisorName: data.advisorName || '',
+      advisorContact: data.advisorContact || '',
       branch: data.branch || '',
       position: data.position || '',
       employeeId: data.employeeId || ''
@@ -212,16 +223,19 @@ function getMentors() {
   try {
     var users = getRows(CONFIG.SHEETS.USERS, { role: CONFIG.ROLES.MENTOR });
 
+    var mentorStudents = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, { isActive: 'true' });
+
     var mentors = users.map(function(u) {
-      return {
-        id: u.id,
-        email: u.email,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        department: u.department,
-        phone: u.phone,
-        isActive: u.isActive
-      };
+      var copy = {};
+      var keys = Object.keys(u);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i] !== 'password') {
+          copy[keys[i]] = u[keys[i]];
+        }
+      }
+      copy.name = copy.name || ((copy.firstName || '') + ' ' + (copy.lastName || '')).trim();
+      copy.assignedStudents = mentorStudents.filter(function(ms) { return ms.mentorId === u.id; }).length;
+      return copy;
     });
 
     return { success: true, data: mentors };
@@ -254,12 +268,16 @@ function createMentor(data) {
       role: CONFIG.ROLES.MENTOR,
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
+      name: data.name || (data.firstName.trim() + ' ' + data.lastName.trim()),
       studentId: '',
       department: data.department || '',
       phone: data.phone || '',
       lineUserId: data.lineUserId || '',
       profileImage: '',
-      isActive: 'true'
+      isActive: 'true',
+      employeeId: data.employeeId || '',
+      branch: data.branch || '',
+      position: data.position || ''
     };
 
     var newUser = appendRow(CONFIG.SHEETS.USERS, userData);
@@ -269,6 +287,41 @@ function createMentor(data) {
   } catch (err) {
     Logger.log('Error in createMentor: ' + err.message);
     return { success: false, message: 'ไม่สามารถสร้างบัญชีพี่เลี้ยงได้: ' + err.message };
+  }
+}
+
+/**
+ * Updates mentor information.
+ * @param {string} id - Mentor user ID
+ * @param {Object} data - Fields to update
+ * @return {Object} Result with updated mentor data
+ */
+function updateMentor(id, data) {
+  try {
+    var user = getRowById(CONFIG.SHEETS.USERS, id);
+    if (!user) {
+      return { success: false, message: 'ไม่พบข้อมูลพี่เลี้ยง' };
+    }
+
+    delete data.id;
+    delete data.role;
+    delete data.createdAt;
+
+    if (data.password) {
+      data.password = hashPassword(data.password);
+    }
+
+    if (data.firstName && data.lastName) {
+      data.name = data.name || (data.firstName.trim() + ' ' + data.lastName.trim());
+    }
+
+    var updated = updateRow(CONFIG.SHEETS.USERS, id, data);
+    delete updated.password;
+
+    return { success: true, data: updated, message: 'อัปเดตข้อมูลพี่เลี้ยงสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in updateMentor: ' + err.message);
+    return { success: false, message: 'ไม่สามารถอัปเดตข้อมูลพี่เลี้ยงได้: ' + err.message };
   }
 }
 
@@ -450,20 +503,15 @@ function updateProfile(userId, data) {
     var updated = updateRow(CONFIG.SHEETS.USERS, userId, updateData);
     delete updated.password;
 
-    // Update session data
-    setCurrentUser({
-      id: updated.id,
-      email: updated.email,
-      role: updated.role,
-      firstName: updated.firstName,
-      lastName: updated.lastName,
-      studentId: updated.studentId,
-      department: updated.department,
-      phone: updated.phone,
-      lineUserId: updated.lineUserId,
-      profileImage: updated.profileImage,
-      isActive: updated.isActive
-    });
+    // Update session data with all relevant fields
+    var sessionData = {};
+    var updatedKeys = Object.keys(updated);
+    for (var j = 0; j < updatedKeys.length; j++) {
+      if (updatedKeys[j] !== 'password') {
+        sessionData[updatedKeys[j]] = updated[updatedKeys[j]];
+      }
+    }
+    setCurrentUser(sessionData);
 
     return { success: true, data: updated, message: 'อัปเดตโปรไฟล์สำเร็จ' };
   } catch (err) {
