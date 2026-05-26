@@ -34,12 +34,15 @@ window._adminAllStudents = [];
 async function loadAdminEvaluations() {
   const container = document.getElementById('admin-eval-list');
   try {
-    const [evalRes, studRes] = await Promise.all([
+    const [evalRes, studRes, mentorRes] = await Promise.all([
       callApi('getEvaluations', {}),
-      callApi('getStudents')
+      callApi('getStudents'),
+      callApi('getMentors')
     ]);
     const evals = evalRes.data || evalRes || [];
-    window._adminAllStudents = studRes.data || studRes || [];
+    const students = studRes.data || studRes || [];
+    const mentors = mentorRes.data || mentorRes || [];
+    window._adminAllStudents = [...(Array.isArray(students) ? students : []), ...(Array.isArray(mentors) ? mentors : [])];
 
     if (!Array.isArray(evals) || evals.length === 0) {
       container.innerHTML = '<div class="text-center py-12 text-gray-400">ยังไม่มีการประเมิน</div>';
@@ -59,15 +62,20 @@ async function loadAdminEvaluations() {
             </tr>
           </thead>
           <tbody class="divide-y">
-            ${evals.map(ev => `
+            ${evals.map(ev => {
+              const studentMatch = window._adminAllStudents.find(s => s.id === ev.evaluateeId);
+              const studentName = studentMatch ? ((studentMatch.firstName || '') + ' ' + (studentMatch.lastName || '')).trim() || studentMatch.name || ev.evaluateeId : ev.evaluateeId;
+              const evaluatorMatch = window._adminAllStudents.find(s => s.id === ev.evaluatorId);
+              const evaluatorName = evaluatorMatch ? ((evaluatorMatch.firstName || '') + ' ' + (evaluatorMatch.lastName || '')).trim() : '';
+              return `
               <tr class="hover:bg-gray-50">
                 <td class="p-3 font-medium text-gray-800">${ev.type || '-'}</td>
-                <td class="p-3 text-gray-600">${ev.evaluateeId || '-'}</td>
+                <td class="p-3 text-gray-600">${studentName || '-'}</td>
                 <td class="p-3 text-gray-600">${ev.period || '-'}</td>
                 <td class="p-3"><span class="font-bold text-blue-600">${ev.totalScore || 0}</span>/${ev.maxScore || 0}</td>
                 <td class="p-3 text-gray-500">${formatDate(ev.createdAt)}</td>
-              </tr>
-            `).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>`;

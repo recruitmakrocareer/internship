@@ -117,14 +117,19 @@ function selectAllBroadcast(checked) {
 }
 
 async function sendBroadcastNotif() {
+  const title = document.getElementById('bc-title').value.trim();
+  const message = document.getElementById('bc-message').value.trim();
   const ids = [...document.querySelectorAll('.broadcast-user:checked')].map(cb => cb.value);
+
+  if (!title) { showToast('กรุณากรอกหัวข้อ', 'error'); return; }
+  if (!message) { showToast('กรุณากรอกข้อความ', 'error'); return; }
   if (ids.length === 0) { showToast('กรุณาเลือกผู้รับ', 'error'); return; }
 
   showLoading();
   try {
     await callApiPost('sendBroadcast', {
-      title: document.getElementById('bc-title').value,
-      message: document.getElementById('bc-message').value,
+      title: title,
+      message: message,
       recipientIds: JSON.stringify(ids),
       sendLine: 'false'
     });

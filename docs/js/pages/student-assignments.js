@@ -145,9 +145,13 @@ async function submitWork() {
   const content = document.getElementById('submit-content').value;
   const fileInput = document.getElementById('submit-file');
   const file = fileInput.files[0];
+  const btn = document.getElementById('submit-btn');
 
   if (!content && !file) { showToast('กรุณากรอกเนื้อหาหรือแนบไฟล์', 'error'); return; }
+  if (file && file.size > 10 * 1024 * 1024) { showToast('ไฟล์มีขนาดเกิน 10MB', 'error'); return; }
 
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง...';
   showLoading();
   try {
     let fileUrl = '', fileName = '';
@@ -170,6 +174,8 @@ async function submitWork() {
   } catch (e) {
     showToast('เกิดข้อผิดพลาด', 'error');
   }
+  btn.disabled = false;
+  btn.textContent = 'ส่งงาน';
   hideLoading();
 }
 
