@@ -5,7 +5,7 @@ function renderAdminRoadmaps() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
@@ -80,7 +80,7 @@ async function saveNewRoadmap() {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApi('createRoadmap', {
+    await callApiPost('createRoadmap', {
       title: document.getElementById('rm-title').value,
       description: document.getElementById('rm-desc').value,
       department: document.getElementById('rm-dept').value,
@@ -148,7 +148,7 @@ function addStepForm(roadmapId) {
 async function saveNewStep(roadmapId) {
   showLoading();
   try {
-    await callApi('createRoadmapStep', {
+    await callApiPost('createRoadmapStep', {
       roadmapId,
       stepNumber: document.getElementById('step-num').value,
       title: document.getElementById('step-title').value,
@@ -184,7 +184,7 @@ async function editRoadmapInfo(id) {
 async function updateRoadmapById(id) {
   showLoading();
   try {
-    await callApi('updateRoadmap', { id, title: document.getElementById('rm-title').value, description: document.getElementById('rm-desc').value, department: document.getElementById('rm-dept').value });
+    await callApiPost('updateRoadmap', { id, title: document.getElementById('rm-title').value, description: document.getElementById('rm-desc').value, department: document.getElementById('rm-dept').value });
     showToast('อัปเดตสำเร็จ', 'success');
     document.getElementById('roadmap-modal').classList.add('hidden');
     await loadAdminRoadmaps();
@@ -195,7 +195,7 @@ async function updateRoadmapById(id) {
 async function deleteRoadmapById(id) {
   if (!confirm('ต้องการลบ Roadmap นี้?')) return;
   showLoading();
-  try { await callApi('deleteRoadmap', { id }); showToast('ลบสำเร็จ', 'success'); await loadAdminRoadmaps(); }
+  try { await callApiPost('deleteRoadmap', { id }); showToast('ลบสำเร็จ', 'success'); await loadAdminRoadmaps(); }
   catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
   hideLoading();
 }
@@ -203,7 +203,7 @@ async function deleteRoadmapById(id) {
 async function deleteStepById(id) {
   if (!confirm('ต้องการลบขั้นตอนนี้?')) return;
   showLoading();
-  try { await callApi('deleteRoadmapStep', { id }); showToast('ลบขั้นตอนสำเร็จ', 'success'); }
+  try { await callApiPost('deleteRoadmapStep', { id }); showToast('ลบขั้นตอนสำเร็จ', 'success'); }
   catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
   hideLoading();
 }

@@ -159,7 +159,7 @@ async function submitAddMentor() {
 
   try {
     showLoading();
-    const result = await callApi('createMentor', {
+    const result = await callApiPost('createMentor', {
       firstName, lastName, email, phone, department, password
     });
     hideLoading();
@@ -216,7 +216,7 @@ async function submitEditMentor() {
 
   try {
     showLoading();
-    const result = await callApi('updateMentor', {
+    const result = await callApiPost('updateMentor', {
       id, firstName, lastName, email, phone, department
     });
     hideLoading();
@@ -281,7 +281,7 @@ async function openAssignStudentModal(mentorId, mentorName) {
 async function assignStudentToMentor(mentorId, studentId) {
   try {
     showLoading();
-    const result = await callApi('assignMentor', { mentorId, studentId });
+    const result = await callApiPost('assignMentor', { mentorId, studentId });
     hideLoading();
 
     if (result.success) {

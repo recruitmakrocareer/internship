@@ -5,7 +5,7 @@ function renderTrainingPassport() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">

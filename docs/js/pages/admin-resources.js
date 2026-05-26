@@ -5,7 +5,7 @@ function renderAdminResources() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
@@ -128,9 +128,9 @@ async function saveResource(existingId) {
 
     if (existingId) {
       data.id = existingId;
-      await callApi('updateResource', data);
+      await callApiPost('updateResource', data);
     } else {
-      await callApi('createResource', data);
+      await callApiPost('createResource', data);
     }
     showToast('บันทึกสำเร็จ', 'success');
     document.getElementById('resource-modal').classList.add('hidden');
@@ -155,7 +155,7 @@ async function deleteResourceById(id) {
   if (!confirm('ต้องการลบแหล่งเรียนรู้นี้?')) return;
   showLoading();
   try {
-    await callApi('deleteResource', { id });
+    await callApiPost('deleteResource', { id });
     showToast('ลบสำเร็จ', 'success');
     await loadAdminResources();
   } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }

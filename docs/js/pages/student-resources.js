@@ -5,7 +5,7 @@ function renderStudentResources() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-4">แหล่งเรียนรู้</h1>

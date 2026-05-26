@@ -56,7 +56,7 @@ function renderLogin() {
     btn.textContent = 'กำลังเข้าสู่ระบบ...';
 
     try {
-      const result = await callApi('login', { email, password });
+      const result = await callApiPost('login', { email, password });
       if (result.success) {
         setToken(result.user);
         showToast('เข้าสู่ระบบสำเร็จ', 'success');

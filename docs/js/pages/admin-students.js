@@ -184,7 +184,7 @@ async function submitAddStudent() {
 
   try {
     showLoading();
-    const result = await callApi('createStudent', {
+    const result = await callApiPost('createStudent', {
       firstName, lastName, studentId, email, phone, department, password
     });
     hideLoading();
@@ -251,7 +251,7 @@ async function submitEditStudent() {
 
   try {
     showLoading();
-    const result = await callApi('updateStudent', {
+    const result = await callApiPost('updateStudent', {
       id, firstName, lastName, studentId, email, phone, department
     });
     hideLoading();

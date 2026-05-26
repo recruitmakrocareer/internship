@@ -5,7 +5,7 @@ function renderAdminEvaluations() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
@@ -125,7 +125,7 @@ async function saveAdminEval() {
   });
   showLoading();
   try {
-    await callApi('createEvaluation', {
+    await callApiPost('createEvaluation', {
       type: document.getElementById('ae-type').value,
       evaluatorId: user.id,
       evaluateeId: document.getElementById('ae-student').value,

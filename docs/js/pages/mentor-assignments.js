@@ -5,7 +5,7 @@ function renderMentorAssignments() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-4">ตรวจงาน</h1>
@@ -132,7 +132,7 @@ async function submitReview(submissionId) {
 
   showLoading();
   try {
-    await callApi('reviewSubmission', { submissionId, status: 'reviewed', score, feedback });
+    await callApiPost('reviewSubmission', { submissionId, status: 'reviewed', score, feedback });
     showToast('บันทึกการตรวจสำเร็จ', 'success');
     document.getElementById('review-modal').classList.add('hidden');
     await loadMentorAssignments();

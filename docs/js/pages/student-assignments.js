@@ -5,7 +5,7 @@ function renderStudentAssignments() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-6">งานที่ได้รับมอบหมาย</h1>
@@ -122,7 +122,7 @@ async function submitWork() {
         fileName = uploadRes.data.fileName;
       }
     }
-    await callApi('submitAssignment', {
+    await callApiPost('submitAssignment', {
       assignmentId: window._currentAssignmentId, userId: user.id, content, fileUrl, fileName
     });
     showToast('ส่งงานสำเร็จ', 'success');

@@ -14,7 +14,7 @@ function renderKnowledgeManagement() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
@@ -191,6 +191,21 @@ function openKmEntry(topicNumber) {
         <textarea id="km-feedback" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="ข้อเสนอแนะเพิ่มเติม...">${entry.feedback || ''}</textarea>
       </div>
 
+      <!-- File Attachment -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">แนบไฟล์ประกอบ</label>
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+          <label for="km-file-input" class="cursor-pointer block">
+            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-sm text-gray-600">คลิกเพื่อเลือกไฟล์ (PDF, รูปภาพ, เอกสาร สูงสุด 10MB)</p>
+            <input type="file" id="km-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png" class="hidden" onchange="handleKmFileSelect(this)">
+          </label>
+        </div>
+        <div id="km-file-status" class="mt-2 text-xs">
+          ${entry.fileUrl ? '<a href="' + entry.fileUrl + '" target="_blank" class="text-blue-600 hover:underline">📎 ' + (entry.fileName || 'ดูไฟล์ที่แนบ') + '</a>' : ''}
+        </div>
+      </div>
+
       <!-- Select for presentation -->
       <div class="border-t pt-4">
         <label class="flex items-center gap-3 cursor-pointer">
@@ -202,7 +217,7 @@ function openKmEntry(topicNumber) {
       <!-- Actions -->
       <div class="flex gap-3 pt-2">
         <button onclick="saveKmEntry(${topicNumber})" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-          💾 บันทึก
+          บันทึก
         </button>
         <button onclick="closeKmModal()" class="px-6 py-3 rounded-lg border text-gray-600 hover:bg-gray-50">
           ยกเลิก
@@ -216,6 +231,20 @@ function openKmEntry(topicNumber) {
 
 function closeKmModal() {
   document.getElementById('km-modal').classList.add('hidden');
+}
+
+window._kmSelectedFile = null;
+
+function handleKmFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)', 'error');
+    input.value = '';
+    return;
+  }
+  window._kmSelectedFile = file;
+  document.getElementById('km-file-status').innerHTML = '<span class="text-blue-600">' + file.name + '</span>';
 }
 
 async function saveKmEntry(topicNumber) {
@@ -233,12 +262,27 @@ async function saveKmEntry(topicNumber) {
 
   showLoading();
   try {
-    await callApi('saveKnowledgeEntry', data);
-
-    if (isSelected) {
-      await callApi('selectPresentationTopic', { userId: user.id, topicNumber: String(topicNumber) });
+    if (window._kmSelectedFile) {
+      const base64 = await fileToBase64(window._kmSelectedFile);
+      const uploadResult = await callApiPost('uploadFile', {
+        fileName: window._kmSelectedFile.name,
+        fileData: base64,
+        mimeType: window._kmSelectedFile.type,
+        subfolder: 'knowledge'
+      });
+      if (uploadResult.success !== false && uploadResult.data) {
+        data.fileUrl = uploadResult.data.fileUrl;
+        data.fileName = uploadResult.data.fileName;
+      }
     }
 
+    await callApiPost('saveKnowledgeEntry', data);
+
+    if (isSelected) {
+      await callApiPost('selectPresentationTopic', { userId: user.id, topicNumber: String(topicNumber) });
+    }
+
+    window._kmSelectedFile = null;
     showToast('บันทึกสำเร็จ', 'success');
     closeKmModal();
     await loadKnowledgeEntries();

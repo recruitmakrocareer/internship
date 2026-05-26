@@ -5,7 +5,7 @@ function renderAdminAssignments() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
@@ -100,7 +100,7 @@ async function saveNewAssignment() {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApi('createAssignment', {
+    await callApiPost('createAssignment', {
       title: document.getElementById('aa-title').value,
       description: document.getElementById('aa-desc').value,
       dueDate: document.getElementById('aa-due').value,
@@ -144,7 +144,7 @@ async function editAssignment(id) {
 async function updateAssignmentById(id) {
   showLoading();
   try {
-    await callApi('updateAssignment', { id, title: document.getElementById('aa-title').value, description: document.getElementById('aa-desc').value, dueDate: document.getElementById('aa-due').value, maxScore: document.getElementById('aa-score').value });
+    await callApiPost('updateAssignment', { id, title: document.getElementById('aa-title').value, description: document.getElementById('aa-desc').value, dueDate: document.getElementById('aa-due').value, maxScore: document.getElementById('aa-score').value });
     showToast('อัปเดตสำเร็จ', 'success');
     document.getElementById('assign-modal').classList.add('hidden');
     await loadAdminAssignments();

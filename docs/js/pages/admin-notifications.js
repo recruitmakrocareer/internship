@@ -5,7 +5,7 @@ function renderAdminNotifications() {
   const app = document.getElementById('app');
   app.innerHTML = `
     ${buildSidebar(user.role)}
-    <div class="ml-64">
+    <div class="lg:ml-64 mt-16">
       ${buildNavbar(user)}
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
@@ -64,7 +64,7 @@ async function loadAdminNotifications() {
 
 async function markNotifRead(id) {
   try {
-    await callApi('markAsRead', { notificationId: id });
+    await callApiPost('markAsRead', { notificationId: id });
     await loadAdminNotifications();
   } catch (e) {}
 }
@@ -73,7 +73,7 @@ async function markAllNotifRead() {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApi('markAllAsRead', { userId: user.id });
+    await callApiPost('markAllAsRead', { userId: user.id });
     await loadAdminNotifications();
     showToast('อ่านทั้งหมดแล้ว', 'success');
   } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }
@@ -122,7 +122,7 @@ async function sendBroadcastNotif() {
 
   showLoading();
   try {
-    await callApi('sendBroadcast', {
+    await callApiPost('sendBroadcast', {
       title: document.getElementById('bc-title').value,
       message: document.getElementById('bc-message').value,
       recipientIds: JSON.stringify(ids),
