@@ -34,16 +34,22 @@ function renderMentorAssignments() {
 
 window._mentorAssignments = [];
 window._mentorSubmissions = [];
+window._mentorStudentMap = {};
 
 async function loadMentorAssignments() {
+  const user = getCurrentUser();
   const container = document.getElementById('mentor-assignments-list');
   try {
-    const [aRes, sRes] = await Promise.all([
+    const [aRes, sRes, studentsRes] = await Promise.all([
       callApi('getAssignments'),
-      callApi('getSubmissions', {})
+      callApi('getSubmissions', {}),
+      callApi('getStudentsByMentor', { mentorId: user.id })
     ]);
     window._mentorAssignments = aRes.data || aRes || [];
     window._mentorSubmissions = sRes.data || sRes || [];
+    const students = Array.isArray(studentsRes.data || studentsRes) ? (studentsRes.data || studentsRes) : [];
+    window._mentorStudentMap = {};
+    students.forEach(s => { window._mentorStudentMap[s.id] = ((s.firstName || '') + ' ' + (s.lastName || '')).trim() || s.name || s.email || s.id; });
     filterMentorSubs('all');
   } catch (e) {
     container.innerHTML = '<div class="text-center py-8 text-red-500">เกิดข้อผิดพลาด</div>';
@@ -82,7 +88,7 @@ function filterMentorSubs(tab) {
               return `
                 <div class="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div>
-                    <span class="font-medium text-gray-700">${s.userId || 'นักศึกษา'}</span>
+                    <span class="font-medium text-gray-700">${window._mentorStudentMap[s.userId] || s.userId || 'นักศึกษา'}</span>
                     <span class="text-sm text-gray-500 ml-2">${formatDate(s.submittedAt)}</span>
                     ${s.score ? `<span class="text-sm text-green-600 ml-2">คะแนน: ${s.score}/${a.maxScore}</span>` : ''}
                   </div>

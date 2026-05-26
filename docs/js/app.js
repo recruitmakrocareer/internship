@@ -1,5 +1,12 @@
 // ==================== Shared App Logic ====================
 
+function driveImageUrl(url) {
+  if (!url) return '';
+  var m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return 'https://lh3.googleusercontent.com/d/' + m[1];
+  return url;
+}
+
 /**
  * นำทางไปยังหน้าที่ต้องการ
  * @param {string} page - ชื่อหน้า

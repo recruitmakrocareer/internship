@@ -47,13 +47,19 @@ async function loadMentorEvaluations() {
       return;
     }
 
+    const studentMap = {};
+    if (Array.isArray(window._mentorStudentsList)) {
+      window._mentorStudentsList.forEach(s => { studentMap[s.id] = ((s.firstName || '') + ' ' + (s.lastName || '')).trim() || s.name || s.email || s.id; });
+    }
+
     container.innerHTML = evals.map(ev => {
+      const studentName = studentMap[ev.evaluateeId] || ev.evaluateeId || '-';
       return `
         <div class="bg-white rounded-xl border p-5">
           <div class="flex justify-between items-start">
             <div>
               <h3 class="font-bold text-gray-800">${ev.type || 'การประเมิน'}</h3>
-              <p class="text-sm text-gray-500">นักศึกษา: ${ev.evaluateeId || '-'} | ${ev.period || ''}</p>
+              <p class="text-sm text-gray-500">นักศึกษา: ${studentName} | ${ev.period || ''}</p>
               <p class="text-xs text-gray-400">${formatDate(ev.createdAt)}</p>
             </div>
             <div class="text-right">

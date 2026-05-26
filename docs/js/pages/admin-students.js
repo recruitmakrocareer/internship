@@ -123,7 +123,7 @@ async function loadStudents() {
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${s.photoFileUrl ? '' : 'bg-primary-100'}">
                 ${s.photoFileUrl
-                  ? '<img src="' + s.photoFileUrl + '" class="w-full h-full object-cover">'
+                  ? '<img src="' + driveImageUrl(s.photoFileUrl) + '" class="w-full h-full object-cover">'
                   : '<span class="text-primary-700 font-semibold text-xs">' + (displayName).charAt(0) + '</span>'}
               </div>
               <div>

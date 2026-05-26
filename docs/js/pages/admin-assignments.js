@@ -179,8 +179,15 @@ async function viewSubmissions(assignmentId, title) {
   document.getElementById('assign-modal-content').innerHTML = '<div class="text-center py-4 text-gray-400">กำลังโหลด...</div>';
   document.getElementById('assign-modal').classList.remove('hidden');
   try {
-    const res = await callApi('getSubmissions', { assignmentId });
-    const subs = res.data || res || [];
+    const [subRes, studentRes] = await Promise.all([
+      callApi('getSubmissions', { assignmentId }),
+      callApi('getStudents')
+    ]);
+    const subs = subRes.data || subRes || [];
+    const students = (studentRes.data || studentRes || []);
+    const studentMap = {};
+    students.forEach(st => { studentMap[st.id] = ((st.firstName || '') + ' ' + (st.lastName || '')).trim() || st.name || st.email || st.id; });
+
     if (!Array.isArray(subs) || subs.length === 0) {
       document.getElementById('assign-modal-content').innerHTML = '<div class="text-center py-8 text-gray-400">ยังไม่มีงานที่ส่ง</div>';
       return;
@@ -190,12 +197,12 @@ async function viewSubmissions(assignmentId, title) {
         ${subs.map(s => `
           <div class="border rounded-lg p-3">
             <div class="flex justify-between items-center mb-1">
-              <span class="font-medium text-gray-700">${s.userId}</span>
+              <span class="font-medium text-gray-700">${studentMap[s.userId] || s.userId}</span>
               <span class="px-2 py-1 text-xs rounded-full ${s.status === 'reviewed' || s.status === 'graded' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${s.status === 'reviewed' || s.status === 'graded' ? 'ตรวจแล้ว' : 'รอตรวจ'}</span>
             </div>
             <p class="text-sm text-gray-600">${s.content || ''}</p>
-            ${s.fileUrl ? `<a href="${s.fileUrl}" target="_blank" class="text-sm text-blue-600 hover:underline">ไฟล์แนบ</a>` : ''}
-            ${s.score ? `<div class="text-sm text-green-600 mt-1">คะแนน: ${s.score} | ${s.feedback || ''}</div>` : ''}
+            ${s.fileUrl ? '<a href="' + s.fileUrl + '" target="_blank" class="text-sm text-blue-600 hover:underline">ไฟล์แนบ</a>' : ''}
+            ${s.score ? '<div class="text-sm text-green-600 mt-1">คะแนน: ' + s.score + ' | ' + (s.feedback || '') + '</div>' : ''}
           </div>
         `).join('')}
       </div>`;

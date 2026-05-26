@@ -33,7 +33,7 @@ async function renderStudentProfile() {
           <div class="flex items-center gap-4">
             <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
               ${profile.photoFileUrl
-                ? '<img src="' + profile.photoFileUrl + '" alt="Photo" class="w-full h-full object-cover">'
+                ? '<img src="' + driveImageUrl(profile.photoFileUrl) + '" alt="Photo" class="w-full h-full object-cover">'
                 : '<span class="text-primary-700 font-bold text-2xl">' + (firstName || 'U').charAt(0).toUpperCase() + '</span>'}
             </div>
             <div class="text-white">
@@ -244,7 +244,7 @@ async function renderStudentProfile() {
       };
 
       try {
-        // Upload documents first if any selected
+        const docFieldMap = { cv: 'cv', transcript: 'transcript', idcard: 'idCard', photo: 'photo' };
         for (const [docType, file] of Object.entries(window._profileDocFiles)) {
           const statusEl = document.getElementById('profile-doc-' + docType + '-status');
           statusEl.innerHTML = '<span class="text-blue-500">กำลังอัปโหลด...</span>';
@@ -257,8 +257,9 @@ async function renderStudentProfile() {
               subfolder: 'profiles'
             });
             if (uploadResult.success !== false && uploadResult.data) {
-              data[docType + 'FileUrl'] = uploadResult.data.fileUrl;
-              data[docType + 'FileName'] = uploadResult.data.fileName;
+              const fieldPrefix = docFieldMap[docType] || docType;
+              data[fieldPrefix + 'FileUrl'] = uploadResult.data.fileUrl;
+              data[fieldPrefix + 'FileName'] = uploadResult.data.fileName;
               statusEl.innerHTML = '<span class="text-green-600">อัปโหลดสำเร็จ</span>';
             }
           } catch (err) {

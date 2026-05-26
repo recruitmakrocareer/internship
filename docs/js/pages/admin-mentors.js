@@ -113,6 +113,9 @@ async function loadMentors() {
               <button onclick="openAssignStudentModal('${m.id}', '${(m.name || '').replace(/'/g, "\\'")}')" class="text-green-600 hover:text-green-800 transition-colors" title="มอบหมายนักศึกษา">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
               </button>
+              <button onclick="toggleMentorActive('${m.id}', ${String(m.isActive) === 'false' ? 'true' : 'false'})" class="${String(m.isActive) === 'false' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'} transition-colors" title="${String(m.isActive) === 'false' ? 'เปิดใช้งาน' : 'ระงับ'}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${String(m.isActive) === 'false' ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636'}"/></svg>
+              </button>
             </div>
           </td>
         </tr>
@@ -135,6 +138,9 @@ function openAddMentorModal() {
       ${inputField('add-mentor-email', 'อีเมล', 'email', '', 'กรอกอีเมล')}
       ${inputField('add-mentor-phone', 'โทรศัพท์', 'tel', '', 'กรอกเบอร์โทรศัพท์', false)}
       ${inputField('add-mentor-department', 'แผนก', 'text', '', 'กรอกแผนก', false)}
+      ${inputField('add-mentor-employeeId', 'รหัสพนักงาน', 'text', '', 'กรอกรหัสพนักงาน', false)}
+      ${inputField('add-mentor-branch', 'สาขาที่ทำงาน', 'text', '', 'กรอกสาขา', false)}
+      ${inputField('add-mentor-position', 'ตำแหน่ง', 'text', '', 'กรอกตำแหน่ง', false)}
       ${inputField('add-mentor-password', 'รหัสผ่าน', 'password', '', 'กรอกรหัสผ่าน')}
     </form>
   `, `
@@ -160,7 +166,10 @@ async function submitAddMentor() {
   try {
     showLoading();
     const result = await callApiPost('createMentor', {
-      firstName, lastName, email, phone, department, password
+      firstName, lastName, email, phone, department, password,
+      employeeId: document.getElementById('add-mentor-employeeId').value.trim(),
+      branch: document.getElementById('add-mentor-branch').value.trim(),
+      position: document.getElementById('add-mentor-position').value.trim()
     });
     hideLoading();
 
@@ -193,6 +202,9 @@ async function openEditMentorModal(mentorId) {
       ${inputField('edit-mentor-email', 'อีเมล', 'email', mentor.email || '', 'กรอกอีเมล')}
       ${inputField('edit-mentor-phone', 'โทรศัพท์', 'tel', mentor.phone || '', 'กรอกเบอร์โทรศัพท์', false)}
       ${inputField('edit-mentor-department', 'แผนก', 'text', mentor.department || '', 'กรอกแผนก', false)}
+      ${inputField('edit-mentor-employeeId', 'รหัสพนักงาน', 'text', mentor.employeeId || '', 'กรอกรหัสพนักงาน', false)}
+      ${inputField('edit-mentor-branch', 'สาขาที่ทำงาน', 'text', mentor.branch || '', 'กรอกสาขา', false)}
+      ${inputField('edit-mentor-position', 'ตำแหน่ง', 'text', mentor.position || '', 'กรอกตำแหน่ง', false)}
     </form>
   `, `
     <button onclick="closeModal('edit-mentor-modal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">ยกเลิก</button>
@@ -217,7 +229,11 @@ async function submitEditMentor() {
   try {
     showLoading();
     const result = await callApiPost('updateMentor', {
-      id, firstName, lastName, email, phone, department
+      id, firstName, lastName, email, phone, department,
+      employeeId: document.getElementById('edit-mentor-employeeId').value.trim(),
+      branch: document.getElementById('edit-mentor-branch').value.trim(),
+      position: document.getElementById('edit-mentor-position').value.trim(),
+      name: firstName + ' ' + lastName
     });
     hideLoading();
 
@@ -290,6 +306,25 @@ async function assignStudentToMentor(mentorId, studentId) {
       loadMentors();
     } else {
       showToast(result.message || 'ไม่สามารถมอบหมายนักศึกษาได้', 'error');
+    }
+  } catch (error) {
+    hideLoading();
+    showToast('เกิดข้อผิดพลาด', 'error');
+  }
+}
+
+async function toggleMentorActive(mentorId, activate) {
+  const action = activate ? 'เปิดใช้งาน' : 'ระงับ';
+  if (!confirm('ต้องการ' + action + 'พี่เลี้ยงคนนี้?')) return;
+  try {
+    showLoading();
+    const result = await callApiPost('updateMentor', { id: mentorId, isActive: String(activate) });
+    hideLoading();
+    if (result.success) {
+      showToast(action + 'สำเร็จ', 'success');
+      loadMentors();
+    } else {
+      showToast(result.message || 'เกิดข้อผิดพลาด', 'error');
     }
   } catch (error) {
     hideLoading();
