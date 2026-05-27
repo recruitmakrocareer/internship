@@ -24,13 +24,24 @@ function getSheet(sheetName) {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
 
+  var expectedHeaders = CONFIG.HEADERS[sheetName];
+
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    var headers = CONFIG.HEADERS[sheetName];
-    if (headers && headers.length > 0) {
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    if (expectedHeaders && expectedHeaders.length > 0) {
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setFontWeight('bold');
       sheet.setFrozenRows(1);
+    }
+  } else if (expectedHeaders && expectedHeaders.length > 0) {
+    var lastCol = sheet.getLastColumn();
+    var currentHeaders = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+    var nonEmpty = 0;
+    for (var h = 0; h < currentHeaders.length; h++) {
+      if (currentHeaders[h] !== '') nonEmpty++;
+    }
+    if (nonEmpty < expectedHeaders.length) {
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
     }
   }
 
@@ -315,6 +326,44 @@ function generateId() {
   var timestamp = new Date().getTime().toString(36);
   var random = Math.random().toString(36).substring(2, 8);
   return timestamp + random;
+}
+
+function syncAllHeaders() {
+  try {
+    var ss = getSpreadsheet();
+    var sheetNames = Object.keys(CONFIG.HEADERS);
+    var results = [];
+    for (var i = 0; i < sheetNames.length; i++) {
+      var name = sheetNames[i];
+      var expected = CONFIG.HEADERS[name];
+      if (!expected || expected.length === 0) continue;
+      var sheet = ss.getSheetByName(name);
+      if (!sheet) {
+        sheet = ss.insertSheet(name);
+        sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
+        sheet.getRange(1, 1, 1, expected.length).setFontWeight('bold');
+        sheet.setFrozenRows(1);
+        results.push(name + ': created (' + expected.length + ' cols)');
+      } else {
+        var lastCol = sheet.getLastColumn();
+        var current = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+        var nonEmpty = 0;
+        for (var h = 0; h < current.length; h++) {
+          if (current[h] !== '') nonEmpty++;
+        }
+        if (nonEmpty < expected.length) {
+          sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
+          results.push(name + ': synced ' + nonEmpty + ' -> ' + expected.length + ' cols');
+        } else {
+          results.push(name + ': ok (' + nonEmpty + ' cols)');
+        }
+      }
+    }
+    return { success: true, data: results };
+  } catch (err) {
+    Logger.log('Error in syncAllHeaders: ' + err.message);
+    return { success: false, message: err.message };
+  }
 }
 
 /**

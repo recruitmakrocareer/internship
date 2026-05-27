@@ -298,6 +298,9 @@ function handleApiRequest(params) {
       case 'setupSystem':
         result = setupSystem();
         break;
+      case 'syncAllHeaders':
+        result = syncAllHeaders();
+        break;
 
       default:
         result = { success: false, error: 'Unknown action: ' + action };

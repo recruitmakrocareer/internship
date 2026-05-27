@@ -10,33 +10,40 @@ async function callApi(action, params = {}) {
   const queryParams = new URLSearchParams({ action, ...params });
   const url = `${API_URL}?${queryParams.toString()}`;
   try {
+    console.log('[API GET]', action);
     const response = await fetch(url, { redirect: 'follow' });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error('[API GET] Response is not JSON:', text.substring(0, 500));
+      return { success: false, message: 'เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ' };
     }
-    const data = await response.json();
-    return data;
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('[API GET Error]', action, error);
     throw error;
   }
 }
 
 async function callApiPost(action, params = {}) {
   try {
+    console.log('[API POST]', action, Object.keys(params));
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, ...params }),
       redirect: 'follow'
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const text = await response.text();
+    console.log('[API POST Response]', action, text.substring(0, 200));
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error('[API POST] Response is not JSON:', text.substring(0, 500));
+      return { success: false, message: 'เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ กรุณา Deploy ใหม่ใน Apps Script' };
     }
-    const data = await response.json();
-    return data;
   } catch (error) {
-    console.error('API Post Error:', error);
+    console.error('[API POST Error]', action, error);
     throw error;
   }
 }
