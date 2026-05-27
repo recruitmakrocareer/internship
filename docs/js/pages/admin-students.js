@@ -215,12 +215,31 @@ async function viewStudentDetail(studentId) {
           <div>
             <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">ข้อมูลส่วนตัว</h4>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              <div><span class="text-gray-500">คำนำหน้า:</span> <span class="font-medium">${student.prefix || '-'}</span></div>
               <div><span class="text-gray-500">ชื่อเล่น:</span> <span class="font-medium">${student.nickname || '-'}</span></div>
               <div><span class="text-gray-500">โทรศัพท์:</span> <span class="font-medium">${student.phone || '-'}</span></div>
               <div><span class="text-gray-500">อีเมล:</span> <span class="font-medium">${student.email || '-'}</span></div>
               <div><span class="text-gray-500">วันเกิด:</span> <span class="font-medium">${student.birthDate ? formatDate(student.birthDate) : '-'}</span></div>
               <div><span class="text-gray-500">บัตร ปชช:</span> <span class="font-medium">${student.idCardNumber || '-'}</span></div>
-              <div><span class="text-gray-500">ที่อยู่:</span> <span class="font-medium">${student.address || '-'}</span></div>
+              <div><span class="text-gray-500">สถานะทางทหาร:</span> <span class="font-medium">${student.militaryStatus || '-'}</span></div>
+              <div><span class="text-gray-500">โรคประจำตัว:</span> <span class="font-medium">${student.medicalCondition || '-'}</span></div>
+            </div>
+          </div>
+          <hr>
+          <!-- Addresses -->
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">ที่อยู่</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div class="bg-gray-50 rounded-lg p-3">
+                <p class="text-xs font-semibold text-gray-500 mb-1">ที่อยู่ปัจจุบัน</p>
+                <p class="font-medium">${student.currentAddress || student.address || '-'}</p>
+                <p class="text-gray-500 text-xs mt-1">${[student.currentProvince, student.currentPostcode].filter(Boolean).join(' ') || ''}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-3">
+                <p class="text-xs font-semibold text-gray-500 mb-1">ที่อยู่ตามบัตรประชาชน</p>
+                <p class="font-medium">${student.idCardAddress || '-'}</p>
+                <p class="text-gray-500 text-xs mt-1">${[student.idCardProvince, student.idCardPostcode].filter(Boolean).join(' ') || ''}</p>
+              </div>
             </div>
           </div>
           <hr>
@@ -249,6 +268,28 @@ async function viewStudentDetail(studentId) {
               <div><span class="text-gray-500">สาขาที่ฝึก:</span> <span class="font-medium">${student.branch || '-'}</span></div>
               <div><span class="text-gray-500">รหัสพนักงาน:</span> <span class="font-medium">${student.employeeId || '-'}</span></div>
               <div><span class="text-gray-500">พี่เลี้ยง:</span> <span class="font-medium">${student.mentor ? (student.mentor.firstName + ' ' + student.mentor.lastName) : '-'}</span></div>
+            </div>
+          </div>
+          <hr>
+          <!-- Preferred Branches/Departments -->
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">สาขา/แผนกที่ต้องการ</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div class="bg-gray-50 rounded-lg p-3">
+                <p class="text-xs font-semibold text-gray-500 mb-1">ลำดับ 1</p>
+                <p class="font-medium">${student.preferredBranch1 || '-'}</p>
+                <p class="text-xs text-gray-500">${student.preferredDept1 || '-'}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-3">
+                <p class="text-xs font-semibold text-gray-500 mb-1">ลำดับ 2</p>
+                <p class="font-medium">${student.preferredBranch2 || '-'}</p>
+                <p class="text-xs text-gray-500">${student.preferredDept2 || '-'}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-3">
+                <p class="text-xs font-semibold text-gray-500 mb-1">ลำดับ 3</p>
+                <p class="font-medium">${student.preferredBranch3 || '-'}</p>
+                <p class="text-xs text-gray-500">${student.preferredDept3 || '-'}</p>
+              </div>
             </div>
           </div>
           <hr>

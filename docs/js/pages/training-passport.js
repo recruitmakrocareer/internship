@@ -11,7 +11,7 @@ function renderTrainingPassport() {
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-2xl font-bold text-gray-800">Training Passport</h1>
-            <p class="text-gray-500">โปรแกรมฝึกงาน Fresh Food 16 สัปดาห์</p>
+            <p class="text-gray-500">โปรแกรมฝึกงาน Makro 16 สัปดาห์</p>
           </div>
           <div id="progress-summary" class="text-right">
             <div class="text-3xl font-bold text-blue-600" id="progress-pct">--%</div>
