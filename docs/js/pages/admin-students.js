@@ -180,6 +180,27 @@ async function viewStudentDetail(studentId) {
 
   const displayName = student.name || ((student.firstName || '') + ' ' + (student.lastName || ''));
   const mc = document.getElementById('student-modal');
+
+  // Show loading state first
+  mc.innerHTML = `
+    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-8 text-center">
+        <div class="text-gray-400">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>`;
+
+  // Fetch progress data
+  let progressList = [];
+  try {
+    const progressRes = await callApi('getRoadmapProgress', { userId: studentId });
+    progressList = Array.isArray(progressRes.data || progressRes) ? (progressRes.data || progressRes) : [];
+  } catch (e) {}
+
+  const completedSteps = progressList.filter(p => p.status === 'COMPLETED').length;
+  const inProgressSteps = progressList.filter(p => p.status === 'IN_PROGRESS').length;
+  const totalSteps = progressList.length;
+  const progressPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
   mc.innerHTML = `
     <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -261,6 +282,26 @@ async function viewStudentDetail(studentId) {
               <div><span class="text-gray-500">ทักษะ:</span> <span class="font-medium">${student.skills || '-'}</span></div>
               <div><span class="text-gray-500">ความสนใจ:</span> <span class="font-medium">${student.interests || '-'}</span></div>
             </div>
+          </div>
+          <!-- Training Progress -->
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">ความคืบหน้าการฝึกงาน</h4>
+            ${totalSteps > 0 ? `
+              <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex justify-between text-sm mb-2">
+                  <span class="text-gray-600">เสร็จแล้ว ${completedSteps} / ${totalSteps} ขั้นตอน</span>
+                  <span class="font-bold ${progressPct >= 75 ? 'text-green-600' : progressPct >= 50 ? 'text-blue-600' : 'text-yellow-600'}">${progressPct}%</span>
+                </div>
+                <div class="bg-gray-200 rounded-full h-3 mb-2">
+                  <div class="h-3 rounded-full transition-all ${progressPct >= 75 ? 'bg-green-500' : progressPct >= 50 ? 'bg-blue-500' : 'bg-yellow-500'}" style="width:${progressPct}%"></div>
+                </div>
+                <div class="flex gap-4 text-xs text-gray-500">
+                  <span class="text-green-600">สำเร็จ: ${completedSteps}</span>
+                  <span class="text-blue-600">กำลังทำ: ${inProgressSteps}</span>
+                  <span class="text-gray-400">ยังไม่เริ่ม: ${totalSteps - completedSteps - inProgressSteps}</span>
+                </div>
+              </div>
+            ` : '<div class="text-sm text-gray-400">ยังไม่ได้ Assign แผนฝึกงาน</div>'}
           </div>
           <!-- Actions -->
           <div class="flex gap-3 pt-2">
