@@ -35,19 +35,13 @@ function login(email, password) {
     }
 
     // Create safe user object (without password)
-    var safeUser = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      studentId: user.studentId,
-      department: user.department,
-      phone: user.phone,
-      lineUserId: user.lineUserId,
-      profileImage: user.profileImage,
-      isActive: user.isActive
-    };
+    var safeUser = {};
+    var userKeys = Object.keys(user);
+    for (var i = 0; i < userKeys.length; i++) {
+      if (userKeys[i] !== 'password') {
+        safeUser[userKeys[i]] = user[userKeys[i]];
+      }
+    }
 
     // Store in session
     setCurrentUser(safeUser);
