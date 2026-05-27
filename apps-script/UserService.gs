@@ -463,6 +463,46 @@ function getUserProfile(userId) {
   }
 }
 
+function getStoreList() {
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(CONFIG.SHEETS.STORE_LIST);
+    if (!sheet) return { success: true, data: [] };
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, data: [] };
+    var stores = [];
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] !== '' && data[i][1] !== '') {
+        stores.push({ storeNo: String(data[i][0]), storeName: String(data[i][1]) });
+      }
+    }
+    return { success: true, data: stores };
+  } catch (err) {
+    Logger.log('Error in getStoreList: ' + err.message);
+    return { success: false, message: err.message };
+  }
+}
+
+function getDepartmentList() {
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(CONFIG.SHEETS.DEPARTMENT_LIST);
+    if (!sheet) return { success: true, data: [] };
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, data: [] };
+    var departments = [];
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] !== '' && data[i][1] !== '') {
+        departments.push({ division: String(data[i][0]), department: String(data[i][1]) });
+      }
+    }
+    return { success: true, data: departments };
+  } catch (err) {
+    Logger.log('Error in getDepartmentList: ' + err.message);
+    return { success: false, message: err.message };
+  }
+}
+
 /**
  * Updates own profile.
  * @param {string} userId - User ID

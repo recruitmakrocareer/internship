@@ -100,6 +100,7 @@ function register(data) {
       email: data.email.trim().toLowerCase(),
       password: hashPassword(data.password),
       role: CONFIG.ROLES.STUDENT,
+      prefix: data.prefix || '',
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
       name: data.name || (data.firstName.trim() + ' ' + data.lastName.trim()),
@@ -129,7 +130,21 @@ function register(data) {
       cvFileUrl: data.cvFileUrl || '',
       cvFileName: data.cvFileName || '',
       photoFileUrl: data.photoFileUrl || '',
-      photoFileName: data.photoFileName || ''
+      photoFileName: data.photoFileName || '',
+      currentAddress: data.currentAddress || '',
+      currentProvince: data.currentProvince || '',
+      currentPostcode: data.currentPostcode || '',
+      idCardAddress: data.idCardAddress || '',
+      idCardProvince: data.idCardProvince || '',
+      idCardPostcode: data.idCardPostcode || '',
+      militaryStatus: data.militaryStatus || '',
+      medicalCondition: data.medicalCondition || '',
+      preferredBranch1: data.preferredBranch1 || '',
+      preferredBranch2: data.preferredBranch2 || '',
+      preferredBranch3: data.preferredBranch3 || '',
+      preferredDept1: data.preferredDept1 || '',
+      preferredDept2: data.preferredDept2 || '',
+      preferredDept3: data.preferredDept3 || ''
     };
 
     var newUser = appendRow(CONFIG.SHEETS.USERS, userData);

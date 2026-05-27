@@ -25,7 +25,9 @@ var CONFIG = {
     EVALUATIONS: 'Evaluations',
     RESOURCES: 'Resources',
     NOTIFICATIONS: 'Notifications',
-    KNOWLEDGE_ENTRIES: 'KnowledgeEntries'
+    KNOWLEDGE_ENTRIES: 'KnowledgeEntries',
+    STORE_LIST: 'StoreList',
+    DEPARTMENT_LIST: 'DepartmentList'
   },
 
   // Column headers for each sheet
@@ -34,7 +36,7 @@ var CONFIG = {
       'id', 'email', 'password', 'role', 'firstName', 'lastName',
       'studentId', 'department', 'phone', 'lineUserId', 'profileImage',
       'isActive', 'createdAt', 'updatedAt',
-      'nickname', 'birthDate', 'idCardNumber',
+      'prefix', 'nickname', 'birthDate', 'idCardNumber',
       'university', 'faculty', 'major', 'year', 'gpa',
       'internshipType', 'startDate', 'endDate',
       'address', 'universityAddress', 'skills', 'interests',
@@ -42,7 +44,12 @@ var CONFIG = {
       'employeeId', 'branch', 'position',
       'cvFileUrl', 'cvFileName', 'transcriptFileUrl', 'transcriptFileName',
       'idCardFileUrl', 'idCardFileName', 'photoFileUrl', 'photoFileName',
-      'name'
+      'name',
+      'currentAddress', 'currentProvince', 'currentPostcode',
+      'idCardAddress', 'idCardProvince', 'idCardPostcode',
+      'militaryStatus', 'medicalCondition',
+      'preferredBranch1', 'preferredBranch2', 'preferredBranch3',
+      'preferredDept1', 'preferredDept2', 'preferredDept3'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'

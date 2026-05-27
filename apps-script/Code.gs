@@ -283,6 +283,14 @@ function handleApiRequest(params) {
         result = listFiles(params.subfolder);
         break;
 
+      // === Reference Data ===
+      case 'getStoreList':
+        result = getStoreList();
+        break;
+      case 'getDepartmentList':
+        result = getDepartmentList();
+        break;
+
       // === Admin ===
       case 'getAdminStats':
         result = getAdminStats();

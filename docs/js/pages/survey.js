@@ -43,7 +43,7 @@ function buildSurveyForm() {
   return `
     <div class="bg-white rounded-2xl shadow-sm border p-8 max-w-3xl mx-auto fade-in">
       <div class="text-center mb-6">
-        <p class="text-gray-500 text-sm">กรุณาตอบแบบประเมินเพื่อช่วยปรับปรุงโปรแกรมฝึกงาน Makro Fresh Food</p>
+        <p class="text-gray-500 text-sm">กรุณาตอบแบบประเมินเพื่อช่วยปรับปรุงโปรแกรมฝึกงาน Makro</p>
       </div>
 
       <div id="survey-error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm"></div>

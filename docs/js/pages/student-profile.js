@@ -1,5 +1,8 @@
 // ==================== หน้าข้อมูลส่วนตัวนักศึกษา ====================
 
+var _profileStoreList = [];
+var _profileDeptList = [];
+
 async function renderStudentProfile() {
   if (!checkAuth()) return;
   const user = getCurrentUser();
@@ -20,12 +23,39 @@ async function renderStudentProfile() {
 
   try {
     showLoading();
-    const result = await callApi('getUserProfile', { userId: user.id });
+    var results = await Promise.all([
+      callApi('getUserProfile', { userId: user.id }),
+      callApi('getStoreList'),
+      callApi('getDepartmentList')
+    ]);
     hideLoading();
 
-    const profile = result.success ? result.data : user;
+    var profileResult = results[0];
+    if (results[1] && results[1].success && results[1].data) _profileStoreList = results[1].data;
+    if (results[2] && results[2].success && results[2].data) _profileDeptList = results[2].data;
+
+    const profile = profileResult.success ? profileResult.data : user;
     const firstName = profile.firstName || (profile.name ? profile.name.split(' ')[0] : '');
     const lastName = profile.lastName || (profile.name ? profile.name.split(' ').slice(1).join(' ') : '');
+
+    var storeOpts = '<option value="">-- เลือกสาขา --</option>';
+    for (var si = 0; si < _profileStoreList.length; si++) {
+      var sv = _profileStoreList[si].storeNo + ' - ' + _profileStoreList[si].storeName;
+      storeOpts += '<option value="' + sv + '">' + sv + '</option>';
+    }
+
+    var deptOpts = '<option value="">-- เลือกแผนก --</option>';
+    var lastDiv = '';
+    for (var di = 0; di < _profileDeptList.length; di++) {
+      var dd = _profileDeptList[di];
+      if (dd.division !== lastDiv) {
+        if (lastDiv !== '') deptOpts += '</optgroup>';
+        deptOpts += '<optgroup label="' + dd.division + '">';
+        lastDiv = dd.division;
+      }
+      deptOpts += '<option value="' + dd.department + '">' + dd.department + '</option>';
+    }
+    if (lastDiv !== '') deptOpts += '</optgroup>';
 
     document.getElementById('profile-content').innerHTML = `
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -37,7 +67,7 @@ async function renderStudentProfile() {
                 : '<span class="text-primary-700 font-bold text-2xl">' + (firstName || 'U').charAt(0).toUpperCase() + '</span>'}
             </div>
             <div class="text-white">
-              <h3 class="text-xl font-bold">${firstName} ${lastName}</h3>
+              <h3 class="text-xl font-bold">${profile.prefix ? profile.prefix + ' ' : ''}${firstName} ${lastName}</h3>
               <p class="text-primary-100 text-sm">${profile.email || '-'}</p>
             </div>
           </div>
@@ -48,7 +78,16 @@ async function renderStudentProfile() {
           <!-- Section: ข้อมูลส่วนตัว -->
           <div>
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลส่วนตัว</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="mb-4">
+                <label for="profile-prefix" class="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label>
+                <select id="profile-prefix" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  <option value="">-- เลือก --</option>
+                  <option value="นาย" ${profile.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
+                  <option value="นาง" ${profile.prefix === 'นาง' ? 'selected' : ''}>นาง</option>
+                  <option value="นางสาว" ${profile.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+                </select>
+              </div>
               <div>
                 <label for="profile-first-name" class="block text-sm font-medium text-gray-700 mb-1">ชื่อจริง <span class="text-red-500">*</span></label>
                 <input type="text" id="profile-first-name" value="${firstName}" required
@@ -79,6 +118,26 @@ async function renderStudentProfile() {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
+                <label for="profile-id-card" class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน</label>
+                <input type="text" id="profile-id-card" value="${profile.idCardNumber || ''}" maxlength="13"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div>
+                <label for="profile-military" class="block text-sm font-medium text-gray-700 mb-1">สถานะทางทหาร</label>
+                <select id="profile-military" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  <option value="">-- เลือก --</option>
+                  <option value="ผ่านการเกณฑ์ทหารแล้ว" ${profile.militaryStatus === 'ผ่านการเกณฑ์ทหารแล้ว' ? 'selected' : ''}>ผ่านการเกณฑ์ทหารแล้ว</option>
+                  <option value="ได้รับการยกเว้น" ${profile.militaryStatus === 'ได้รับการยกเว้น' ? 'selected' : ''}>ได้รับการยกเว้น</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-4">
+              <label for="profile-medical" class="block text-sm font-medium text-gray-700 mb-1">โรคประจำตัว</label>
+              <input type="text" id="profile-medical" value="${profile.medicalCondition || ''}" placeholder="ระบุโรคประจำตัว (ถ้ามี)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">แผนกที่ฝึก <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
                 <input type="text" value="${profile.department || '-'}" disabled
                   class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
@@ -90,6 +149,25 @@ async function renderStudentProfile() {
               </div>
             </div>
             ${inputField('profile-email', 'อีเมล', 'email', profile.email || '')}
+          </div>
+
+          <hr class="border-gray-200">
+
+          <!-- Section: ที่อยู่ -->
+          <div>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ที่อยู่</h3>
+            <p class="text-xs text-gray-500 mb-2 font-medium">ที่อยู่ปัจจุบัน</p>
+            ${textareaField('profile-current-address', 'ที่อยู่', profile.currentAddress || profile.address || '', 'บ้านเลขที่ ซอย ถนน ตำบล อำเภอ', 2)}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${inputField('profile-current-province', 'จังหวัด', 'text', profile.currentProvince || '', 'จังหวัด', false)}
+              ${inputField('profile-current-postcode', 'รหัสไปรษณีย์', 'text', profile.currentPostcode || '', 'รหัสไปรษณีย์', false)}
+            </div>
+            <p class="text-xs text-gray-500 mb-2 font-medium mt-2">ที่อยู่ตามบัตรประชาชน</p>
+            ${textareaField('profile-idcard-address', 'ที่อยู่', profile.idCardAddress || '', 'บ้านเลขที่ ซอย ถนน ตำบล อำเภอ', 2)}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${inputField('profile-idcard-province', 'จังหวัด', 'text', profile.idCardProvince || '', 'จังหวัด', false)}
+              ${inputField('profile-idcard-postcode', 'รหัสไปรษณีย์', 'text', profile.idCardPostcode || '', 'รหัสไปรษณีย์', false)}
+            </div>
           </div>
 
           <hr class="border-gray-200">
@@ -121,10 +199,58 @@ async function renderStudentProfile() {
 
           <hr class="border-gray-200">
 
+          <!-- Section: สาขา/แผนกที่ต้องการ -->
+          <div>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">สาขาและแผนกที่ต้องการฝึกงาน</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-branch1" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 1</label>
+                <select id="profile-branch1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${storeOpts}
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="profile-dept1" class="block text-sm font-medium text-gray-700 mb-1">แผนกที่ต้องการ ลำดับ 1</label>
+                <select id="profile-dept1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${deptOpts}
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-branch2" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 2</label>
+                <select id="profile-branch2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${storeOpts}
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="profile-dept2" class="block text-sm font-medium text-gray-700 mb-1">แผนกที่ต้องการ ลำดับ 2</label>
+                <select id="profile-dept2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${deptOpts}
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-branch3" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 3</label>
+                <select id="profile-branch3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${storeOpts}
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="profile-dept3" class="block text-sm font-medium text-gray-700 mb-1">แผนกที่ต้องการ ลำดับ 3</label>
+                <select id="profile-dept3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${deptOpts}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <hr class="border-gray-200">
+
           <!-- Section: ข้อมูลเพิ่มเติม -->
           <div>
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลเพิ่มเติม</h3>
-            ${textareaField('profile-address', 'ที่อยู่', profile.address || '', 'ที่อยู่ปัจจุบัน', 3)}
             ${textareaField('profile-skills', 'ทักษะ/ความสามารถ', profile.skills || '', 'เช่น JavaScript, Python, Design', 2)}
             ${textareaField('profile-interests', 'ความสนใจ', profile.interests || '', 'สิ่งที่สนใจหรืออยากเรียนรู้', 2)}
           </div>
@@ -213,6 +339,20 @@ async function renderStudentProfile() {
       </div>
     `;
 
+    // Set preferred branch/dept select values after DOM render
+    var prefFields = [
+      ['profile-branch1', profile.preferredBranch1],
+      ['profile-branch2', profile.preferredBranch2],
+      ['profile-branch3', profile.preferredBranch3],
+      ['profile-dept1', profile.preferredDept1],
+      ['profile-dept2', profile.preferredDept2],
+      ['profile-dept3', profile.preferredDept3]
+    ];
+    for (var pf = 0; pf < prefFields.length; pf++) {
+      var el = document.getElementById(prefFields[pf][0]);
+      if (el && prefFields[pf][1]) el.value = prefFields[pf][1];
+    }
+
     window._profileDocFiles = {};
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
@@ -226,6 +366,7 @@ async function renderStudentProfile() {
 
       const data = {
         userId: user.id,
+        prefix: document.getElementById('profile-prefix').value,
         name: fName + ' ' + lName,
         firstName: fName,
         lastName: lName,
@@ -233,12 +374,27 @@ async function renderStudentProfile() {
         studentId: document.getElementById('profile-student-id').value.trim(),
         email: document.getElementById('profile-email').value.trim(),
         phone: document.getElementById('profile-phone').value.trim(),
+        idCardNumber: document.getElementById('profile-id-card').value.trim(),
+        militaryStatus: document.getElementById('profile-military').value,
+        medicalCondition: document.getElementById('profile-medical').value.trim(),
+        currentAddress: document.getElementById('profile-current-address').value.trim(),
+        currentProvince: document.getElementById('profile-current-province').value.trim(),
+        currentPostcode: document.getElementById('profile-current-postcode').value.trim(),
+        idCardAddress: document.getElementById('profile-idcard-address').value.trim(),
+        idCardProvince: document.getElementById('profile-idcard-province').value.trim(),
+        idCardPostcode: document.getElementById('profile-idcard-postcode').value.trim(),
+        address: document.getElementById('profile-current-address').value.trim(),
         university: document.getElementById('profile-university').value.trim(),
         faculty: document.getElementById('profile-faculty').value.trim(),
         major: document.getElementById('profile-major').value.trim(),
         year: document.getElementById('profile-year').value,
         gpa: document.getElementById('profile-gpa').value,
-        address: document.getElementById('profile-address').value.trim(),
+        preferredBranch1: document.getElementById('profile-branch1').value,
+        preferredBranch2: document.getElementById('profile-branch2').value,
+        preferredBranch3: document.getElementById('profile-branch3').value,
+        preferredDept1: document.getElementById('profile-dept1').value,
+        preferredDept2: document.getElementById('profile-dept2').value,
+        preferredDept3: document.getElementById('profile-dept3').value,
         skills: document.getElementById('profile-skills').value.trim(),
         interests: document.getElementById('profile-interests').value.trim()
       };
@@ -277,6 +433,7 @@ async function renderStudentProfile() {
           showToast(result.message || 'เกิดข้อผิดพลาด', 'error');
         }
       } catch (error) {
+        console.error('Profile save error:', error);
         showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
       } finally {
         btn.disabled = false;
@@ -286,6 +443,7 @@ async function renderStudentProfile() {
 
   } catch (error) {
     hideLoading();
+    console.error('Profile load error:', error);
     document.getElementById('profile-content').innerHTML = `
       <div class="bg-red-50 text-red-600 p-4 rounded-lg text-sm">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่</div>
     `;
