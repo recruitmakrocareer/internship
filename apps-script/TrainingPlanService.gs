@@ -5,10 +5,36 @@
  */
 
 /**
+ * Computes the automatic status of a step plan record.
+ * กติกา: ผ่านการประเมิน → COMPLETED
+ *        ยังไม่กำหนดวันฝึก → NOT_PLANNED
+ *        ยังไม่ถึงวันฝึกวันแรก → NOT_STARTED
+ *        ถึงวันฝึกแล้วแต่ยังไม่ประเมิน → IN_PROGRESS
+ */
+function computeAutoStatus(p) {
+  if (String(p.evalResult || '').toUpperCase() === 'PASS') return 'COMPLETED';
+
+  var firstDay = '';
+  if (p.trainingDays) {
+    var days = String(p.trainingDays).split(',').map(function(s) { return s.trim(); })
+      .filter(function(s) { return s !== ''; }).sort();
+    if (days.length > 0) firstDay = days[0];
+  }
+  if (!firstDay && p.startDate) {
+    firstDay = String(p.startDate).substring(0, 10);
+  }
+  if (!firstDay) return 'NOT_PLANNED';
+
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return today < firstDay ? 'NOT_STARTED' : 'IN_PROGRESS';
+}
+
+/**
  * Upserts plan details for a student's roadmap step.
  * Editable by the student themselves or an Admin.
+ * Status is computed automatically from the plan dates and evaluation result.
  * Accepts: userId, stepId, actorId, trainerName, trainerPosition,
- *          trainerContact, startDate, endDate, trainingDays, status, note
+ *          trainerContact, startDate, endDate, trainingDays, note
  */
 function updateStepPlan(params) {
   try {
@@ -46,12 +72,15 @@ function updateStepPlan(params) {
 
     var result;
     if (existing.length > 0) {
-      if (params.status !== undefined && params.status !== '') {
-        data.status = params.status;
-        if (String(params.status).toUpperCase() === 'COMPLETED' &&
-            String(existing[0].status).toUpperCase() !== 'COMPLETED') {
-          data.completedAt = now;
-        }
+      // คำนวณสถานะอัตโนมัติจากแผนใหม่ + ผลประเมินเดิม
+      var merged = {};
+      var exKeys = Object.keys(existing[0]);
+      for (var k = 0; k < exKeys.length; k++) merged[exKeys[k]] = existing[0][exKeys[k]];
+      var dKeys = Object.keys(data);
+      for (var m = 0; m < dKeys.length; m++) merged[dKeys[m]] = data[dKeys[m]];
+      data.status = computeAutoStatus(merged);
+      if (data.status === 'COMPLETED' && !existing[0].completedAt) {
+        data.completedAt = now;
       }
       if (!existing[0].evalToken) {
         data.evalToken = generateId() + generateId();
@@ -61,8 +90,8 @@ function updateStepPlan(params) {
       data.userId = params.userId;
       data.roadmapId = step.roadmapId;
       data.stepId = params.stepId;
-      data.status = params.status || 'NOT_STARTED';
-      data.completedAt = String(data.status).toUpperCase() === 'COMPLETED' ? now : '';
+      data.status = computeAutoStatus(data);
+      data.completedAt = '';
       data.evalToken = generateId() + generateId();
       data.attemptCount = 0;
       result = appendRow(CONFIG.SHEETS.ROADMAP_PROGRESS, data);
@@ -155,6 +184,7 @@ function getEvalByToken(token) {
         endDate: p.endDate || '',
         evalResult: p.evalResult || '',
         evalBy: p.evalBy || '',
+        evalByPosition: p.evalByPosition || '',
         evalAt: p.evalAt || '',
         attemptCount: Number(p.attemptCount) || 0
       }
@@ -170,7 +200,7 @@ function getEvalByToken(token) {
  * PASS  → step COMPLETED
  * FAIL  → step back to IN_PROGRESS (ต้องฝึกซ้ำ), attemptCount + 1
  */
-function submitEvalByToken(token, result, comment, evaluatorName) {
+function submitEvalByToken(token, result, comment, evaluatorName, evaluatorPosition) {
   try {
     if (!token) {
       return { success: false, message: 'ไม่พบรหัสประเมิน' };
@@ -182,6 +212,9 @@ function submitEvalByToken(token, result, comment, evaluatorName) {
     }
     if (!evaluatorName || !String(evaluatorName).trim()) {
       return { success: false, message: 'กรุณากรอกชื่อผู้ประเมิน' };
+    }
+    if (!evaluatorPosition || !String(evaluatorPosition).trim()) {
+      return { success: false, message: 'กรุณากรอกตำแหน่งผู้ประเมิน' };
     }
 
     var rows = getRows(CONFIG.SHEETS.ROADMAP_PROGRESS, { evalToken: token });
@@ -196,6 +229,7 @@ function submitEvalByToken(token, result, comment, evaluatorName) {
       evalResult: upper,
       evalComment: comment || '',
       evalBy: String(evaluatorName).trim(),
+      evalByPosition: String(evaluatorPosition).trim(),
       evalAt: now
     };
 

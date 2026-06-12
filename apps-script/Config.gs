@@ -64,7 +64,7 @@ var CONFIG = {
       'trainerName', 'trainerPosition', 'trainerContact',
       'startDate', 'endDate', 'trainingDays',
       'evalResult', 'evalComment', 'evalBy', 'evalAt',
-      'evalToken', 'attemptCount'
+      'evalToken', 'attemptCount', 'evalByPosition'
     ],
     Assignments: [
       'id', 'title', 'description', 'dueDate', 'maxScore',

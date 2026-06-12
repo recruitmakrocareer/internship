@@ -17,6 +17,7 @@ async function renderTrainingCalendar() {
   content.innerHTML = `
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">ปฏิทินแผนการฝึกงาน</h2>
+      <div id="cal-unplanned-banner"></div>
       <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
           <button onclick="changeCalMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
@@ -61,42 +62,40 @@ async function loadCalendarEvents() {
       (r.steps || []).forEach(s => { stepMap[s.id] = s; });
     });
 
+    const progressMap = {};
+    (Array.isArray(progressList) ? progressList : []).forEach(p => { progressMap[p.stepId] = p; });
+
     (Array.isArray(progressList) ? progressList : []).forEach(p => {
       const step = stepMap[p.stepId];
       const title = (step && step.title) || p.stepTitle || 'หัวข้อการฝึก';
 
-      // สีตามสถานะ: ไม่ผ่าน > ผ่าน/เสร็จ > กำลังฝึก > วางแผน
-      const evalResult = String(p.evalResult || '').toUpperCase();
-      const status = String(p.status || '').toUpperCase();
+      // สีตามสถานะอัตโนมัติ: ไม่ผ่าน > เสร็จสิ้น > กำลังฝึก > วางแผนไว้ (ยังไม่ถึงวัน)
+      const status = deriveTrainingStatus(p);
       let color = 'bg-gray-200 text-gray-600';
-      if (evalResult === 'FAIL') color = 'bg-red-100 text-red-700 border-l-2 border-red-400';
-      else if (evalResult === 'PASS' || status === 'COMPLETED') color = 'bg-green-100 text-green-700 border-l-2 border-green-400';
+      if (String(p.evalResult || '').toUpperCase() === 'FAIL') color = 'bg-red-100 text-red-700 border-l-2 border-red-400';
+      else if (status === 'COMPLETED') color = 'bg-green-100 text-green-700 border-l-2 border-green-400';
       else if (status === 'IN_PROGRESS') color = 'bg-blue-100 text-blue-700 border-l-2 border-blue-400';
 
-      // วันที่ฝึก: ใช้รายวันถ้าระบุไว้ ไม่งั้นใช้ช่วง เริ่ม–สิ้นสุด
-      let days = [];
-      if (p.trainingDays) {
-        days = String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean);
-      } else if (p.startDate) {
-        const start = dateInputValue(p.startDate);
-        const end = dateInputValue(p.endDate) || start;
-        if (start) {
-          let d = new Date(start + 'T00:00:00');
-          const endD = new Date(end + 'T00:00:00');
-          let guard = 0;
-          while (d <= endD && guard < 120) {
-            days.push(d.toISOString().slice(0, 10));
-            d.setDate(d.getDate() + 1);
-            guard++;
-          }
-        }
-      }
-
-      days.forEach(day => {
+      expandPlanDays(p).forEach(day => {
         if (!window._calEvents[day]) window._calEvents[day] = [];
         window._calEvents[day].push({ title: title, color: color, trainer: p.trainerName || '' });
       });
     });
+
+    // นับหัวข้อที่ยังไม่ได้วางแผน → แสดงแบนเนอร์เตือน
+    let unplanned = 0;
+    Object.keys(stepMap).forEach(sid => {
+      if (deriveTrainingStatus(progressMap[sid]) === 'NOT_PLANNED') unplanned++;
+    });
+    const banner = document.getElementById('cal-unplanned-banner');
+    if (banner) {
+      banner.innerHTML = unplanned > 0 ? `
+        <div class="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span class="text-sm text-amber-700 flex-1">มี <b>${unplanned}</b> หัวข้อที่ยังไม่ได้วางแผนการฝึก</span>
+          <a href="#student-roadmap" class="text-sm font-medium text-amber-700 underline hover:text-amber-800 whitespace-nowrap">ไปวางแผน →</a>
+        </div>` : '';
+    }
   } catch (e) {
     console.error('Error loading calendar events:', e);
     showToast('ไม่สามารถโหลดข้อมูลปฏิทินได้', 'error');

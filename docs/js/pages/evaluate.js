@@ -54,7 +54,7 @@ async function renderEvaluate() {
         ${alreadyPassed ? `
           <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
             <p class="text-green-700 font-medium">✓ หัวข้อนี้ผ่านการประเมินแล้ว</p>
-            <p class="text-xs text-gray-400 mt-1">โดย ${d.evalBy} เมื่อ ${formatDate(d.evalAt)}</p>
+            <p class="text-xs text-gray-400 mt-1">โดย ${d.evalBy}${d.evalByPosition ? ' (' + d.evalByPosition + ')' : ''} เมื่อ ${formatDate(d.evalAt)}</p>
           </div>
         ` : `
           <div>
@@ -77,10 +77,17 @@ async function renderEvaluate() {
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"></textarea>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ประเมิน <span class="text-red-500">*</span></label>
-            <input type="text" id="eval-name" value="${d.trainerName || ''}" placeholder="ชื่อ-นามสกุล ผู้สอน/ผู้ประเมิน"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ประเมิน <span class="text-red-500">*</span></label>
+              <input type="text" id="eval-name" value="${d.trainerName || ''}" placeholder="ชื่อ-นามสกุล"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง <span class="text-red-500">*</span></label>
+              <input type="text" id="eval-position" placeholder="เช่น หัวหน้าแผนก Bakery"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+            </div>
           </div>
 
           <button onclick="submitExternalEval('${token}')"
@@ -111,9 +118,11 @@ async function submitExternalEval(token) {
   const result = window._evalResult;
   const comment = document.getElementById('eval-comment').value.trim();
   const name = document.getElementById('eval-name').value.trim();
+  const position = document.getElementById('eval-position').value.trim();
 
   if (!result) { showToast('กรุณาเลือกผลการประเมิน', 'error'); return; }
   if (!name) { showToast('กรุณากรอกชื่อผู้ประเมิน', 'error'); return; }
+  if (!position) { showToast('กรุณากรอกตำแหน่งผู้ประเมิน', 'error'); return; }
 
   showLoading();
   try {
@@ -121,7 +130,8 @@ async function submitExternalEval(token) {
       token: token,
       result: result,
       comment: comment,
-      evaluatorName: name
+      evaluatorName: name,
+      evaluatorPosition: position
     });
     hideLoading();
 

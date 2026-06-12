@@ -116,15 +116,15 @@ function renderRoadmapCards(roadmaps, progressMap) {
     const steps = roadmap.steps || [];
     const totalSteps = steps.length;
 
-    // คำนวณจำนวน step ที่เสร็จแล้ว
+    // นับสถานะจากการคำนวณอัตโนมัติ (ตามวันฝึก + ผลประเมิน)
     let completedSteps = 0;
     let inProgressSteps = 0;
+    let notPlannedSteps = 0;
     steps.forEach(step => {
-      const p = progressMap[step.id];
-      if (p) {
-        if (p.status === 'COMPLETED') completedSteps++;
-        else if (p.status === 'IN_PROGRESS') inProgressSteps++;
-      }
+      const st = deriveTrainingStatus(progressMap[step.id]);
+      if (st === 'COMPLETED') completedSteps++;
+      else if (st === 'IN_PROGRESS') inProgressSteps++;
+      else if (st === 'NOT_PLANNED') notPlannedSteps++;
     });
 
     const progressPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
@@ -155,7 +155,7 @@ function renderRoadmapCards(roadmaps, progressMap) {
           </div>
 
           <!-- Summary -->
-          <div class="flex gap-4 text-xs text-gray-500">
+          <div class="flex flex-wrap gap-4 text-xs text-gray-500">
             <span class="flex items-center gap-1">
               <span class="w-2 h-2 bg-green-500 rounded-full"></span>
               เสร็จสิ้น ${completedSteps}
@@ -166,31 +166,49 @@ function renderRoadmapCards(roadmaps, progressMap) {
             </span>
             <span class="flex items-center gap-1">
               <span class="w-2 h-2 bg-gray-300 rounded-full"></span>
-              ยังไม่เริ่ม ${totalSteps - completedSteps - inProgressSteps}
+              ยังไม่เริ่ม ${totalSteps - completedSteps - inProgressSteps - notPlannedSteps}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-2 h-2 bg-amber-400 rounded-full"></span>
+              ยังไม่ได้วางแผน ${notPlannedSteps}
             </span>
             <span class="ml-auto">ทั้งหมด ${totalSteps} ขั้นตอน</span>
           </div>
+
+          ${notPlannedSteps > 0 ? `
+          <div class="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 text-xs text-amber-700">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            มี ${notPlannedSteps} หัวข้อที่ยังไม่ได้วางแผนการฝึก — คลิกที่หัวข้อสีเหลืองเพื่อกำหนดวันฝึกและผู้สอน
+          </div>` : ''}
         </div>
 
         <!-- Steps -->
         <div class="divide-y divide-gray-50">
           ${steps.map((step, sIndex) => {
             const p = progressMap[step.id] || {};
-            const status = p.status || 'NOT_STARTED';
+            const status = deriveTrainingStatus(progressMap[step.id]);
 
-            let statusIcon, statusClass, statusLabel;
+            let statusIcon, statusClass, statusLabel, badgeClass;
             if (status === 'COMPLETED') {
               statusIcon = '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
               statusClass = 'bg-green-50';
               statusLabel = 'เสร็จสิ้น';
+              badgeClass = 'bg-green-100 text-green-700';
             } else if (status === 'IN_PROGRESS') {
               statusIcon = '<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
               statusClass = 'bg-blue-50';
               statusLabel = 'กำลังดำเนินการ';
+              badgeClass = 'bg-blue-100 text-blue-700';
+            } else if (status === 'NOT_PLANNED') {
+              statusIcon = '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+              statusClass = 'bg-amber-50 border-l-4 border-l-amber-400';
+              statusLabel = 'ยังไม่ได้วางแผน';
+              badgeClass = 'bg-amber-100 text-amber-700';
             } else {
               statusIcon = '<svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
               statusClass = '';
               statusLabel = 'ยังไม่เริ่ม';
+              badgeClass = 'bg-gray-100 text-gray-500';
             }
 
             return `
@@ -209,7 +227,7 @@ function renderRoadmapCards(roadmaps, progressMap) {
                 </div>
                 <div class="flex-shrink-0 flex items-center gap-2">
                   ${String(p.evalResult || '').toUpperCase() === 'PASS' ? '<span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">✓ ผ่าน</span>' : String(p.evalResult || '').toUpperCase() === 'FAIL' ? '<span class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">✗ ไม่ผ่าน</span>' : ''}
-                  <span class="text-xs px-2 py-1 rounded-full ${status === 'COMPLETED' ? 'bg-green-100 text-green-700' : status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${statusLabel}</span>
+                  <span class="text-xs px-2 py-1 rounded-full ${badgeClass}">${statusLabel}</span>
                   ${step.durationDays ? `<span class="text-xs text-gray-400">${step.durationDays} วัน</span>` : ''}
                 </div>
               </div>
@@ -227,10 +245,25 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
   const roadmap = window._studentRoadmaps[roadmapIndex];
   const step = roadmap.steps[stepIndex];
   const p = window._studentProgressMap[stepId] || {};
-  const currentStatus = p.status || 'NOT_STARTED';
 
   // วันฝึกแบบระบุวัน (ไม่ต่อเนื่อง)
   window._planDays = p.trainingDays ? String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  // วันที่หัวข้ออื่นใช้อยู่ (สำหรับแสดง slot ว่าง/ไม่ว่าง ในปฏิทิน)
+  window._busyDays = {};
+  Object.keys(window._studentProgressMap).forEach(sid => {
+    if (String(sid) === String(stepId)) return;
+    const pr = window._studentProgressMap[sid];
+    expandPlanDays(pr).forEach(day => {
+      if (!window._busyDays[day]) window._busyDays[day] = [];
+      window._busyDays[day].push(pr.stepTitle || 'หัวข้ออื่น');
+    });
+  });
+
+  // เดือนเริ่มต้นของปฏิทินเลือกวัน
+  const initDay = (window._planDays.length > 0 ? [...window._planDays].sort()[0] : '') || dateInputValue(p.startDate) || todayStr();
+  window._miniCalYear = parseInt(initDay.substring(0, 4));
+  window._miniCalMonth = parseInt(initDay.substring(5, 7)) - 1;
 
   document.getElementById('step-modal-title').textContent = step.title || 'ขั้นตอนที่ ' + (stepIndex + 1);
 
@@ -244,7 +277,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
           <span class="text-sm font-semibold text-green-700">✓ ผ่านการประเมิน</span>
         </div>
         ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${p.evalComment}</p>` : ''}
-        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'} เมื่อ ${formatDate(p.evalAt)}</p>
+        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'}${p.evalByPosition ? ' (' + p.evalByPosition + ')' : ''} เมื่อ ${formatDate(p.evalAt)}</p>
       </div>`;
   } else if (evalResult === 'FAIL') {
     evalHtml = `
@@ -254,7 +287,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
         </div>
         ${Number(p.attemptCount) > 0 ? `<p class="text-xs text-red-500">ไม่ผ่านมาแล้ว ${p.attemptCount} ครั้ง</p>` : ''}
         ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${p.evalComment}</p>` : ''}
-        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'} เมื่อ ${formatDate(p.evalAt)}</p>
+        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'}${p.evalByPosition ? ' (' + p.evalByPosition + ')' : ''} เมื่อ ${formatDate(p.evalAt)}</p>
       </div>`;
   } else {
     evalHtml = `
@@ -337,32 +370,24 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
           </div>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">ระบุวันฝึกเป็นรายวัน (กรณีฝึกไม่ต่อเนื่อง เช่น วันเว้นวัน)</label>
-          <div class="flex gap-2 mb-2">
-            <input type="date" id="plan-day-input" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
-            <button onclick="addPlanDay()" class="px-3 py-2 bg-primary-50 text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-100">+ เพิ่มวัน</button>
-          </div>
-          <div id="plan-days-chips" class="flex flex-wrap gap-1.5"></div>
+          <label class="block text-xs text-gray-500 mb-2">จิ้มวันในปฏิทินเพื่อเลือกวันฝึกเป็นรายวัน (กรณีฝึกไม่ต่อเนื่อง เช่น วันเว้นวัน) — <span class="text-gray-400">จุดสีเทา = มีหัวข้ออื่นฝึกอยู่</span></label>
+          <div id="plan-mini-cal" class="border border-gray-200 rounded-lg p-2"></div>
+          <div id="plan-days-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
         </div>
       </div>
 
-      <!-- เลือกสถานะ -->
-      <div>
-        <h4 class="text-sm font-medium text-gray-700 mb-3">อัปเดตสถานะ</h4>
-        <div class="grid grid-cols-3 gap-2">
-          <button onclick="selectStepStatus('NOT_STARTED')" id="status-btn-NOT_STARTED"
-            class="px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentStatus === 'NOT_STARTED' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
-            ยังไม่เริ่ม
-          </button>
-          <button onclick="selectStepStatus('IN_PROGRESS')" id="status-btn-IN_PROGRESS"
-            class="px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentStatus === 'IN_PROGRESS' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}">
-            กำลังดำเนินการ
-          </button>
-          <button onclick="selectStepStatus('COMPLETED')" id="status-btn-COMPLETED"
-            class="px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentStatus === 'COMPLETED' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}">
-            เสร็จสิ้น
-          </button>
-        </div>
+      <!-- สถานะ (คำนวณอัตโนมัติ) -->
+      <div class="bg-gray-50 rounded-lg px-4 py-3 flex items-center justify-between">
+        <span class="text-sm text-gray-600">สถานะปัจจุบัน <span class="text-xs text-gray-400">(อัปเดตอัตโนมัติตามวันฝึกและผลประเมิน)</span></span>
+        <span class="text-xs px-2.5 py-1 rounded-full font-medium ${
+          deriveTrainingStatus(p) === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+          deriveTrainingStatus(p) === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+          deriveTrainingStatus(p) === 'NOT_PLANNED' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-600'
+        }">${
+          deriveTrainingStatus(p) === 'COMPLETED' ? 'เสร็จสิ้น' :
+          deriveTrainingStatus(p) === 'IN_PROGRESS' ? 'กำลังดำเนินการ' :
+          deriveTrainingStatus(p) === 'NOT_PLANNED' ? 'ยังไม่ได้วางแผน' : 'ยังไม่เริ่ม'
+        }</span>
       </div>
 
       <!-- บันทึก -->
@@ -386,9 +411,80 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
     </div>
   `;
 
-  window._selectedStepStatus = currentStatus;
+  renderMiniCal();
   renderPlanDayChips();
   document.getElementById('roadmap-step-modal').classList.remove('hidden');
+}
+
+// ==================== ปฏิทินเลือกวันฝึกใน Modal ====================
+
+function renderMiniCal() {
+  const container = document.getElementById('plan-mini-cal');
+  if (!container) return;
+
+  const year = window._miniCalYear;
+  const month = window._miniCalMonth;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = todayStr();
+  const busy = window._busyDays || {};
+  const selected = window._planDays || [];
+
+  let html = `
+    <div class="flex items-center justify-between mb-1">
+      <button onclick="changeMiniCalMonth(-1)" class="p-1 hover:bg-gray-100 rounded text-gray-500 text-sm px-2">&lsaquo;</button>
+      <span class="text-sm font-medium text-gray-700">${THAI_MONTHS[month]} ${year + 543}</span>
+      <button onclick="changeMiniCalMonth(1)" class="p-1 hover:bg-gray-100 rounded text-gray-500 text-sm px-2">&rsaquo;</button>
+    </div>
+    <div class="grid grid-cols-7 gap-0.5 text-center">`;
+
+  THAI_DAYS.forEach(d => {
+    html += `<div class="text-[10px] text-gray-400 py-1">${d}</div>`;
+  });
+
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    const isSelected = selected.includes(dateStr);
+    const busyTitles = busy[dateStr];
+    const isToday = dateStr === today;
+
+    let cls = 'relative text-xs py-1.5 rounded cursor-pointer select-none transition-colors ';
+    if (isSelected) cls += 'bg-primary-600 text-white font-semibold ';
+    else if (busyTitles) cls += 'bg-gray-100 text-gray-500 hover:bg-primary-100 ';
+    else cls += 'text-gray-700 hover:bg-primary-50 ';
+    if (isToday && !isSelected) cls += 'ring-1 ring-primary-400 ';
+
+    html += `
+      <div class="${cls}" onclick="togglePlanDay('${dateStr}')" ${busyTitles ? `title="ไม่ว่าง: ${busyTitles.join(', ')}"` : 'title="ว่าง"'}>
+        ${day}
+        ${busyTitles && !isSelected ? '<span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-gray-400 rounded-full"></span>' : ''}
+      </div>`;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function changeMiniCalMonth(delta) {
+  window._miniCalMonth += delta;
+  if (window._miniCalMonth < 0) { window._miniCalMonth = 11; window._miniCalYear--; }
+  if (window._miniCalMonth > 11) { window._miniCalMonth = 0; window._miniCalYear++; }
+  renderMiniCal();
+}
+
+function togglePlanDay(dateStr) {
+  if (window._planDays.includes(dateStr)) {
+    window._planDays = window._planDays.filter(x => x !== dateStr);
+  } else {
+    if (window._busyDays && window._busyDays[dateStr]) {
+      showToast('หมายเหตุ: วันนี้มีหัวข้ออื่นฝึกอยู่แล้ว (' + window._busyDays[dateStr].join(', ') + ')', 'error');
+    }
+    window._planDays.push(dateStr);
+  }
+  renderMiniCal();
+  renderPlanDayChips();
 }
 
 function renderPlanDayChips() {
@@ -405,17 +501,9 @@ function renderPlanDayChips() {
     </span>`).join('');
 }
 
-function addPlanDay() {
-  const input = document.getElementById('plan-day-input');
-  const v = input.value;
-  if (!v) { showToast('กรุณาเลือกวันที่ก่อน', 'error'); return; }
-  if (!window._planDays.includes(v)) window._planDays.push(v);
-  input.value = '';
-  renderPlanDayChips();
-}
-
 function removePlanDay(d) {
   window._planDays = window._planDays.filter(x => x !== d);
+  renderMiniCal();
   renderPlanDayChips();
 }
 
@@ -444,35 +532,8 @@ async function showStepQr(stepId) {
   }
 }
 
-function selectStepStatus(status) {
-  window._selectedStepStatus = status;
-
-  // รีเซ็ตปุ่มทั้งหมด
-  const statuses = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'];
-  const activeClasses = {
-    'NOT_STARTED': 'bg-gray-600 text-white',
-    'IN_PROGRESS': 'bg-blue-600 text-white',
-    'COMPLETED': 'bg-green-600 text-white'
-  };
-  const inactiveClasses = {
-    'NOT_STARTED': 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-    'IN_PROGRESS': 'bg-blue-50 text-blue-600 hover:bg-blue-100',
-    'COMPLETED': 'bg-green-50 text-green-600 hover:bg-green-100'
-  };
-
-  statuses.forEach(s => {
-    const btn = document.getElementById('status-btn-' + s);
-    if (btn) {
-      // ลบ class เก่า
-      btn.className = 'px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ' +
-        (s === status ? activeClasses[s] : inactiveClasses[s]);
-    }
-  });
-}
-
 async function saveStepProgress(stepId) {
   const user = getCurrentUser();
-  const status = window._selectedStepStatus || 'NOT_STARTED';
   const note = document.getElementById('step-note-input').value.trim();
 
   showLoading();
@@ -481,7 +542,6 @@ async function saveStepProgress(stepId) {
       userId: user.id,
       actorId: user.id,
       stepId: stepId,
-      status: status,
       note: note,
       trainerName: document.getElementById('plan-trainer-name').value.trim(),
       trainerPosition: document.getElementById('plan-trainer-position').value.trim(),
@@ -492,7 +552,7 @@ async function saveStepProgress(stepId) {
     });
 
     if (result.success !== false) {
-      showToast('อัปเดตสถานะสำเร็จ', 'success');
+      showToast('บันทึกแผนการฝึกสำเร็จ', 'success');
       document.getElementById('roadmap-step-modal').classList.add('hidden');
       await loadStudentRoadmaps();
     } else {

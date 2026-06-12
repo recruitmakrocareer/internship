@@ -26,6 +26,53 @@ function dateInputValue(value) {
 }
 
 /**
+ * วันที่วันนี้ในรูปแบบ yyyy-mm-dd (เวลาท้องถิ่น)
+ */
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/**
+ * แปลงแผนการฝึกเป็นรายการวันที่ yyyy-mm-dd
+ * ใช้วันรายวัน (trainingDays) ถ้าระบุไว้ ไม่งั้นขยายจากช่วง startDate–endDate
+ */
+function expandPlanDays(p) {
+  if (!p) return [];
+  if (p.trainingDays) {
+    return String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean).sort();
+  }
+  const start = dateInputValue(p.startDate);
+  if (!start) return [];
+  const end = dateInputValue(p.endDate) || start;
+  const days = [];
+  let d = new Date(start + 'T00:00:00');
+  const endD = new Date(end + 'T00:00:00');
+  let guard = 0;
+  while (d <= endD && guard < 120) {
+    days.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+    d.setDate(d.getDate() + 1);
+    guard++;
+  }
+  return days;
+}
+
+/**
+ * คำนวณสถานะการฝึกอัตโนมัติจากแผนและผลประเมิน
+ * COMPLETED   = ผู้สอนประเมินผ่านแล้ว
+ * NOT_PLANNED = ยังไม่ได้กำหนดวันฝึก (ต้องไฮไลต์เตือน)
+ * NOT_STARTED = วางแผนแล้ว แต่ยังไม่ถึงวันฝึกวันแรก
+ * IN_PROGRESS = ถึงวันฝึกแล้ว แต่ยังไม่ผ่านการประเมิน
+ */
+function deriveTrainingStatus(p) {
+  if (!p) return 'NOT_PLANNED';
+  if (String(p.evalResult || '').toUpperCase() === 'PASS') return 'COMPLETED';
+  const days = expandPlanDays(p);
+  if (days.length === 0) return 'NOT_PLANNED';
+  return todayStr() < days[0] ? 'NOT_STARTED' : 'IN_PROGRESS';
+}
+
+/**
  * นำทางไปยังหน้าที่ต้องการ
  * @param {string} page - ชื่อหน้า
  */

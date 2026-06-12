@@ -75,7 +75,7 @@ function handleApiRequest(params) {
       case 'ping':
         result = {
           success: true,
-          version: 'v3-training-plan',
+          version: 'v4-auto-status',
           usersColumns: CONFIG.HEADERS.Users.length
         };
         break;
@@ -177,7 +177,7 @@ function handleApiRequest(params) {
         result = getEvalByToken(params.token);
         break;
       case 'submitEvalByToken':
-        result = submitEvalByToken(params.token, params.result, params.comment, params.evaluatorName);
+        result = submitEvalByToken(params.token, params.result, params.comment, params.evaluatorName, params.evaluatorPosition);
         break;
 
       // === Assignments ===
