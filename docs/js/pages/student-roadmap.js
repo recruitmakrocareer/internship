@@ -33,6 +33,19 @@ async function renderStudentRoadmap() {
         <div class="p-6" id="step-modal-body"></div>
       </div>
     </div>
+
+    <!-- Modal QR Code สำหรับผู้ประเมิน -->
+    <div id="step-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+        <div class="flex items-center justify-between p-5 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">QR Code สำหรับผู้ประเมิน</h3>
+          <button onclick="document.getElementById('step-qr-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="p-6 text-center" id="step-qr-body"></div>
+      </div>
+    </div>
   `;
 
   loadStudentRoadmaps();
@@ -192,8 +205,10 @@ function renderRoadmapCards(roadmaps, progressMap) {
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-800 truncate">${step.title || 'ขั้นตอนที่ ' + (sIndex + 1)}</p>
                   ${step.description ? `<p class="text-xs text-gray-500 mt-0.5 truncate">${step.description}</p>` : ''}
+                  ${p.trainerName || p.startDate ? `<p class="text-xs text-gray-400 mt-0.5 truncate">${p.trainerName ? '👤 ' + p.trainerName : ''}${p.startDate ? (p.trainerName ? ' • ' : '') + '📅 ' + formatDate(p.startDate) + (p.endDate ? ' – ' + formatDate(p.endDate) : '') : ''}</p>` : ''}
                 </div>
                 <div class="flex-shrink-0 flex items-center gap-2">
+                  ${String(p.evalResult || '').toUpperCase() === 'PASS' ? '<span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">✓ ผ่าน</span>' : String(p.evalResult || '').toUpperCase() === 'FAIL' ? '<span class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">✗ ไม่ผ่าน</span>' : ''}
                   <span class="text-xs px-2 py-1 rounded-full ${status === 'COMPLETED' ? 'bg-green-100 text-green-700' : status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${statusLabel}</span>
                   ${step.durationDays ? `<span class="text-xs text-gray-400">${step.durationDays} วัน</span>` : ''}
                 </div>
@@ -214,7 +229,39 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
   const p = window._studentProgressMap[stepId] || {};
   const currentStatus = p.status || 'NOT_STARTED';
 
+  // วันฝึกแบบระบุวัน (ไม่ต่อเนื่อง)
+  window._planDays = p.trainingDays ? String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean) : [];
+
   document.getElementById('step-modal-title').textContent = step.title || 'ขั้นตอนที่ ' + (stepIndex + 1);
+
+  // ส่วนแสดงผลการประเมิน
+  const evalResult = String(p.evalResult || '').toUpperCase();
+  let evalHtml = '';
+  if (evalResult === 'PASS') {
+    evalHtml = `
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-sm font-semibold text-green-700">✓ ผ่านการประเมิน</span>
+        </div>
+        ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${p.evalComment}</p>` : ''}
+        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'} เมื่อ ${formatDate(p.evalAt)}</p>
+      </div>`;
+  } else if (evalResult === 'FAIL') {
+    evalHtml = `
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-sm font-semibold text-red-700">✗ ไม่ผ่านการประเมิน — ต้องฝึกเพิ่มเติมและประเมินใหม่</span>
+        </div>
+        ${Number(p.attemptCount) > 0 ? `<p class="text-xs text-red-500">ไม่ผ่านมาแล้ว ${p.attemptCount} ครั้ง</p>` : ''}
+        ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${p.evalComment}</p>` : ''}
+        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'} เมื่อ ${formatDate(p.evalAt)}</p>
+      </div>`;
+  } else {
+    evalHtml = `
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <p class="text-sm text-gray-500">ยังไม่ได้รับการประเมิน — เมื่อฝึกเสร็จให้ผู้สอนสแกน QR Code เพื่อประเมิน</p>
+      </div>`;
+  }
 
   document.getElementById('step-modal-body').innerHTML = `
     <div class="space-y-5">
@@ -229,7 +276,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
       ${step.durationDays ? `
         <div class="flex items-center gap-2 text-sm text-gray-500">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          ระยะเวลา: ${step.durationDays} วัน
+          ระยะเวลามาตรฐาน: ${step.durationDays} วัน
         </div>
       ` : ''}
 
@@ -239,6 +286,65 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
           แหล่งข้อมูล: ${step.resources}
         </div>
       ` : ''}
+
+      <!-- ผลการประเมิน -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-sm font-medium text-gray-700">ผลการประเมิน</h4>
+          <button onclick="showStepQr('${stepId}')" class="flex items-center gap-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+            QR ให้ผู้สอนประเมิน
+          </button>
+        </div>
+        ${evalHtml}
+      </div>
+
+      <!-- ผู้ฝึกสอน -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">ผู้ฝึกสอนหัวข้อนี้</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ชื่อผู้สอน</label>
+            <input type="text" id="plan-trainer-name" value="${p.trainerName || ''}" placeholder="ชื่อ-นามสกุล"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ตำแหน่ง</label>
+            <input type="text" id="plan-trainer-position" value="${p.trainerPosition || ''}" placeholder="เช่น หัวหน้าแผนก"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ช่องทางติดต่อ</label>
+            <input type="text" id="plan-trainer-contact" value="${p.trainerContact || ''}" placeholder="เบอร์โทร / Line"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ระยะเวลาการฝึก -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">ระยะเวลาการฝึก</h4>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">วันที่เริ่ม</label>
+            <input type="date" id="plan-start-date" value="${dateInputValue(p.startDate)}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">วันที่สิ้นสุด</label>
+            <input type="date" id="plan-end-date" value="${dateInputValue(p.endDate)}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">ระบุวันฝึกเป็นรายวัน (กรณีฝึกไม่ต่อเนื่อง เช่น วันเว้นวัน)</label>
+          <div class="flex gap-2 mb-2">
+            <input type="date" id="plan-day-input" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+            <button onclick="addPlanDay()" class="px-3 py-2 bg-primary-50 text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-100">+ เพิ่มวัน</button>
+          </div>
+          <div id="plan-days-chips" class="flex flex-wrap gap-1.5"></div>
+        </div>
+      </div>
 
       <!-- เลือกสถานะ -->
       <div>
@@ -281,7 +387,61 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
   `;
 
   window._selectedStepStatus = currentStatus;
+  renderPlanDayChips();
   document.getElementById('roadmap-step-modal').classList.remove('hidden');
+}
+
+function renderPlanDayChips() {
+  const c = document.getElementById('plan-days-chips');
+  if (!c) return;
+  if (!window._planDays || window._planDays.length === 0) {
+    c.innerHTML = '<span class="text-xs text-gray-400">ยังไม่ได้ระบุวัน — ระบบจะใช้ช่วงวันที่เริ่ม–สิ้นสุดแทน</span>';
+    return;
+  }
+  c.innerHTML = [...window._planDays].sort().map(d => `
+    <span class="inline-flex items-center gap-1 bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded-full">
+      ${formatDate(d)}
+      <button onclick="removePlanDay('${d}')" class="hover:text-red-500 font-bold">&times;</button>
+    </span>`).join('');
+}
+
+function addPlanDay() {
+  const input = document.getElementById('plan-day-input');
+  const v = input.value;
+  if (!v) { showToast('กรุณาเลือกวันที่ก่อน', 'error'); return; }
+  if (!window._planDays.includes(v)) window._planDays.push(v);
+  input.value = '';
+  renderPlanDayChips();
+}
+
+function removePlanDay(d) {
+  window._planDays = window._planDays.filter(x => x !== d);
+  renderPlanDayChips();
+}
+
+async function showStepQr(stepId) {
+  const user = getCurrentUser();
+  showLoading();
+  try {
+    const res = await callApi('getEvalToken', { userId: user.id, stepId: stepId });
+    hideLoading();
+    if (res.success === false || !res.data || !res.data.token) {
+      showToast(res.message || 'ไม่สามารถสร้าง QR ได้', 'error');
+      return;
+    }
+    const evalUrl = window.location.origin + window.location.pathname + '#evaluate?token=' + res.data.token;
+    const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=' + encodeURIComponent(evalUrl);
+    document.getElementById('step-qr-body').innerHTML = `
+      <img src="${qrSrc}" alt="QR Code" class="mx-auto rounded-lg border border-gray-200" width="240" height="240" />
+      <p class="text-sm text-gray-600 mt-4">ให้ผู้สอนสแกน QR Code นี้เพื่อประเมินผลการฝึก<br>ไม่ต้องเข้าสู่ระบบ</p>
+      <button onclick="navigator.clipboard.writeText('${evalUrl}').then(() => showToast('คัดลอกลิงก์แล้ว', 'success'))"
+        class="mt-3 text-xs text-primary-600 hover:underline">คัดลอกลิงก์ประเมิน</button>
+    `;
+    document.getElementById('step-qr-modal').classList.remove('hidden');
+  } catch (e) {
+    hideLoading();
+    showToast('เกิดข้อผิดพลาดในการสร้าง QR', 'error');
+  }
 }
 
 function selectStepStatus(status) {
@@ -317,11 +477,18 @@ async function saveStepProgress(stepId) {
 
   showLoading();
   try {
-    const result = await callApiPost('updateRoadmapProgress', {
+    const result = await callApiPost('updateStepPlan', {
       userId: user.id,
+      actorId: user.id,
       stepId: stepId,
       status: status,
-      note: note
+      note: note,
+      trainerName: document.getElementById('plan-trainer-name').value.trim(),
+      trainerPosition: document.getElementById('plan-trainer-position').value.trim(),
+      trainerContact: document.getElementById('plan-trainer-contact').value.trim(),
+      startDate: document.getElementById('plan-start-date').value,
+      endDate: document.getElementById('plan-end-date').value,
+      trainingDays: (window._planDays || []).join(',')
     });
 
     if (result.success !== false) {

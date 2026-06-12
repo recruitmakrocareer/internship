@@ -75,7 +75,7 @@ function handleApiRequest(params) {
       case 'ping':
         result = {
           success: true,
-          version: 'v2-2026-06-12',
+          version: 'v3-training-plan',
           usersColumns: CONFIG.HEADERS.Users.length
         };
         break;
@@ -164,6 +164,20 @@ function handleApiRequest(params) {
         break;
       case 'updateRoadmapProgress':
         result = updateRoadmapProgress(params.userId, params.stepId, params.status, params.note);
+        break;
+
+      // === Training Plan (แผนการฝึกรายหัวข้อ + QR ประเมิน) ===
+      case 'updateStepPlan':
+        result = updateStepPlan(params);
+        break;
+      case 'getEvalToken':
+        result = getEvalToken(params.userId, params.stepId);
+        break;
+      case 'getEvalByToken':
+        result = getEvalByToken(params.token);
+        break;
+      case 'submitEvalByToken':
+        result = submitEvalByToken(params.token, params.result, params.comment, params.evaluatorName);
         break;
 
       // === Assignments ===

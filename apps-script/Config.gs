@@ -60,7 +60,11 @@ var CONFIG = {
     ],
     RoadmapProgress: [
       'id', 'userId', 'roadmapId', 'stepId', 'status',
-      'note', 'completedAt', 'updatedAt'
+      'note', 'completedAt', 'updatedAt',
+      'trainerName', 'trainerPosition', 'trainerContact',
+      'startDate', 'endDate', 'trainingDays',
+      'evalResult', 'evalComment', 'evalBy', 'evalAt',
+      'evalToken', 'attemptCount'
     ],
     Assignments: [
       'id', 'title', 'description', 'dueDate', 'maxScore',

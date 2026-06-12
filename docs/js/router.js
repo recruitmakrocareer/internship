@@ -6,6 +6,8 @@ const routes = {
   'dashboard': renderDashboard,
   'student-profile': renderStudentProfile,
   'student-roadmap': renderStudentRoadmap,
+  'training-calendar': renderTrainingCalendar,
+  'evaluate': renderEvaluate,
   'student-assignments': renderStudentAssignments,
   'student-evaluations': renderStudentEvaluations,
   'student-resources': renderStudentResources,
@@ -28,15 +30,15 @@ function router() {
   const hash = window.location.hash.slice(1) || 'login';
   const page = hash.split('?')[0];
 
-  // หน้าสาธารณะที่ไม่ต้องล็อกอิน
-  const publicPages = ['login', 'register'];
+  // หน้าสาธารณะที่ไม่ต้องล็อกอิน (evaluate = แบบประเมินผ่าน QR Code)
+  const publicPages = ['login', 'register', 'evaluate'];
   if (!publicPages.includes(page) && !isLoggedIn()) {
     window.location.hash = '#login';
     return;
   }
 
   // ถ้าล็อกอินแล้วเข้าหน้า login/register ให้ redirect ไป dashboard
-  if (publicPages.includes(page) && isLoggedIn()) {
+  if (['login', 'register'].includes(page) && isLoggedIn()) {
     window.location.hash = '#dashboard';
     return;
   }
