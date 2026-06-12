@@ -71,6 +71,15 @@ function handleApiRequest(params) {
     var result;
 
     switch (action) {
+      // === System ===
+      case 'ping':
+        result = {
+          success: true,
+          version: 'v2-2026-06-12',
+          usersColumns: CONFIG.HEADERS.Users.length
+        };
+        break;
+
       // === Auth ===
       case 'login':
         result = login(params.email, params.password);
