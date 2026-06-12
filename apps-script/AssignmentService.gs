@@ -89,7 +89,7 @@ function getAssignment(id) {
  */
 function createAssignment(data) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(data.createdBy);
     if (!user) {
       return { success: false, message: 'กรุณาเข้าสู่ระบบ' };
     }
@@ -320,11 +320,12 @@ function getSubmissions(filter) {
  * @param {string} status - New status (reviewed, graded, revision_needed)
  * @param {number} score - Score
  * @param {string} feedback - Feedback text
+ * @param {string} reviewerId - User ID of the reviewer (passed from frontend)
  * @return {Object} Result with updated submission data
  */
-function reviewSubmission(submissionId, status, score, feedback) {
+function reviewSubmission(submissionId, status, score, feedback, reviewerId) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(reviewerId);
     if (!user || (user.role !== CONFIG.ROLES.ADMIN && user.role !== CONFIG.ROLES.MENTOR)) {
       return { success: false, message: 'คุณไม่มีสิทธิ์ตรวจงาน' };
     }

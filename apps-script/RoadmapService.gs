@@ -61,7 +61,7 @@ function getRoadmap(id) {
  */
 function createRoadmap(data) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(data.createdBy);
     if (!user || user.role !== CONFIG.ROLES.ADMIN) {
       return { success: false, message: 'คุณไม่มีสิทธิ์สร้าง Roadmap' };
     }
@@ -238,49 +238,26 @@ function deleteRoadmapStep(id) {
  */
 function getRoadmapProgress(userId) {
   try {
+    // Return flat progress records — every frontend page builds a
+    // progressMap keyed by stepId from this shape.
     var progress = getRows(CONFIG.SHEETS.ROADMAP_PROGRESS, { userId: userId });
-    var roadmaps = getRows(CONFIG.SHEETS.ROADMAPS, { isActive: 'true' });
-    var allSteps = getRows(CONFIG.SHEETS.ROADMAP_STEPS, { isActive: 'true' });
+    var allSteps = getAllRows(CONFIG.SHEETS.ROADMAP_STEPS);
 
-    var result = [];
-
-    for (var i = 0; i < roadmaps.length; i++) {
-      var roadmap = roadmaps[i];
-      var steps = allSteps.filter(function(s) {
-        return String(s.roadmapId) === String(roadmap.id);
-      }).sort(function(a, b) {
-        return Number(a.stepNumber) - Number(b.stepNumber);
-      });
-
-      var totalSteps = steps.length;
-      var completedSteps = 0;
-
-      // Attach progress to each step
-      for (var j = 0; j < steps.length; j++) {
-        var stepProgress = progress.filter(function(p) {
-          return String(p.stepId) === String(steps[j].id);
-        });
-
-        if (stepProgress.length > 0) {
-          steps[j].progress = stepProgress[0];
-          if (stepProgress[0].status === 'completed') {
-            completedSteps++;
-          }
-        } else {
-          steps[j].progress = { status: 'not_started', note: '' };
-        }
-      }
-
-      result.push({
-        roadmap: roadmap,
-        steps: steps,
-        totalSteps: totalSteps,
-        completedSteps: completedSteps,
-        progressPercent: totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
-      });
+    var stepMap = {};
+    for (var i = 0; i < allSteps.length; i++) {
+      stepMap[String(allSteps[i].id)] = allSteps[i];
     }
 
-    return { success: true, data: result };
+    for (var j = 0; j < progress.length; j++) {
+      var step = stepMap[String(progress[j].stepId)];
+      if (step) {
+        progress[j].stepTitle = step.title;
+        progress[j].stepNumber = step.stepNumber;
+        if (!progress[j].roadmapId) progress[j].roadmapId = step.roadmapId;
+      }
+    }
+
+    return { success: true, data: progress };
   } catch (err) {
     Logger.log('Error in getRoadmapProgress: ' + err.message);
     return { success: false, message: 'ไม่สามารถดึงข้อมูลความคืบหน้าได้: ' + err.message };
@@ -311,6 +288,7 @@ function updateRoadmapProgress(userId, stepId, status, note) {
 
     var result;
     var now = new Date().toISOString();
+    var isCompleted = String(status).toUpperCase() === 'COMPLETED';
 
     if (existingProgress.length > 0) {
       // Update existing
@@ -320,7 +298,7 @@ function updateRoadmapProgress(userId, stepId, status, note) {
         updatedAt: now
       };
 
-      if (status === 'completed' && existingProgress[0].status !== 'completed') {
+      if (isCompleted && String(existingProgress[0].status).toUpperCase() !== 'COMPLETED') {
         updateData.completedAt = now;
       }
 
@@ -333,7 +311,7 @@ function updateRoadmapProgress(userId, stepId, status, note) {
         stepId: stepId,
         status: status,
         note: note || '',
-        completedAt: status === 'completed' ? now : '',
+        completedAt: isCompleted ? now : '',
         updatedAt: now
       };
 

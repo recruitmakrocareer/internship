@@ -484,9 +484,29 @@ async function openEditStudentModal(studentId) {
       <form id="edit-student-form" class="space-y-4">
         <input type="hidden" id="edit-student-id" value="${student.id}">
         <div class="grid grid-cols-2 gap-3">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label>
+            <select id="edit-student-prefix" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">-- เลือก --</option>
+              <option value="นาย" ${student.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
+              <option value="นาง" ${student.prefix === 'นาง' ? 'selected' : ''}>นาง</option>
+              <option value="นางสาว" ${student.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">สถานะทางทหาร</label>
+            <select id="edit-student-military" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">-- เลือก --</option>
+              <option value="ผ่านการเกณฑ์ทหารแล้ว" ${student.militaryStatus === 'ผ่านการเกณฑ์ทหารแล้ว' ? 'selected' : ''}>ผ่านการเกณฑ์ทหารแล้ว</option>
+              <option value="ได้รับการยกเว้น" ${student.militaryStatus === 'ได้รับการยกเว้น' ? 'selected' : ''}>ได้รับการยกเว้น</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
           ${inputField('edit-student-firstName', 'ชื่อ', 'text', student.firstName || '')}
           ${inputField('edit-student-lastName', 'นามสกุล', 'text', student.lastName || '')}
         </div>
+        ${inputField('edit-student-medical', 'โรคประจำตัว', 'text', student.medicalCondition || '', 'ระบุโรคประจำตัว (ถ้ามี)', false)}
         <div class="grid grid-cols-2 gap-3">
           ${inputField('edit-student-studentId', 'รหัสนักศึกษา', 'text', student.studentId || '')}
           ${inputField('edit-student-email', 'อีเมล', 'email', student.email || '')}
@@ -527,11 +547,11 @@ async function openEditStudentModal(studentId) {
         <div class="grid grid-cols-2 gap-3">
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">วันเริ่มฝึก</label>
-            <input type="date" id="edit-student-startDate" value="${student.startDate || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <input type="date" id="edit-student-startDate" value="${dateInputValue(student.startDate)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">วันสิ้นสุด</label>
-            <input type="date" id="edit-student-endDate" value="${student.endDate || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <input type="date" id="edit-student-endDate" value="${dateInputValue(student.endDate)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
           </div>
         </div>
       </form>
@@ -561,6 +581,9 @@ async function submitEditStudent() {
     const result = await callApiPost('updateStudent', {
       id, firstName, lastName,
       name: firstName + ' ' + lastName,
+      prefix: document.getElementById('edit-student-prefix').value,
+      militaryStatus: document.getElementById('edit-student-military').value,
+      medicalCondition: document.getElementById('edit-student-medical').value.trim(),
       studentId: document.getElementById('edit-student-studentId').value.trim(),
       email: document.getElementById('edit-student-email').value.trim(),
       phone: document.getElementById('edit-student-phone').value.trim(),

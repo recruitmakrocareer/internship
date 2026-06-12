@@ -101,7 +101,7 @@ function getResource(id) {
  */
 function createResource(data) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(data.createdBy);
     if (!user) {
       return { success: false, message: 'กรุณาเข้าสู่ระบบก่อน' };
     }

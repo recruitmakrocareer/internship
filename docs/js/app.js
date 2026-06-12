@@ -8,6 +8,24 @@ function driveImageUrl(url) {
 }
 
 /**
+ * แปลงค่าวันที่ (ISO string / Date) เป็นรูปแบบ yyyy-MM-dd สำหรับ <input type="date">
+ * Google Sheets มักคืนวันที่เป็น ISO string ที่มีเวลา ซึ่ง input date ไม่รับ
+ * @param {string} value
+ * @returns {string}
+ */
+function dateInputValue(value) {
+  if (!value) return '';
+  var s = String(value);
+  var m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return m[1];
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return '';
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd;
+}
+
+/**
  * นำทางไปยังหน้าที่ต้องการ
  * @param {string} page - ชื่อหน้า
  */

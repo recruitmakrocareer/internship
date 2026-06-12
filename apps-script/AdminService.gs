@@ -7,9 +7,9 @@
  * Gets admin dashboard statistics.
  * @return {Object} Result with dashboard statistics
  */
-function getAdminStats() {
+function getAdminStats(params) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(params && params.userId);
     if (!user || user.role !== CONFIG.ROLES.ADMIN) {
       return { success: false, message: 'คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้' };
     }

@@ -131,7 +131,8 @@ async function sendBroadcastNotif() {
       title: title,
       message: message,
       recipientIds: JSON.stringify(ids),
-      sendLine: 'false'
+      sendLine: 'false',
+      senderId: getCurrentUser().id
     });
     showToast('ส่งการแจ้งเตือนสำเร็จ', 'success');
     document.getElementById('broadcast-modal').classList.add('hidden');

@@ -129,9 +129,9 @@ function markAllAsRead(userId) {
  * @param {boolean} sendLine - If true, also send via LINE messaging
  * @return {Object} Result with success status and counts
  */
-function sendBroadcast(title, message, recipientIds, sendLine) {
+function sendBroadcast(title, message, recipientIds, sendLine, senderId) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(senderId);
     if (!user || (user.role !== CONFIG.ROLES.ADMIN && user.role !== CONFIG.ROLES.MENTOR)) {
       return { success: false, message: 'คุณไม่มีสิทธิ์ส่งการแจ้งเตือน' };
     }

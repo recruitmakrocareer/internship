@@ -163,6 +163,29 @@ function register(data) {
 }
 
 /**
+ * Resolves the acting user from an explicit user ID (sent by the frontend),
+ * falling back to the script session. The PropertiesService session is
+ * unreliable for anonymous web app access (shared across users), so API
+ * calls should always pass the acting user's ID explicitly.
+ * @param {string} explicitUserId - User ID passed from the frontend
+ * @return {Object|null} The user object (without password) or null
+ */
+function resolveActingUser(explicitUserId) {
+  if (explicitUserId) {
+    var u = getRowById(CONFIG.SHEETS.USERS, explicitUserId);
+    if (u) {
+      var copy = {};
+      var keys = Object.keys(u);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i] !== 'password') copy[keys[i]] = u[keys[i]];
+      }
+      return copy;
+    }
+  }
+  return getCurrentUser();
+}
+
+/**
  * Gets the current logged-in user from UserProperties.
  * @return {Object|null} The current user object or null if not logged in
  */

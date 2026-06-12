@@ -173,7 +173,7 @@ function handleApiRequest(params) {
         result = getSubmissions(params);
         break;
       case 'reviewSubmission':
-        result = reviewSubmission(params.submissionId, params.status, params.score, params.feedback);
+        result = reviewSubmission(params.submissionId, params.status, params.score, params.feedback, params.reviewerId);
         break;
 
       // === Evaluations ===
@@ -222,7 +222,7 @@ function handleApiRequest(params) {
         if (typeof recipientIds === 'string') {
           recipientIds = JSON.parse(recipientIds);
         }
-        result = sendBroadcast(params.title, params.message, recipientIds, params.sendLine === 'true');
+        result = sendBroadcast(params.title, params.message, recipientIds, params.sendLine === 'true', params.senderId);
         break;
 
       // === Training Passport ===
@@ -293,7 +293,7 @@ function handleApiRequest(params) {
 
       // === Admin ===
       case 'getAdminStats':
-        result = getAdminStats();
+        result = getAdminStats(params);
         break;
       case 'setupSystem':
         result = setupSystem();

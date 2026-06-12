@@ -138,7 +138,7 @@ async function submitReview(submissionId) {
 
   showLoading();
   try {
-    await callApiPost('reviewSubmission', { submissionId, status: 'reviewed', score, feedback });
+    await callApiPost('reviewSubmission', { submissionId, status: 'reviewed', score, feedback, reviewerId: getCurrentUser().id });
     showToast('บันทึกการตรวจสำเร็จ', 'success');
     document.getElementById('review-modal').classList.add('hidden');
     await loadMentorAssignments();

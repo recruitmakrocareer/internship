@@ -61,7 +61,7 @@ function getEvaluations(filter) {
  */
 function createEvaluation(data) {
   try {
-    var user = getCurrentUser();
+    var user = resolveActingUser(data.evaluatorId);
     if (!user) {
       return { success: false, message: 'กรุณาเข้าสู่ระบบก่อน' };
     }

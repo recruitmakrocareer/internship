@@ -44,7 +44,7 @@ async function renderAdminDashboard(content) {
   `;
 
   try {
-    const result = await callApi('getAdminStats');
+    const result = await callApi('getAdminStats', { userId: getCurrentUser().id });
     if (result.success) {
       const stats = result.data;
       const u = stats.users || {};

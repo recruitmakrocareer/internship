@@ -148,7 +148,11 @@ async function renderStudentProfile() {
                   class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
               </div>
             </div>
-            ${inputField('profile-email', 'อีเมล', 'email', profile.email || '')}
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล <span class="text-xs text-gray-400">(ติดต่อแอดมินเพื่อเปลี่ยน)</span></label>
+              <input type="email" value="${profile.email || ''}" disabled
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+            </div>
           </div>
 
           <hr class="border-gray-200">
@@ -372,7 +376,6 @@ async function renderStudentProfile() {
         lastName: lName,
         nickname: document.getElementById('profile-nickname').value.trim(),
         studentId: document.getElementById('profile-student-id').value.trim(),
-        email: document.getElementById('profile-email').value.trim(),
         phone: document.getElementById('profile-phone').value.trim(),
         idCardNumber: document.getElementById('profile-id-card').value.trim(),
         militaryStatus: document.getElementById('profile-military').value,
@@ -425,7 +428,7 @@ async function renderStudentProfile() {
 
         const result = await callApiPost('updateProfile', data);
         if (result.success) {
-          const updatedUser = { ...user, name: data.name, firstName: fName, lastName: lName, email: data.email };
+          const updatedUser = { ...user, name: data.name, firstName: fName, lastName: lName };
           setToken(updatedUser);
           showToast('บันทึกข้อมูลสำเร็จ', 'success');
           window._profileDocFiles = {};
