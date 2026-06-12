@@ -130,7 +130,12 @@ function renderTimeline(steps, progressMap) {
   steps.forEach((step, i) => {
     const weekData = WEEKS_DATA[i] || {};
     const p = progressMap[step.id] || {};
-    const status = p.status || 'NOT_STARTED';
+    // Sync displayed status with the training plan (dates + eval result)
+    let status = p.status || 'NOT_STARTED';
+    const derived = deriveTrainingStatus(p);
+    if (derived === 'COMPLETED') status = 'COMPLETED';
+    else if (derived === 'IN_PROGRESS' && status === 'NOT_STARTED') status = 'IN_PROGRESS';
+    const evalResult = String(p.evalResult || '').toUpperCase();
 
     let noteData = {};
     try { noteData = p.note ? JSON.parse(p.note) : {}; } catch(e) { noteData = { text: p.note || '' }; }
@@ -166,6 +171,9 @@ function renderTimeline(steps, progressMap) {
                 <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">${weekLabel}</span>
                 <span class="text-xs ${statusBg} px-2 py-1 rounded-full">${statusText}</span>
                 ${trainerSigned ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">✓ Trainer</span>' : ''}
+                ${evalResult === 'PASS' ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">✓ ผ่านการประเมิน</span>' : ''}
+                ${evalResult === 'FAIL' ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">✗ ไม่ผ่าน (ฝึกซ้ำ)</span>' : ''}
+                ${status !== 'COMPLETED' && status !== 'NOT_STARTED' && !p.trainerName ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">! ยังไม่ระบุผู้สอน</span>' : ''}
               </div>
               <h3 class="font-semibold text-gray-800">${step.title || weekData.subject}</h3>
               <p class="text-sm text-gray-500 mt-1">${step.description || weekData.objectives || ''}</p>
@@ -174,10 +182,12 @@ function renderTimeline(steps, progressMap) {
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </div>
           </div>
-          <div class="flex gap-4 mt-3 text-xs text-gray-400">
+          <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-400">
             <span>📍 ${weekData.place || step.resources || 'Store'}</span>
             <span>🛠 ${weekData.tool || 'OJT'}</span>
             ${step.durationDays ? '<span>📅 ' + step.durationDays + ' วัน</span>' : ''}
+            ${p.trainerName ? '<span class="text-gray-500">👤 ผู้สอน: ' + p.trainerName + (p.trainerPosition ? ' (' + p.trainerPosition + ')' : '') + '</span>' : ''}
+            ${p.startDate ? '<span>🗓 ' + formatDate(p.startDate) + (p.endDate && p.endDate !== p.startDate ? ' – ' + formatDate(p.endDate) : '') + '</span>' : ''}
           </div>
         </div>
       </div>`;
@@ -216,6 +226,24 @@ function openWeekDetail(weekIndex, stepId) {
           <span>📍 สถานที่: ${weekData.place || 'Store'}</span>
           <span>🛠 เครื่องมือ: ${weekData.tool || 'OJT'}</span>
         </div>
+      </div>
+
+      <!-- ข้อมูลจากแผนการฝึก -->
+      <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-medium text-gray-700">ข้อมูลจากแผนการฝึก</h4>
+          <a href="#student-roadmap" onclick="closeModal()" class="text-xs text-blue-600 hover:underline">แก้ไขแผน →</a>
+        </div>
+        ${p.trainerName || p.startDate ? `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+            <div><span class="text-gray-400">ผู้สอน:</span> ${p.trainerName || '<span class="text-amber-600">ยังไม่ระบุ</span>'}${p.trainerPosition ? ' (' + p.trainerPosition + ')' : ''}</div>
+            ${p.trainerContact ? '<div><span class="text-gray-400">ติดต่อ:</span> ' + p.trainerContact + '</div>' : ''}
+            ${p.startDate ? '<div><span class="text-gray-400">ช่วงฝึก:</span> ' + formatDate(p.startDate) + (p.endDate && p.endDate !== p.startDate ? ' – ' + formatDate(p.endDate) : '') + '</div>' : ''}
+            ${formatTimeRange(getPlanDayTime(p, p.startDate || '')) ? '<div><span class="text-gray-400">เวลา:</span> ' + formatTimeRange(getPlanDayTime(p, p.startDate || '')) + '</div>' : ''}
+            ${String(p.evalResult || '').toUpperCase() === 'PASS' ? '<div class="text-green-700">ผลประเมิน: ✓ ผ่าน' + (p.evalBy ? ' โดย ' + p.evalBy : '') + (p.evalAt ? ' (' + formatDate(p.evalAt) + ')' : '') + '</div>' : ''}
+            ${String(p.evalResult || '').toUpperCase() === 'FAIL' ? '<div class="text-red-600">ผลประเมิน: ✗ ไม่ผ่าน (ฝึกซ้ำ)' + (p.evalBy ? ' โดย ' + p.evalBy : '') + '</div>' : ''}
+          </div>`
+        : '<p class="text-sm text-amber-600">ยังไม่ได้วางแผนการฝึกสำหรับหัวข้อนี้ — ไปที่หน้า Roadmap เพื่อกำหนดผู้สอนและวันฝึก</p>'}
       </div>
 
       <!-- Status -->
