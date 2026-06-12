@@ -3,6 +3,37 @@
 var _profileStoreList = [];
 var _profileDeptList = [];
 
+function buildProfileSkillsHtml(existingSkills) {
+  var existing = (existingSkills || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+  var knownSkills = typeof SKILLS_CHECKBOXES !== 'undefined' ? SKILLS_CHECKBOXES : ['Excel', 'การเขียนโปรแกรม', 'Graphic Designer', 'Automation', 'ทักษะการขาย', 'การบริการลูกค้า'];
+  var html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">';
+  for (var i = 0; i < knownSkills.length; i++) {
+    var sk = knownSkills[i];
+    var checked = existing.indexOf(sk) !== -1 ? ' checked' : '';
+    html += '<label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="profile-skill-cb w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" value="' + sk + '"' + checked + '> ' + sk + '</label>';
+  }
+  html += '</div>';
+  var otherSkills = existing.filter(function(s) { return knownSkills.indexOf(s) === -1; });
+  var hasOther = otherSkills.length > 0;
+  html += '<div><label class="flex items-center gap-2 text-sm text-gray-700 mb-1"><input type="checkbox" id="profile-skill-other-cb" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"' + (hasOther ? ' checked' : '') + '> อื่นๆ</label>';
+  html += '<input type="text" id="profile-skill-other-text" placeholder="ระบุทักษะอื่นๆ" value="' + (hasOther ? otherSkills.join(', ') : '') + '"' + (hasOther ? '' : ' disabled') + ' class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm mt-1"></div>';
+  return html;
+}
+
+function collectProfileSkillsValue() {
+  var skills = [];
+  var cbs = document.querySelectorAll('.profile-skill-cb');
+  for (var i = 0; i < cbs.length; i++) {
+    if (cbs[i].checked) skills.push(cbs[i].value);
+  }
+  var otherCb = document.getElementById('profile-skill-other-cb');
+  var otherText = document.getElementById('profile-skill-other-text');
+  if (otherCb && otherCb.checked && otherText && otherText.value.trim()) {
+    skills.push(otherText.value.trim());
+  }
+  return skills.join(', ');
+}
+
 async function renderStudentProfile() {
   if (!checkAuth()) return;
   const user = getCurrentUser();
@@ -128,6 +159,7 @@ async function renderStudentProfile() {
                   <option value="">-- เลือก --</option>
                   <option value="ผ่านการเกณฑ์ทหารแล้ว" ${profile.militaryStatus === 'ผ่านการเกณฑ์ทหารแล้ว' ? 'selected' : ''}>ผ่านการเกณฑ์ทหารแล้ว</option>
                   <option value="ได้รับการยกเว้น" ${profile.militaryStatus === 'ได้รับการยกเว้น' ? 'selected' : ''}>ได้รับการยกเว้น</option>
+                  <option value="ผ่านการศึกษาวิชาทหาร (รด.)" ${profile.militaryStatus === 'ผ่านการศึกษาวิชาทหาร (รด.)' ? 'selected' : ''}>ผ่านการศึกษาวิชาทหาร (รด.)</option>
                 </select>
               </div>
             </div>
@@ -161,16 +193,114 @@ async function renderStudentProfile() {
           <div>
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ที่อยู่</h3>
             <p class="text-xs text-gray-500 mb-2 font-medium">ที่อยู่ปัจจุบัน</p>
-            ${textareaField('profile-current-address', 'ที่อยู่', profile.currentAddress || profile.address || '', 'บ้านเลขที่ ซอย ถนน ตำบล อำเภอ', 2)}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              ${inputField('profile-current-province', 'จังหวัด', 'text', profile.currentProvince || '', 'จังหวัด', false)}
-              ${inputField('profile-current-postcode', 'รหัสไปรษณีย์', 'text', profile.currentPostcode || '', 'รหัสไปรษณีย์', false)}
+              <div class="mb-4">
+                <label for="profile-current-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่</label>
+                <input type="text" id="profile-current-house-no" value="${profile.currentHouseNo || ''}" placeholder="เช่น 123/4"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div class="mb-4">
+                <label for="profile-current-village" class="block text-sm font-medium text-gray-700 mb-1">หมู่บ้าน/อาคาร</label>
+                <input type="text" id="profile-current-village" value="${profile.currentVillage || ''}" placeholder="หมู่บ้าน/อาคาร"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
             </div>
-            <p class="text-xs text-gray-500 mb-2 font-medium mt-2">ที่อยู่ตามบัตรประชาชน</p>
-            ${textareaField('profile-idcard-address', 'ที่อยู่', profile.idCardAddress || '', 'บ้านเลขที่ ซอย ถนน ตำบล อำเภอ', 2)}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              ${inputField('profile-idcard-province', 'จังหวัด', 'text', profile.idCardProvince || '', 'จังหวัด', false)}
-              ${inputField('profile-idcard-postcode', 'รหัสไปรษณีย์', 'text', profile.idCardPostcode || '', 'รหัสไปรษณีย์', false)}
+              <div class="mb-4">
+                <label for="profile-current-soi" class="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
+                <input type="text" id="profile-current-soi" value="${profile.currentSoi || ''}" placeholder="ซอย"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div class="mb-4">
+                <label for="profile-current-road" class="block text-sm font-medium text-gray-700 mb-1">ถนน</label>
+                <input type="text" id="profile-current-road" value="${profile.currentRoad || ''}" placeholder="ถนน"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-current-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+                <input type="text" id="profile-current-subdistrict" value="${profile.currentSubdistrict || ''}" placeholder="แขวง/ตำบล"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div class="mb-4">
+                <label for="profile-current-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+                <input type="text" id="profile-current-district" value="${profile.currentDistrict || ''}" placeholder="เขต/อำเภอ"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-current-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                <select id="profile-current-province"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${buildProvinceOptions(profile.currentProvince || '')}
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="profile-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                <input type="text" id="profile-current-postcode" value="${profile.currentPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 mt-2 mb-3">
+              <input type="checkbox" id="profile-same-address" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+              <label for="profile-same-address" class="text-sm text-gray-700">ที่อยู่ตามบัตรประชาชนเหมือนที่อยู่ปัจจุบัน</label>
+            </div>
+
+            <div id="profile-idcard-address-section">
+              <p class="text-xs text-gray-500 mb-2 font-medium">ที่อยู่ตามบัตรประชาชน</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="mb-4">
+                  <label for="profile-idcard-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่</label>
+                  <input type="text" id="profile-idcard-house-no" value="${profile.idCardHouseNo || ''}" placeholder="เช่น 123/4"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+                <div class="mb-4">
+                  <label for="profile-idcard-village" class="block text-sm font-medium text-gray-700 mb-1">หมู่บ้าน/อาคาร</label>
+                  <input type="text" id="profile-idcard-village" value="${profile.idCardVillage || ''}" placeholder="หมู่บ้าน/อาคาร"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="mb-4">
+                  <label for="profile-idcard-soi" class="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
+                  <input type="text" id="profile-idcard-soi" value="${profile.idCardSoi || ''}" placeholder="ซอย"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+                <div class="mb-4">
+                  <label for="profile-idcard-road" class="block text-sm font-medium text-gray-700 mb-1">ถนน</label>
+                  <input type="text" id="profile-idcard-road" value="${profile.idCardRoad || ''}" placeholder="ถนน"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="mb-4">
+                  <label for="profile-idcard-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+                  <input type="text" id="profile-idcard-subdistrict" value="${profile.idCardSubdistrict || ''}" placeholder="แขวง/ตำบล"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+                <div class="mb-4">
+                  <label for="profile-idcard-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+                  <input type="text" id="profile-idcard-district" value="${profile.idCardDistrict || ''}" placeholder="เขต/อำเภอ"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="mb-4">
+                  <label for="profile-idcard-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                  <select id="profile-idcard-province"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                    ${buildProvinceOptions(profile.idCardProvince || '')}
+                  </select>
+                </div>
+                <div class="mb-4">
+                  <label for="profile-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                  <input type="text" id="profile-idcard-postcode" value="${profile.idCardPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                </div>
+              </div>
             </div>
           </div>
 
@@ -255,7 +385,10 @@ async function renderStudentProfile() {
           <!-- Section: ข้อมูลเพิ่มเติม -->
           <div>
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลเพิ่มเติม</h3>
-            ${textareaField('profile-skills', 'ทักษะ/ความสามารถ', profile.skills || '', 'เช่น JavaScript, Python, Design', 2)}
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">ทักษะ/ความสามารถ</label>
+              ${buildProfileSkillsHtml(profile.skills || '')}
+            </div>
             ${textareaField('profile-interests', 'ความสนใจ', profile.interests || '', 'สิ่งที่สนใจหรืออยากเรียนรู้', 2)}
           </div>
 
@@ -357,6 +490,55 @@ async function renderStudentProfile() {
       if (el && prefFields[pf][1]) el.value = prefFields[pf][1];
     }
 
+    // Same address checkbox handler
+    document.getElementById('profile-same-address').addEventListener('change', function() {
+      var idcardFields = document.querySelectorAll('.profile-idcard-field');
+      if (this.checked) {
+        document.getElementById('profile-idcard-house-no').value = document.getElementById('profile-current-house-no').value;
+        document.getElementById('profile-idcard-village').value = document.getElementById('profile-current-village').value;
+        document.getElementById('profile-idcard-soi').value = document.getElementById('profile-current-soi').value;
+        document.getElementById('profile-idcard-road').value = document.getElementById('profile-current-road').value;
+        document.getElementById('profile-idcard-subdistrict').value = document.getElementById('profile-current-subdistrict').value;
+        document.getElementById('profile-idcard-district').value = document.getElementById('profile-current-district').value;
+        document.getElementById('profile-idcard-province').value = document.getElementById('profile-current-province').value;
+        document.getElementById('profile-idcard-postcode').value = document.getElementById('profile-current-postcode').value;
+        for (var i = 0; i < idcardFields.length; i++) {
+          idcardFields[i].disabled = true;
+          idcardFields[i].classList.add('bg-gray-50', 'text-gray-500');
+        }
+      } else {
+        for (var j = 0; j < idcardFields.length; j++) {
+          idcardFields[j].disabled = false;
+          idcardFields[j].classList.remove('bg-gray-50', 'text-gray-500');
+        }
+      }
+    });
+
+    // Province change -> auto-fill postcode (current)
+    document.getElementById('profile-current-province').addEventListener('change', function() {
+      var postcode = THAI_PROVINCE_POSTCODE[this.value] || '';
+      document.getElementById('profile-current-postcode').value = postcode;
+      if (document.getElementById('profile-same-address').checked) {
+        document.getElementById('profile-idcard-province').value = this.value;
+        document.getElementById('profile-idcard-postcode').value = postcode;
+      }
+    });
+
+    // Province change -> auto-fill postcode (idCard)
+    document.getElementById('profile-idcard-province').addEventListener('change', function() {
+      document.getElementById('profile-idcard-postcode').value = THAI_PROVINCE_POSTCODE[this.value] || '';
+    });
+
+    // Skills "อื่นๆ" checkbox toggle
+    var profileSkillOtherCb = document.getElementById('profile-skill-other-cb');
+    if (profileSkillOtherCb) {
+      profileSkillOtherCb.addEventListener('change', function() {
+        var otherInput = document.getElementById('profile-skill-other-text');
+        otherInput.disabled = !this.checked;
+        if (!this.checked) otherInput.value = '';
+      });
+    }
+
     window._profileDocFiles = {};
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
@@ -367,6 +549,32 @@ async function renderStudentProfile() {
 
       const fName = document.getElementById('profile-first-name').value.trim();
       const lName = document.getElementById('profile-last-name').value.trim();
+
+      var sameAddr = document.getElementById('profile-same-address').checked;
+      var cHouseNo = document.getElementById('profile-current-house-no').value.trim();
+      var cVillage = document.getElementById('profile-current-village').value.trim();
+      var cSoi = document.getElementById('profile-current-soi').value.trim();
+      var cRoad = document.getElementById('profile-current-road').value.trim();
+      var cSubdistrict = document.getElementById('profile-current-subdistrict').value.trim();
+      var cDistrict = document.getElementById('profile-current-district').value.trim();
+      var cProvince = document.getElementById('profile-current-province').value;
+      var cPostcode = document.getElementById('profile-current-postcode').value.trim();
+      var iHouseNo, iVillage, iSoi, iRoad, iSubdistrict, iDistrict, iProvince, iPostcode;
+      if (sameAddr) {
+        iHouseNo = cHouseNo; iVillage = cVillage; iSoi = cSoi; iRoad = cRoad;
+        iSubdistrict = cSubdistrict; iDistrict = cDistrict; iProvince = cProvince; iPostcode = cPostcode;
+      } else {
+        iHouseNo = document.getElementById('profile-idcard-house-no').value.trim();
+        iVillage = document.getElementById('profile-idcard-village').value.trim();
+        iSoi = document.getElementById('profile-idcard-soi').value.trim();
+        iRoad = document.getElementById('profile-idcard-road').value.trim();
+        iSubdistrict = document.getElementById('profile-idcard-subdistrict').value.trim();
+        iDistrict = document.getElementById('profile-idcard-district').value.trim();
+        iProvince = document.getElementById('profile-idcard-province').value;
+        iPostcode = document.getElementById('profile-idcard-postcode').value.trim();
+      }
+      var currentAddressStr = composeAddressString(cHouseNo, cVillage, cSoi, cRoad, cSubdistrict, cDistrict, cProvince, cPostcode);
+      var idCardAddressStr = composeAddressString(iHouseNo, iVillage, iSoi, iRoad, iSubdistrict, iDistrict, iProvince, iPostcode);
 
       const data = {
         userId: user.id,
@@ -380,13 +588,25 @@ async function renderStudentProfile() {
         idCardNumber: document.getElementById('profile-id-card').value.trim(),
         militaryStatus: document.getElementById('profile-military').value,
         medicalCondition: document.getElementById('profile-medical').value.trim(),
-        currentAddress: document.getElementById('profile-current-address').value.trim(),
-        currentProvince: document.getElementById('profile-current-province').value.trim(),
-        currentPostcode: document.getElementById('profile-current-postcode').value.trim(),
-        idCardAddress: document.getElementById('profile-idcard-address').value.trim(),
-        idCardProvince: document.getElementById('profile-idcard-province').value.trim(),
-        idCardPostcode: document.getElementById('profile-idcard-postcode').value.trim(),
-        address: document.getElementById('profile-current-address').value.trim(),
+        currentHouseNo: cHouseNo,
+        currentVillage: cVillage,
+        currentSoi: cSoi,
+        currentRoad: cRoad,
+        currentSubdistrict: cSubdistrict,
+        currentDistrict: cDistrict,
+        currentProvince: cProvince,
+        currentPostcode: cPostcode,
+        idCardHouseNo: iHouseNo,
+        idCardVillage: iVillage,
+        idCardSoi: iSoi,
+        idCardRoad: iRoad,
+        idCardSubdistrict: iSubdistrict,
+        idCardDistrict: iDistrict,
+        idCardProvince: iProvince,
+        idCardPostcode: iPostcode,
+        currentAddress: currentAddressStr,
+        idCardAddress: idCardAddressStr,
+        address: currentAddressStr,
         university: document.getElementById('profile-university').value.trim(),
         faculty: document.getElementById('profile-faculty').value.trim(),
         major: document.getElementById('profile-major').value.trim(),
@@ -398,7 +618,7 @@ async function renderStudentProfile() {
         preferredDept1: document.getElementById('profile-dept1').value,
         preferredDept2: document.getElementById('profile-dept2').value,
         preferredDept3: document.getElementById('profile-dept3').value,
-        skills: document.getElementById('profile-skills').value.trim(),
+        skills: collectProfileSkillsValue(),
         interests: document.getElementById('profile-interests').value.trim()
       };
 

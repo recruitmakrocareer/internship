@@ -90,6 +90,9 @@ function handleApiRequest(params) {
       case 'logout':
         result = logout();
         break;
+      case 'resetPassword':
+        result = resetPassword(params.email);
+        break;
       case 'getCurrentUser':
         result = getCurrentUser();
         break;

@@ -55,7 +55,11 @@ var CONFIG = {
       'idCardAddress', 'idCardProvince', 'idCardPostcode',
       'militaryStatus', 'medicalCondition',
       'preferredBranch1', 'preferredBranch2', 'preferredBranch3',
-      'preferredDept1', 'preferredDept2', 'preferredDept3'
+      'preferredDept1', 'preferredDept2', 'preferredDept3',
+      'currentHouseNo', 'currentVillage', 'currentSoi', 'currentRoad',
+      'currentSubdistrict', 'currentDistrict',
+      'idCardHouseNo', 'idCardVillage', 'idCardSoi', 'idCardRoad',
+      'idCardSubdistrict', 'idCardDistrict'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'
@@ -74,6 +78,7 @@ var CONFIG = {
       'note', 'completedAt', 'updatedAt',
       'trainerName', 'trainerPosition', 'trainerContact',
       'startDate', 'endDate', 'trainingDays', 'timeSlot',
+      'startTime', 'endTime', 'dayTimes',
       'evalResult', 'evalComment', 'evalBy', 'evalAt',
       'evalToken', 'attemptCount', 'evalByPosition'
     ],
@@ -655,7 +660,19 @@ function register(data) {
       preferredBranch3: data.preferredBranch3 || '',
       preferredDept1: data.preferredDept1 || '',
       preferredDept2: data.preferredDept2 || '',
-      preferredDept3: data.preferredDept3 || ''
+      preferredDept3: data.preferredDept3 || '',
+      currentHouseNo: data.currentHouseNo || '',
+      currentVillage: data.currentVillage || '',
+      currentSoi: data.currentSoi || '',
+      currentRoad: data.currentRoad || '',
+      currentSubdistrict: data.currentSubdistrict || '',
+      currentDistrict: data.currentDistrict || '',
+      idCardHouseNo: data.idCardHouseNo || '',
+      idCardVillage: data.idCardVillage || '',
+      idCardSoi: data.idCardSoi || '',
+      idCardRoad: data.idCardRoad || '',
+      idCardSubdistrict: data.idCardSubdistrict || '',
+      idCardDistrict: data.idCardDistrict || ''
     };
 
     var newUser = appendRow(CONFIG.SHEETS.USERS, userData);
@@ -754,6 +771,49 @@ function logout() {
  * @param {string} password - The plain text password
  * @return {string} The hex-encoded SHA-256 hash
  */
+function resetPassword(email) {
+  try {
+    if (!email || !String(email).trim()) {
+      return { success: false, message: 'กรุณากรอกอีเมลที่ใช้สมัครสมาชิก' };
+    }
+
+    var normalized = String(email).trim().toLowerCase();
+    var users = getRows(CONFIG.SHEETS.USERS, { email: normalized });
+    if (users.length === 0) {
+      return { success: true, message: 'หากอีเมลนี้มีอยู่ในระบบ รหัสผ่านชั่วคราวจะถูกส่งไปที่อีเมลดังกล่าว' };
+    }
+
+    var user = users[0];
+    if (String(user.isActive) === 'false') {
+      return { success: false, message: 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ' };
+    }
+
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    var tempPassword = '';
+    for (var i = 0; i < 10; i++) {
+      tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    updateRow(CONFIG.SHEETS.USERS, user.id, { password: hashPassword(tempPassword) });
+
+    var displayName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim() || normalized;
+    MailApp.sendEmail({
+      to: normalized,
+      subject: '[ระบบจัดการฝึกงาน Makro] รหัสผ่านชั่วคราวของคุณ',
+      htmlBody: '<p>สวัสดีคุณ ' + displayName + '</p>' +
+        '<p>ระบบได้รับคำขอรีเซ็ตรหัสผ่านของคุณ รหัสผ่านชั่วคราวคือ:</p>' +
+        '<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">' + tempPassword + '</p>' +
+        '<p>กรุณาเข้าสู่ระบบด้วยรหัสผ่านนี้ แล้วเปลี่ยนรหัสผ่านใหม่ในหน้าข้อมูลส่วนตัว</p>' +
+        '<p style="color:#888;font-size:12px;">หากคุณไม่ได้ขอรีเซ็ตรหัสผ่าน กรุณาติดต่อผู้ดูแลระบบทันที</p>'
+    });
+
+    return { success: true, message: 'หากอีเมลนี้มีอยู่ในระบบ รหัสผ่านชั่วคราวจะถูกส่งไปที่อีเมลดังกล่าว' };
+  } catch (err) {
+    Logger.log('Error in resetPassword: ' + err.message);
+    return { success: false, message: 'ไม่สามารถรีเซ็ตรหัสผ่านได้: ' + err.message };
+  }
+}
+
 function hashPassword(password) {
   var rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password);
   var hash = '';
@@ -890,6 +950,9 @@ function handleApiRequest(params) {
         break;
       case 'logout':
         result = logout();
+        break;
+      case 'resetPassword':
+        result = resetPassword(params.email);
         break;
       case 'getCurrentUser':
         result = getCurrentUser();
@@ -2132,7 +2195,8 @@ function updateStepPlan(params) {
     }
 
     var planFields = ['trainerName', 'trainerPosition', 'trainerContact',
-                      'startDate', 'endDate', 'trainingDays', 'timeSlot', 'note'];
+                      'startDate', 'endDate', 'trainingDays', 'timeSlot',
+                      'startTime', 'endTime', 'dayTimes', 'note'];
     var data = {};
     for (var i = 0; i < planFields.length; i++) {
       if (params[planFields[i]] !== undefined) {

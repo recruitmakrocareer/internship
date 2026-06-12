@@ -58,6 +58,56 @@ function expandPlanDays(p) {
 }
 
 /**
+ * แปลงค่า dayTimes (JSON string) ของแผนการฝึกเป็น object { 'yyyy-mm-dd': {start, end} }
+ */
+function parsePlanDayTimes(p) {
+  if (!p || !p.dayTimes) return {};
+  try {
+    const obj = JSON.parse(p.dayTimes);
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * คืนช่วงเวลาฝึกของวันที่กำหนด: ใช้เวลารายวัน (dayTimes) ก่อน
+ * ไม่มีก็ใช้เวลาเริ่ม–สิ้นสุดมาตรฐานของแผน (startTime/endTime)
+ * @returns {{start: string, end: string}} เช่น {start:'09:00', end:'18:00'} หรือค่าว่างถ้าไม่ระบุ
+ */
+function getPlanDayTime(p, day) {
+  const dt = parsePlanDayTimes(p);
+  if (dt[day] && (dt[day].start || dt[day].end)) {
+    return { start: dt[day].start || '', end: dt[day].end || '' };
+  }
+  return { start: (p && p.startTime) || '', end: (p && p.endTime) || '' };
+}
+
+/**
+ * ข้อความช่วงเวลา เช่น "09:00–12:00" ("" ถ้าไม่ระบุ = ทั้งวัน)
+ */
+function formatTimeRange(t) {
+  if (!t || (!t.start && !t.end)) return '';
+  return (t.start || '–') + '–' + (t.end || '–');
+}
+
+/**
+ * ตรวจว่าช่วงเวลาสองช่วงทับซ้อนกันหรือไม่ (รองรับกะข้ามคืน เช่น 22:00–06:00)
+ * ช่วงที่ไม่ระบุเวลา = ทั้งวัน → ถือว่าทับซ้อนเสมอ
+ */
+function timeRangesOverlap(a, b) {
+  if (!a || (!a.start && !a.end) || !b || (!b.start && !b.end)) return true;
+  const toMin = s => { const m = String(s || '').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+  let s1 = toMin(a.start), e1 = toMin(a.end), s2 = toMin(b.start), e2 = toMin(b.end);
+  if (s1 === null || s2 === null) return true;
+  if (e1 === null) e1 = 24 * 60;
+  if (e2 === null) e2 = 24 * 60;
+  if (e1 <= s1) e1 += 24 * 60; // กะข้ามคืน
+  if (e2 <= s2) e2 += 24 * 60;
+  return s1 < e2 && s2 < e1;
+}
+
+/**
  * คำนวณสถานะการฝึกอัตโนมัติจากแผนและผลประเมิน
  * COMPLETED   = ผู้สอนประเมินผ่านแล้ว
  * NOT_PLANNED = ยังไม่ได้กำหนดวันฝึก (ต้องไฮไลต์เตือน)

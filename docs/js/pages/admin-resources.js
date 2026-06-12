@@ -49,6 +49,7 @@ async function loadAdminResources() {
             <div class="flex items-start justify-between mb-2">
               <span class="text-2xl">${typeIcons[r.type] || '📁'}</span>
               <div class="flex gap-1">
+                <button onclick="navigateTo('resource-view?id=${r.id}')" class="text-xs text-green-600 hover:underline">ดู</button>
                 <button onclick="editResource('${r.id}')" class="text-xs text-blue-600 hover:underline">แก้ไข</button>
                 <button onclick="deleteResourceById('${r.id}')" class="text-xs text-red-600 hover:underline">ลบ</button>
               </div>

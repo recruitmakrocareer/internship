@@ -36,9 +36,7 @@ async function renderTrainingCalendar() {
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-400 rounded"></span>กำลังฝึก</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-red-400 rounded"></span>ไม่ผ่าน (ฝึกซ้ำ)</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-gray-300 rounded"></span>วางแผนไว้</span>
-          <span class="text-gray-400">|</span>
-          <span>[เช้า] = AM</span>
-          <span>[บ่าย] = PM</span>
+          <span class="text-gray-400">| เวลาระบุในวงเล็บ</span>
         </div>
       </div>
     </div>
@@ -71,8 +69,6 @@ async function loadCalendarEvents() {
     (Array.isArray(progressList) ? progressList : []).forEach(p => {
       const step = stepMap[p.stepId];
       const title = (step && step.title) || p.stepTitle || 'หัวข้อการฝึก';
-      const slot = p.timeSlot || 'FULL';
-      const slotLabel = slot === 'AM' ? 'เช้า' : slot === 'PM' ? 'บ่าย' : '';
 
       const status = deriveTrainingStatus(p);
       let color = 'bg-gray-200 text-gray-600';
@@ -82,27 +78,33 @@ async function loadCalendarEvents() {
 
       expandPlanDays(p).forEach(day => {
         if (!window._calEvents[day]) window._calEvents[day] = [];
+        const t = getPlanDayTime(p, day);
+        const timeLabel = formatTimeRange(t);
         window._calEvents[day].push({
           title: title,
           color: color,
           trainer: p.trainerName || '',
-          slot: slot,
-          slotLabel: slotLabel
+          timeLabel: timeLabel
         });
       });
     });
 
-    // นับหัวข้อที่ยังไม่ได้วางแผน → แสดงแบนเนอร์เตือน
     let unplanned = 0;
+    let missingTrainer = 0;
     Object.keys(stepMap).forEach(sid => {
-      if (deriveTrainingStatus(progressMap[sid]) === 'NOT_PLANNED') unplanned++;
+      const pr = progressMap[sid];
+      if (deriveTrainingStatus(pr) === 'NOT_PLANNED') unplanned++;
+      if (pr && deriveTrainingStatus(pr) !== 'NOT_PLANNED' && deriveTrainingStatus(pr) !== 'COMPLETED' && !pr.trainerName) missingTrainer++;
     });
     const banner = document.getElementById('cal-unplanned-banner');
     if (banner) {
-      banner.innerHTML = unplanned > 0 ? `
+      let msgs = [];
+      if (unplanned > 0) msgs.push(`<b>${unplanned}</b> หัวข้อยังไม่ได้วางแผน`);
+      if (missingTrainer > 0) msgs.push(`<b>${missingTrainer}</b> หัวข้อยังไม่ระบุผู้สอน`);
+      banner.innerHTML = msgs.length > 0 ? `
         <div class="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
           <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          <span class="text-sm text-amber-700 flex-1">มี <b>${unplanned}</b> หัวข้อที่ยังไม่ได้วางแผนการฝึก</span>
+          <span class="text-sm text-amber-700 flex-1">${msgs.join(' / ')}</span>
           <a href="#student-roadmap" class="text-sm font-medium text-amber-700 underline hover:text-amber-800 whitespace-nowrap">ไปวางแผน →</a>
         </div>` : '';
     }
@@ -144,15 +146,12 @@ function renderCalGrid() {
     const dayEvents = events[dateStr] || [];
     const isToday = dateStr === todayStr;
 
-    const amEvents = dayEvents.filter(ev => ev.slot === 'AM' || ev.slot === 'FULL');
-    const pmEvents = dayEvents.filter(ev => ev.slot === 'PM' || ev.slot === 'FULL');
-
     html += `
       <div class="bg-white min-h-[90px] p-1.5 ${isToday ? 'ring-2 ring-inset ring-primary-400' : ''}">
         <div class="text-xs ${isToday ? 'font-bold text-primary-600' : 'text-gray-500'} mb-1">${day}</div>
         <div class="space-y-0.5">
           ${dayEvents.slice(0, 3).map(ev => `
-            <div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate" title="${ev.title}${ev.slotLabel ? ' [' + ev.slotLabel + ']' : ''}${ev.trainer ? ' (ผู้สอน: ' + ev.trainer + ')' : ''}">${ev.slotLabel ? '<span class="font-semibold">[' + ev.slotLabel + ']</span> ' : ''}${ev.title}</div>
+            <div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate" title="${ev.title}${ev.timeLabel ? ' (' + ev.timeLabel + ')' : ''}${ev.trainer ? ' — ผู้สอน: ' + ev.trainer : ''}">${ev.timeLabel ? '<span class="text-gray-500">' + ev.timeLabel + '</span> ' : ''}${ev.title}</div>
           `).join('')}
           ${dayEvents.length > 3 ? `<div class="text-[10px] text-gray-400 px-1">+${dayEvents.length - 3} เพิ่มเติม</div>` : ''}
         </div>

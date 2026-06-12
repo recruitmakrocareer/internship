@@ -3,6 +3,49 @@
 var _regStoreList = [];
 var _regDeptList = [];
 
+// ==================== ข้อมูลจังหวัดและรหัสไปรษณีย์ ====================
+var THAI_PROVINCES = [
+  'กรุงเทพมหานคร','กระบี่','กาญจนบุรี','กาฬสินธุ์','กำแพงเพชร','ขอนแก่น','จันทบุรี','ฉะเชิงเทรา',
+  'ชลบุรี','ชัยนาท','ชัยภูมิ','ชุมพร','เชียงราย','เชียงใหม่','ตรัง','ตราด','ตาก','นครนายก',
+  'นครปฐม','นครพนม','นครราชสีมา','นครศรีธรรมราช','นครสวรรค์','นนทบุรี','นราธิวาส','น่าน',
+  'บึงกาฬ','บุรีรัมย์','ปทุมธานี','ประจวบคีรีขันธ์','ปราจีนบุรี','ปัตตานี','พระนครศรีอยุธยา',
+  'พะเยา','พังงา','พัทลุง','พิจิตร','พิษณุโลก','เพชรบุรี','เพชรบูรณ์','แพร่','ภูเก็ต',
+  'มหาสารคาม','มุกดาหาร','แม่ฮ่องสอน','ยโสธร','ยะลา','ร้อยเอ็ด','ระนอง','ระยอง','ราชบุรี',
+  'ลพบุรี','ลำปาง','ลำพูน','เลย','ศรีสะเกษ','สกลนคร','สงขลา','สตูล','สมุทรปราการ',
+  'สมุทรสงคราม','สมุทรสาคร','สระแก้ว','สระบุรี','สิงห์บุรี','สุโขทัย','สุพรรณบุรี','สุราษฎร์ธานี',
+  'สุรินทร์','หนองคาย','หนองบัวลำภู','อ่างทอง','อำนาจเจริญ','อุดรธานี','อุตรดิตถ์','อุทัยธานี',
+  'อุบลราชธานี'
+];
+
+var THAI_PROVINCE_POSTCODE = {
+  'กรุงเทพมหานคร':'10100','กระบี่':'81000','กาญจนบุรี':'71000','กาฬสินธุ์':'46000','กำแพงเพชร':'62000',
+  'ขอนแก่น':'40000','จันทบุรี':'22000','ฉะเชิงเทรา':'24000','ชลบุรี':'20000','ชัยนาท':'17000',
+  'ชัยภูมิ':'36000','ชุมพร':'86000','เชียงราย':'57000','เชียงใหม่':'50000','ตรัง':'92000','ตราด':'23000',
+  'ตาก':'63000','นครนายก':'26000','นครปฐม':'73000','นครพนม':'48000','นครราชสีมา':'30000',
+  'นครศรีธรรมราช':'80000','นครสวรรค์':'60000','นนทบุรี':'11000','นราธิวาส':'96000','น่าน':'55000',
+  'บึงกาฬ':'38000','บุรีรัมย์':'31000','ปทุมธานี':'12000','ประจวบคีรีขันธ์':'77000','ปราจีนบุรี':'25000',
+  'ปัตตานี':'94000','พระนครศรีอยุธยา':'13000','พะเยา':'56000','พังงา':'82000','พัทลุง':'93000',
+  'พิจิตร':'66000','พิษณุโลก':'65000','เพชรบุรี':'76000','เพชรบูรณ์':'67000','แพร่':'54000',
+  'ภูเก็ต':'83000','มหาสารคาม':'44000','มุกดาหาร':'49000','แม่ฮ่องสอน':'58000','ยโสธร':'35000',
+  'ยะลา':'95000','ร้อยเอ็ด':'45000','ระนอง':'85000','ระยอง':'21000','ราชบุรี':'70000','ลพบุรี':'15000',
+  'ลำปาง':'52000','ลำพูน':'51000','เลย':'42000','ศรีสะเกษ':'33000','สกลนคร':'47000','สงขลา':'90000',
+  'สตูล':'91000','สมุทรปราการ':'10270','สมุทรสงคราม':'75000','สมุทรสาคร':'74000','สระแก้ว':'27000',
+  'สระบุรี':'18000','สิงห์บุรี':'16000','สุโขทัย':'64000','สุพรรณบุรี':'72000','สุราษฎร์ธานี':'84000',
+  'สุรินทร์':'32000','หนองคาย':'43000','หนองบัวลำภู':'39000','อ่างทอง':'14000','อำนาจเจริญ':'37000',
+  'อุดรธานี':'41000','อุตรดิตถ์':'53000','อุทัยธานี':'61000','อุบลราชธานี':'34000'
+};
+
+var SKILLS_CHECKBOXES = ['Excel', 'การเขียนโปรแกรม', 'Graphic Designer', 'Automation', 'ทักษะการขาย', 'การบริการลูกค้า'];
+
+function buildProvinceOptions(selectedValue) {
+  var opts = '<option value="">-- เลือกจังหวัด --</option>';
+  for (var i = 0; i < THAI_PROVINCES.length; i++) {
+    var p = THAI_PROVINCES[i];
+    opts += '<option value="' + p + '"' + (p === selectedValue ? ' selected' : '') + '>' + p + '</option>';
+  }
+  return opts;
+}
+
 async function loadRegDropdownData() {
   try {
     var storeRes = await callApi('getStoreList');
@@ -39,6 +82,32 @@ function buildDeptOptions() {
   return opts;
 }
 
+function buildSkillsCheckboxesHtml() {
+  var html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">';
+  for (var i = 0; i < SKILLS_CHECKBOXES.length; i++) {
+    var sk = SKILLS_CHECKBOXES[i];
+    html += '<label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="reg-skill-cb w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" value="' + sk + '"> ' + sk + '</label>';
+  }
+  html += '</div>';
+  html += '<div><label class="flex items-center gap-2 text-sm text-gray-700 mb-1"><input type="checkbox" id="reg-skill-other-cb" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"> อื่นๆ</label>';
+  html += '<input type="text" id="reg-skill-other-text" placeholder="ระบุทักษะอื่นๆ" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm mt-1"></div>';
+  return html;
+}
+
+function collectSkillsValue() {
+  var skills = [];
+  var cbs = document.querySelectorAll('.reg-skill-cb');
+  for (var i = 0; i < cbs.length; i++) {
+    if (cbs[i].checked) skills.push(cbs[i].value);
+  }
+  var otherCb = document.getElementById('reg-skill-other-cb');
+  var otherText = document.getElementById('reg-skill-other-text');
+  if (otherCb && otherCb.checked && otherText && otherText.value.trim()) {
+    skills.push(otherText.value.trim());
+  }
+  return skills.join(', ');
+}
+
 function renderRegister() {
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -71,6 +140,7 @@ function renderRegister() {
     form.classList.remove('hidden');
     var storeOpts = buildStoreOptions();
     var deptOpts = buildDeptOptions();
+    var provinceOpts = buildProvinceOptions('');
 
     form.innerHTML = `
       <!-- Section 1: ข้อมูลบัญชี -->
@@ -150,8 +220,8 @@ function renderRegister() {
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="reg-id-card" class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน</label>
-              <input type="text" id="reg-id-card" placeholder="เลข 13 หลัก" maxlength="13"
+              <label for="reg-id-card" class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน <span class="text-red-500">*</span></label>
+              <input type="text" id="reg-id-card" placeholder="เลข 13 หลัก" maxlength="13" required
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
             <div>
@@ -161,6 +231,7 @@ function renderRegister() {
                 <option value="">-- เลือก --</option>
                 <option value="ผ่านการเกณฑ์ทหารแล้ว">ผ่านการเกณฑ์ทหารแล้ว</option>
                 <option value="ได้รับการยกเว้น">ได้รับการยกเว้น</option>
+                <option value="ผ่านการศึกษาวิชาทหาร (รด.)">ผ่านการศึกษาวิชาทหาร (รด.)</option>
               </select>
             </div>
           </div>
@@ -182,16 +253,49 @@ function renderRegister() {
         </div>
         <div class="space-y-4 pl-9">
           <h3 class="text-sm font-semibold text-gray-600">ที่อยู่ปัจจุบัน</h3>
-          <div>
-            <label for="reg-current-address" class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
-            <textarea id="reg-current-address" rows="2" placeholder="บ้านเลขที่ ซอย ถนน ตำบล/แขวง อำเภอ/เขต"
-              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-current-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่</label>
+              <input type="text" id="reg-current-house-no" placeholder="เช่น 123/4"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+            <div>
+              <label for="reg-current-village" class="block text-sm font-medium text-gray-700 mb-1">หมู่บ้าน/อาคาร</label>
+              <input type="text" id="reg-current-village" placeholder="หมู่บ้าน/อาคาร"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-current-soi" class="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
+              <input type="text" id="reg-current-soi" placeholder="ซอย"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+            <div>
+              <label for="reg-current-road" class="block text-sm font-medium text-gray-700 mb-1">ถนน</label>
+              <input type="text" id="reg-current-road" placeholder="ถนน"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-current-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+              <input type="text" id="reg-current-subdistrict" placeholder="แขวง/ตำบล"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+            <div>
+              <label for="reg-current-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+              <input type="text" id="reg-current-district" placeholder="เขต/อำเภอ"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="reg-current-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
-              <input type="text" id="reg-current-province" placeholder="จังหวัด"
+              <select id="reg-current-province"
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                ${provinceOpts}
+              </select>
             </div>
             <div>
               <label for="reg-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
@@ -207,21 +311,54 @@ function renderRegister() {
 
           <div id="reg-idcard-address-section">
             <h3 class="text-sm font-semibold text-gray-600 mb-3">ที่อยู่ตามบัตรประชาชน</h3>
-            <div>
-              <label for="reg-idcard-address" class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
-              <textarea id="reg-idcard-address" rows="2" placeholder="บ้านเลขที่ ซอย ถนน ตำบล/แขวง อำเภอ/เขต"
-                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="reg-idcard-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่</label>
+                <input type="text" id="reg-idcard-house-no" placeholder="เช่น 123/4"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+              </div>
+              <div>
+                <label for="reg-idcard-village" class="block text-sm font-medium text-gray-700 mb-1">หมู่บ้าน/อาคาร</label>
+                <input type="text" id="reg-idcard-village" placeholder="หมู่บ้าน/อาคาร"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label for="reg-idcard-soi" class="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
+                <input type="text" id="reg-idcard-soi" placeholder="ซอย"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+              </div>
+              <div>
+                <label for="reg-idcard-road" class="block text-sm font-medium text-gray-700 mb-1">ถนน</label>
+                <input type="text" id="reg-idcard-road" placeholder="ถนน"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label for="reg-idcard-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+                <input type="text" id="reg-idcard-subdistrict" placeholder="แขวง/ตำบล"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+              </div>
+              <div>
+                <label for="reg-idcard-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+                <input type="text" id="reg-idcard-district" placeholder="เขต/อำเภอ"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+              </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
               <div>
                 <label for="reg-idcard-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
-                <input type="text" id="reg-idcard-province" placeholder="จังหวัด"
-                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                <select id="reg-idcard-province"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+                  ${provinceOpts}
+                </select>
               </div>
               <div>
                 <label for="reg-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
                 <input type="text" id="reg-idcard-postcode" placeholder="รหัสไปรษณีย์" maxlength="5"
-                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
               </div>
             </div>
           </div>
@@ -387,9 +524,8 @@ function renderRegister() {
         </div>
         <div class="space-y-4 pl-9">
           <div>
-            <label for="reg-skills" class="block text-sm font-medium text-gray-700 mb-1">ทักษะ/ความสามารถ</label>
-            <textarea id="reg-skills" rows="2" placeholder="เช่น JavaScript, Excel, การทำอาหาร"
-              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-2">ทักษะ/ความสามารถ</label>
+            ${buildSkillsCheckboxesHtml()}
           </div>
           <div>
             <label for="reg-interests" class="block text-sm font-medium text-gray-700 mb-1">ความสนใจ</label>
@@ -425,14 +561,54 @@ function renderRegister() {
       </button>
     `;
 
-    // Same address checkbox handler
+    // Same address checkbox handler - copy all subfields and disable idCard fields
     document.getElementById('reg-same-address').addEventListener('change', function() {
       var section = document.getElementById('reg-idcard-address-section');
+      var idcardFields = document.querySelectorAll('.reg-idcard-field');
       if (this.checked) {
-        section.style.display = 'none';
+        // Copy current values to idCard fields
+        document.getElementById('reg-idcard-house-no').value = document.getElementById('reg-current-house-no').value;
+        document.getElementById('reg-idcard-village').value = document.getElementById('reg-current-village').value;
+        document.getElementById('reg-idcard-soi').value = document.getElementById('reg-current-soi').value;
+        document.getElementById('reg-idcard-road').value = document.getElementById('reg-current-road').value;
+        document.getElementById('reg-idcard-subdistrict').value = document.getElementById('reg-current-subdistrict').value;
+        document.getElementById('reg-idcard-district').value = document.getElementById('reg-current-district').value;
+        document.getElementById('reg-idcard-province').value = document.getElementById('reg-current-province').value;
+        document.getElementById('reg-idcard-postcode').value = document.getElementById('reg-current-postcode').value;
+        for (var i = 0; i < idcardFields.length; i++) {
+          idcardFields[i].disabled = true;
+          idcardFields[i].classList.add('bg-gray-50', 'text-gray-500');
+        }
       } else {
-        section.style.display = '';
+        for (var j = 0; j < idcardFields.length; j++) {
+          idcardFields[j].disabled = false;
+          idcardFields[j].classList.remove('bg-gray-50', 'text-gray-500');
+        }
       }
+    });
+
+    // Province change -> auto-fill postcode (current)
+    document.getElementById('reg-current-province').addEventListener('change', function() {
+      var postcode = THAI_PROVINCE_POSTCODE[this.value] || '';
+      document.getElementById('reg-current-postcode').value = postcode;
+      // If same address is checked, also update idCard
+      if (document.getElementById('reg-same-address').checked) {
+        document.getElementById('reg-idcard-province').value = this.value;
+        document.getElementById('reg-idcard-postcode').value = postcode;
+      }
+    });
+
+    // Province change -> auto-fill postcode (idCard)
+    document.getElementById('reg-idcard-province').addEventListener('change', function() {
+      var postcode = THAI_PROVINCE_POSTCODE[this.value] || '';
+      document.getElementById('reg-idcard-postcode').value = postcode;
+    });
+
+    // Skills "อื่นๆ" checkbox toggle
+    document.getElementById('reg-skill-other-cb').addEventListener('change', function() {
+      var otherInput = document.getElementById('reg-skill-other-text');
+      otherInput.disabled = !this.checked;
+      if (!this.checked) otherInput.value = '';
     });
 
     // Form submit
@@ -456,6 +632,19 @@ function renderRegister() {
   });
 }
 
+function composeAddressString(houseNo, village, soi, road, subdistrict, district, province, postcode) {
+  var parts = [];
+  if (houseNo) parts.push(houseNo);
+  if (village) parts.push(village);
+  if (soi) parts.push('ซ.' + soi);
+  if (road) parts.push('ถ.' + road);
+  if (subdistrict) parts.push('แขวง/ตำบล ' + subdistrict);
+  if (district) parts.push('เขต/อำเภอ ' + district);
+  if (province) parts.push('จังหวัด ' + province);
+  if (postcode) parts.push(postcode);
+  return parts.join(' ');
+}
+
 async function handleRegisterSubmit(e) {
   e.preventDefault();
   var errorDiv = document.getElementById('register-error');
@@ -473,13 +662,46 @@ async function handleRegisterSubmit(e) {
     return;
   }
 
+  // Validate idCardNumber: exactly 13 digits
+  var idCardVal = document.getElementById('reg-id-card').value.trim();
+  if (!idCardVal || !/^\d{13}$/.test(idCardVal)) {
+    showToast('กรุณากรอกเลขบัตรประชาชน 13 หลักให้ถูกต้อง', 'error');
+    document.getElementById('reg-id-card').focus();
+    return;
+  }
+
   var firstName = document.getElementById('reg-first-name').value.trim();
   var lastName = document.getElementById('reg-last-name').value.trim();
   var sameAddress = document.getElementById('reg-same-address').checked;
 
-  var currentAddress = document.getElementById('reg-current-address').value.trim();
-  var currentProvince = document.getElementById('reg-current-province').value.trim();
-  var currentPostcode = document.getElementById('reg-current-postcode').value.trim();
+  // Current address subfields
+  var cHouseNo = document.getElementById('reg-current-house-no').value.trim();
+  var cVillage = document.getElementById('reg-current-village').value.trim();
+  var cSoi = document.getElementById('reg-current-soi').value.trim();
+  var cRoad = document.getElementById('reg-current-road').value.trim();
+  var cSubdistrict = document.getElementById('reg-current-subdistrict').value.trim();
+  var cDistrict = document.getElementById('reg-current-district').value.trim();
+  var cProvince = document.getElementById('reg-current-province').value;
+  var cPostcode = document.getElementById('reg-current-postcode').value.trim();
+
+  // IdCard address subfields
+  var iHouseNo, iVillage, iSoi, iRoad, iSubdistrict, iDistrict, iProvince, iPostcode;
+  if (sameAddress) {
+    iHouseNo = cHouseNo; iVillage = cVillage; iSoi = cSoi; iRoad = cRoad;
+    iSubdistrict = cSubdistrict; iDistrict = cDistrict; iProvince = cProvince; iPostcode = cPostcode;
+  } else {
+    iHouseNo = document.getElementById('reg-idcard-house-no').value.trim();
+    iVillage = document.getElementById('reg-idcard-village').value.trim();
+    iSoi = document.getElementById('reg-idcard-soi').value.trim();
+    iRoad = document.getElementById('reg-idcard-road').value.trim();
+    iSubdistrict = document.getElementById('reg-idcard-subdistrict').value.trim();
+    iDistrict = document.getElementById('reg-idcard-district').value.trim();
+    iProvince = document.getElementById('reg-idcard-province').value;
+    iPostcode = document.getElementById('reg-idcard-postcode').value.trim();
+  }
+
+  var currentAddressStr = composeAddressString(cHouseNo, cVillage, cSoi, cRoad, cSubdistrict, cDistrict, cProvince, cPostcode);
+  var idCardAddressStr = composeAddressString(iHouseNo, iVillage, iSoi, iRoad, iSubdistrict, iDistrict, iProvince, iPostcode);
 
   var data = {
     email: document.getElementById('reg-email').value.trim(),
@@ -491,16 +713,31 @@ async function handleRegisterSubmit(e) {
     nickname: document.getElementById('reg-nickname').value.trim(),
     birthDate: document.getElementById('reg-birth-date').value,
     phone: document.getElementById('reg-phone').value.trim(),
-    idCardNumber: document.getElementById('reg-id-card').value.trim(),
+    idCardNumber: idCardVal,
     militaryStatus: document.getElementById('reg-military').value,
     medicalCondition: document.getElementById('reg-medical').value.trim(),
-    currentAddress: currentAddress,
-    currentProvince: currentProvince,
-    currentPostcode: currentPostcode,
-    idCardAddress: sameAddress ? currentAddress : document.getElementById('reg-idcard-address').value.trim(),
-    idCardProvince: sameAddress ? currentProvince : document.getElementById('reg-idcard-province').value.trim(),
-    idCardPostcode: sameAddress ? currentPostcode : document.getElementById('reg-idcard-postcode').value.trim(),
-    address: currentAddress,
+    // Split address fields (current)
+    currentHouseNo: cHouseNo,
+    currentVillage: cVillage,
+    currentSoi: cSoi,
+    currentRoad: cRoad,
+    currentSubdistrict: cSubdistrict,
+    currentDistrict: cDistrict,
+    currentProvince: cProvince,
+    currentPostcode: cPostcode,
+    // Split address fields (idCard)
+    idCardHouseNo: iHouseNo,
+    idCardVillage: iVillage,
+    idCardSoi: iSoi,
+    idCardRoad: iRoad,
+    idCardSubdistrict: iSubdistrict,
+    idCardDistrict: iDistrict,
+    idCardProvince: iProvince,
+    idCardPostcode: iPostcode,
+    // Legacy composed fields
+    currentAddress: currentAddressStr,
+    idCardAddress: idCardAddressStr,
+    address: currentAddressStr,
     studentId: document.getElementById('reg-student-id').value.trim(),
     university: document.getElementById('reg-university').value.trim(),
     faculty: document.getElementById('reg-faculty').value.trim(),
@@ -519,7 +756,7 @@ async function handleRegisterSubmit(e) {
     preferredDept1: document.getElementById('reg-dept1').value,
     preferredDept2: document.getElementById('reg-dept2').value,
     preferredDept3: document.getElementById('reg-dept3').value,
-    skills: document.getElementById('reg-skills').value.trim(),
+    skills: collectSkillsValue(),
     interests: document.getElementById('reg-interests').value.trim()
   };
 

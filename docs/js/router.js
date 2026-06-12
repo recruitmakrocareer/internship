@@ -24,6 +24,7 @@ const routes = {
   'training-passport': renderTrainingPassport,
   'knowledge-management': renderKnowledgeManagement,
   'survey': renderSurvey,
+  'resource-view': renderResourceView,
 };
 
 function router() {

@@ -28,11 +28,30 @@ function renderLogin() {
             <input type="password" id="login-password" placeholder="กรอกรหัสผ่าน" required
               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
           </div>
+          <div class="text-right">
+            <a href="javascript:void(0)" id="forgot-password-link" class="text-sm text-primary-600 hover:text-primary-700 font-medium">ลืมรหัสผ่าน?</a>
+          </div>
           <button type="submit" id="login-btn"
             class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
             เข้าสู่ระบบ
           </button>
         </form>
+
+        <div id="forgot-password-section" class="hidden space-y-4">
+          <p class="text-sm text-gray-600 mb-2">กรอกอีเมลที่ใช้สมัครสมาชิก ระบบจะส่งรหัสผ่านชั่วคราวไปยังอีเมลของคุณ</p>
+          <div>
+            <label for="forgot-email" class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+            <input type="email" id="forgot-email" placeholder="กรอกอีเมลของคุณ"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+          </div>
+          <button type="button" id="forgot-submit-btn"
+            class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
+            ส่งรหัสผ่านชั่วคราว
+          </button>
+          <div class="text-center">
+            <a href="javascript:void(0)" id="back-to-login-link" class="text-sm text-primary-600 hover:text-primary-700 font-medium">กลับไปหน้าเข้าสู่ระบบ</a>
+          </div>
+        </div>
 
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-500">
@@ -44,6 +63,7 @@ function renderLogin() {
     </div>
   `;
 
+  // Login form submit
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value.trim();
@@ -71,6 +91,46 @@ function renderLogin() {
     } finally {
       btn.disabled = false;
       btn.textContent = 'เข้าสู่ระบบ';
+    }
+  });
+
+  // Forgot password link
+  document.getElementById('forgot-password-link').addEventListener('click', function() {
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('login-error').classList.add('hidden');
+    document.getElementById('forgot-password-section').classList.remove('hidden');
+  });
+
+  // Back to login link
+  document.getElementById('back-to-login-link').addEventListener('click', function() {
+    document.getElementById('forgot-password-section').classList.add('hidden');
+    document.getElementById('login-form').classList.remove('hidden');
+  });
+
+  // Forgot password submit
+  document.getElementById('forgot-submit-btn').addEventListener('click', async function() {
+    var email = document.getElementById('forgot-email').value.trim();
+    if (!email) {
+      showToast('กรุณากรอกอีเมล', 'error');
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'กำลังส่ง...';
+    try {
+      var result = await callApiPost('resetPassword', { email: email });
+      if (result.success) {
+        showToast(result.message || 'ส่งรหัสผ่านชั่วคราวไปยังอีเมลของคุณแล้ว', 'success');
+        document.getElementById('forgot-password-section').classList.add('hidden');
+        document.getElementById('login-form').classList.remove('hidden');
+      } else {
+        showToast(result.message || 'ไม่พบอีเมลนี้ในระบบ', 'error');
+      }
+    } catch (error) {
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'ส่งรหัสผ่านชั่วคราว';
     }
   });
 }

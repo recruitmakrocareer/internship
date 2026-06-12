@@ -59,16 +59,17 @@ function renderResourceCards(resources) {
   }
   const typeIcons = { link: '🔗', document: '📄', video: '🎬' };
   container.innerHTML = resources.map(r => `
-    <div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow">
+    <div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow cursor-pointer" onclick="navigateTo('resource-view?id=${r.id}')">
       <div class="flex items-start justify-between mb-2">
         <span class="text-2xl">${typeIcons[r.type] || '📁'}</span>
         <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">${r.category || ''}</span>
       </div>
       <h3 class="font-bold text-gray-800 mb-1">${r.title || ''}</h3>
       <p class="text-sm text-gray-500 mb-3">${r.description || ''}</p>
-      ${r.url ? `<a href="${r.url}" target="_blank" class="text-sm text-blue-600 hover:underline">เปิดลิงก์</a>` : ''}
-      ${r.fileUrl ? `<a href="${r.fileUrl}" target="_blank" class="text-sm text-blue-600 hover:underline">ดาวน์โหลดไฟล์</a>` : ''}
-      ${r.content && !r.url && !r.fileUrl ? `<p class="text-sm text-gray-600 bg-gray-50 rounded p-2 mt-2">${r.content}</p>` : ''}
+      <button onclick="event.stopPropagation(); navigateTo('resource-view?id=${r.id}')" class="inline-flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        เปิดดู
+      </button>
     </div>
   `).join('');
 }

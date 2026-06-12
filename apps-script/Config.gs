@@ -44,7 +44,11 @@ var CONFIG = {
       'idCardAddress', 'idCardProvince', 'idCardPostcode',
       'militaryStatus', 'medicalCondition',
       'preferredBranch1', 'preferredBranch2', 'preferredBranch3',
-      'preferredDept1', 'preferredDept2', 'preferredDept3'
+      'preferredDept1', 'preferredDept2', 'preferredDept3',
+      'currentHouseNo', 'currentVillage', 'currentSoi', 'currentRoad',
+      'currentSubdistrict', 'currentDistrict',
+      'idCardHouseNo', 'idCardVillage', 'idCardSoi', 'idCardRoad',
+      'idCardSubdistrict', 'idCardDistrict'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'
@@ -64,7 +68,8 @@ var CONFIG = {
       'trainerName', 'trainerPosition', 'trainerContact',
       'startDate', 'endDate', 'trainingDays', 'timeSlot',
       'evalResult', 'evalComment', 'evalBy', 'evalAt',
-      'evalToken', 'attemptCount', 'evalByPosition'
+      'evalToken', 'attemptCount', 'evalByPosition',
+      'startTime', 'endTime', 'dayTimes'
     ],
     Assignments: [
       'id', 'title', 'description', 'dueDate', 'maxScore',
