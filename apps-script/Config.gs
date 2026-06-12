@@ -62,7 +62,7 @@ var CONFIG = {
       'id', 'userId', 'roadmapId', 'stepId', 'status',
       'note', 'completedAt', 'updatedAt',
       'trainerName', 'trainerPosition', 'trainerContact',
-      'startDate', 'endDate', 'trainingDays',
+      'startDate', 'endDate', 'trainingDays', 'timeSlot',
       'evalResult', 'evalComment', 'evalBy', 'evalAt',
       'evalToken', 'attemptCount', 'evalByPosition'
     ],

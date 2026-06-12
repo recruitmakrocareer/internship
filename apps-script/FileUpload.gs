@@ -7,14 +7,16 @@
 /** @const {string} Root folder name in Google Drive */
 var ROOT_FOLDER_NAME = 'InternshipSystem';
 
-/** @const {number} Maximum file size in bytes (10MB) */
-var MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+/** @const {number} Maximum file size in bytes (50MB) */
+var MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 /** @const {Object} Valid subfolder names */
 var SUBFOLDERS = {
   SUBMISSIONS: 'submissions',
   RESOURCES: 'resources',
-  PROFILES: 'profiles'
+  PROFILES: 'profiles',
+  KNOWLEDGE: 'knowledge',
+  VIDEOS: 'videos'
 };
 
 /**
@@ -69,11 +71,11 @@ function uploadFile(params) {
     var subfolder = params.subfolder;
 
     // Validate subfolder name
-    var validSubfolders = [SUBFOLDERS.SUBMISSIONS, SUBFOLDERS.RESOURCES, SUBFOLDERS.PROFILES];
+    var validSubfolders = [SUBFOLDERS.SUBMISSIONS, SUBFOLDERS.RESOURCES, SUBFOLDERS.PROFILES, SUBFOLDERS.KNOWLEDGE, SUBFOLDERS.VIDEOS];
     if (validSubfolders.indexOf(subfolder) === -1) {
       return {
         success: false,
-        message: 'โฟลเดอร์ย่อยไม่ถูกต้อง กรุณาระบุ: submissions, resources หรือ profiles'
+        message: 'โฟลเดอร์ย่อยไม่ถูกต้อง กรุณาระบุ: submissions, resources, profiles, knowledge หรือ videos'
       };
     }
 
@@ -89,7 +91,7 @@ function uploadFile(params) {
       var sizeMB = (decodedBytes.length / (1024 * 1024)).toFixed(2);
       return {
         success: false,
-        message: 'ขนาดไฟล์เกินขีดจำกัด (' + sizeMB + ' MB) ขนาดสูงสุดที่อนุญาตคือ 10 MB'
+        message: 'ขนาดไฟล์เกินขีดจำกัด (' + sizeMB + ' MB) ขนาดสูงสุดที่อนุญาตคือ 50 MB — สำหรับไฟล์ขนาดใหญ่กว่านี้ ให้อัปโหลดไฟล์ไปยัง Google Drive โดยตรง แล้ววาง URL ที่ช่อง "URL / ลิงก์" แทน'
       };
     }
 
@@ -183,11 +185,11 @@ function listFiles(subfolder) {
       return { success: false, message: 'กรุณาระบุชื่อโฟลเดอร์ย่อย' };
     }
 
-    var validSubfolders = [SUBFOLDERS.SUBMISSIONS, SUBFOLDERS.RESOURCES, SUBFOLDERS.PROFILES];
+    var validSubfolders = [SUBFOLDERS.SUBMISSIONS, SUBFOLDERS.RESOURCES, SUBFOLDERS.PROFILES, SUBFOLDERS.KNOWLEDGE, SUBFOLDERS.VIDEOS];
     if (validSubfolders.indexOf(subfolder) === -1) {
       return {
         success: false,
-        message: 'โฟลเดอร์ย่อยไม่ถูกต้อง กรุณาระบุ: submissions, resources หรือ profiles'
+        message: 'โฟลเดอร์ย่อยไม่ถูกต้อง กรุณาระบุ: submissions, resources, profiles, knowledge หรือ videos'
       };
     }
 

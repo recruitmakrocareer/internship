@@ -223,7 +223,7 @@ function renderRoadmapCards(roadmaps, progressMap) {
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-800 truncate">${step.title || 'ขั้นตอนที่ ' + (sIndex + 1)}</p>
                   ${step.description ? `<p class="text-xs text-gray-500 mt-0.5 truncate">${step.description}</p>` : ''}
-                  ${p.trainerName || p.startDate ? `<p class="text-xs text-gray-400 mt-0.5 truncate">${p.trainerName ? '👤 ' + p.trainerName : ''}${p.startDate ? (p.trainerName ? ' • ' : '') + '📅 ' + formatDate(p.startDate) + (p.endDate ? ' – ' + formatDate(p.endDate) : '') : ''}</p>` : ''}
+                  ${p.trainerName || p.startDate ? `<p class="text-xs text-gray-400 mt-0.5 truncate">${p.trainerName ? '👤 ' + p.trainerName : ''}${p.startDate ? (p.trainerName ? ' • ' : '') + '📅 ' + formatDate(p.startDate) + (p.endDate ? ' – ' + formatDate(p.endDate) : '') : ''}${p.timeSlot && p.timeSlot !== 'FULL' ? ' (' + (p.timeSlot === 'AM' ? 'เช้า' : 'บ่าย') + ')' : ''}</p>` : ''}
                 </div>
                 <div class="flex-shrink-0 flex items-center gap-2">
                   ${String(p.evalResult || '').toUpperCase() === 'PASS' ? '<span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">✓ ผ่าน</span>' : String(p.evalResult || '').toUpperCase() === 'FAIL' ? '<span class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">✗ ไม่ผ่าน</span>' : ''}
@@ -249,14 +249,15 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
   // วันฝึกแบบระบุวัน (ไม่ต่อเนื่อง)
   window._planDays = p.trainingDays ? String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean) : [];
 
-  // วันที่หัวข้ออื่นใช้อยู่ (สำหรับแสดง slot ว่าง/ไม่ว่าง ในปฏิทิน)
+  // วันที่หัวข้ออื่นใช้อยู่ (สำหรับแสดง slot ว่าง/ไม่ว่าง ในปฏิทิน) รวม AM/PM
   window._busyDays = {};
   Object.keys(window._studentProgressMap).forEach(sid => {
     if (String(sid) === String(stepId)) return;
     const pr = window._studentProgressMap[sid];
+    const slot = pr.timeSlot || 'FULL';
     expandPlanDays(pr).forEach(day => {
       if (!window._busyDays[day]) window._busyDays[day] = [];
-      window._busyDays[day].push(pr.stepTitle || 'หัวข้ออื่น');
+      window._busyDays[day].push({ title: pr.stepTitle || 'หัวข้ออื่น', slot: slot });
     });
   });
 
@@ -357,7 +358,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
       <!-- ระยะเวลาการฝึก -->
       <div class="border border-gray-200 rounded-lg p-4">
         <h4 class="text-sm font-medium text-gray-700 mb-3">ระยะเวลาการฝึก</h4>
-        <div class="grid grid-cols-2 gap-3 mb-3">
+        <div class="grid grid-cols-3 gap-3 mb-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">วันที่เริ่ม</label>
             <input type="date" id="plan-start-date" value="${dateInputValue(p.startDate)}"
@@ -368,9 +369,17 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
             <input type="date" id="plan-end-date" value="${dateInputValue(p.endDate)}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ช่วงเวลา</label>
+            <select id="plan-time-slot" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+              <option value="FULL" ${(p.timeSlot || 'FULL') === 'FULL' ? 'selected' : ''}>ทั้งวัน</option>
+              <option value="AM" ${p.timeSlot === 'AM' ? 'selected' : ''}>เช้า (AM)</option>
+              <option value="PM" ${p.timeSlot === 'PM' ? 'selected' : ''}>บ่าย (PM)</option>
+            </select>
+          </div>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-2">จิ้มวันในปฏิทินเพื่อเลือกวันฝึกเป็นรายวัน (กรณีฝึกไม่ต่อเนื่อง เช่น วันเว้นวัน) — <span class="text-gray-400">จุดสีเทา = มีหัวข้ออื่นฝึกอยู่</span></label>
+          <label class="block text-xs text-gray-500 mb-2">จิ้มวันในปฏิทินเพื่อเลือกวันฝึกเป็นรายวัน (กรณีฝึกไม่ต่อเนื่อง เช่น วันเว้นวัน) — <span class="text-gray-400">จุดส้ม = นัดแล้ว, จุดเขียว = ว่าง (เช้า|บ่าย)</span></label>
           <div id="plan-mini-cal" class="border border-gray-200 rounded-lg p-2"></div>
           <div id="plan-days-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
         </div>
@@ -447,19 +456,27 @@ function renderMiniCal() {
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
     const isSelected = selected.includes(dateStr);
-    const busyTitles = busy[dateStr];
+    const busyItems = busy[dateStr];
     const isToday = dateStr === today;
+
+    const hasAM = busyItems && busyItems.some(b => b.slot === 'AM' || b.slot === 'FULL');
+    const hasPM = busyItems && busyItems.some(b => b.slot === 'PM' || b.slot === 'FULL');
+    const isFull = hasAM && hasPM;
 
     let cls = 'relative text-xs py-1.5 rounded cursor-pointer select-none transition-colors ';
     if (isSelected) cls += 'bg-primary-600 text-white font-semibold ';
-    else if (busyTitles) cls += 'bg-gray-100 text-gray-500 hover:bg-primary-100 ';
+    else if (isFull) cls += 'bg-red-50 text-red-400 hover:bg-primary-100 ';
+    else if (busyItems) cls += 'bg-amber-50 text-gray-600 hover:bg-primary-100 ';
     else cls += 'text-gray-700 hover:bg-primary-50 ';
     if (isToday && !isSelected) cls += 'ring-1 ring-primary-400 ';
 
+    const busyTooltip = busyItems ? busyItems.map(b => b.title + (b.slot !== 'FULL' ? ' (' + (b.slot === 'AM' ? 'เช้า' : 'บ่าย') + ')' : ' (ทั้งวัน)')).join(', ') : '';
+    const slotLabel = !isSelected && busyItems && !isFull ? (hasAM ? 'บ่ายว่าง' : 'เช้าว่าง') : '';
+
     html += `
-      <div class="${cls}" onclick="togglePlanDay('${dateStr}')" ${busyTitles ? `title="ไม่ว่าง: ${busyTitles.join(', ')}"` : 'title="ว่าง"'}>
+      <div class="${cls}" onclick="togglePlanDay('${dateStr}')" title="${busyItems ? 'นัดแล้ว: ' + busyTooltip : 'ว่าง'}">
         ${day}
-        ${busyTitles && !isSelected ? '<span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-gray-400 rounded-full"></span>' : ''}
+        ${busyItems && !isSelected ? `<span class="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-px">${hasAM ? '<span class="w-1 h-1 bg-orange-400 rounded-full"></span>' : '<span class="w-1 h-1 bg-green-300 rounded-full"></span>'}${hasPM ? '<span class="w-1 h-1 bg-orange-400 rounded-full"></span>' : '<span class="w-1 h-1 bg-green-300 rounded-full"></span>'}</span>` : ''}
       </div>`;
   }
 
@@ -479,7 +496,15 @@ function togglePlanDay(dateStr) {
     window._planDays = window._planDays.filter(x => x !== dateStr);
   } else {
     if (window._busyDays && window._busyDays[dateStr]) {
-      showToast('หมายเหตุ: วันนี้มีหัวข้ออื่นฝึกอยู่แล้ว (' + window._busyDays[dateStr].join(', ') + ')', 'error');
+      const items = window._busyDays[dateStr];
+      const hasAM = items.some(b => b.slot === 'AM' || b.slot === 'FULL');
+      const hasPM = items.some(b => b.slot === 'PM' || b.slot === 'FULL');
+      if (hasAM && hasPM) {
+        showToast('วันนี้นัดเต็มทั้งวันแล้ว: ' + items.map(b => b.title).join(', '), 'error');
+      } else {
+        const freeSlot = hasAM ? 'บ่าย' : 'เช้า';
+        showToast('วันนี้ว่างเฉพาะช่วง' + freeSlot + ' (มีนัด: ' + items.map(b => b.title).join(', ') + ')', 'warning');
+      }
     }
     window._planDays.push(dateStr);
   }
@@ -548,7 +573,8 @@ async function saveStepProgress(stepId) {
       trainerContact: document.getElementById('plan-trainer-contact').value.trim(),
       startDate: document.getElementById('plan-start-date').value,
       endDate: document.getElementById('plan-end-date').value,
-      trainingDays: (window._planDays || []).join(',')
+      trainingDays: (window._planDays || []).join(','),
+      timeSlot: document.getElementById('plan-time-slot').value
     });
 
     if (result.success !== false) {

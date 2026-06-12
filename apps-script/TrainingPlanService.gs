@@ -56,7 +56,7 @@ function updateStepPlan(params) {
     }
 
     var planFields = ['trainerName', 'trainerPosition', 'trainerContact',
-                      'startDate', 'endDate', 'trainingDays', 'note'];
+                      'startDate', 'endDate', 'trainingDays', 'timeSlot', 'note'];
     var data = {};
     for (var i = 0; i < planFields.length; i++) {
       if (params[planFields[i]] !== undefined) {

@@ -86,20 +86,51 @@ function buildResourceForm(r) {
             <option ${r.category==='บทเรียน'?'selected':''}>บทเรียน</option>
           </select></div>
         <div><label class="block text-sm font-medium text-gray-700 mb-1">ประเภท</label>
-          <select id="res-type" class="w-full border rounded-lg p-2">
+          <select id="res-type" class="w-full border rounded-lg p-2" onchange="onResTypeChange()">
             <option value="link" ${r.type==='link'?'selected':''}>ลิงก์</option>
             <option value="document" ${r.type==='document'?'selected':''}>เอกสาร</option>
             <option value="video" ${r.type==='video'?'selected':''}>วิดีโอ</option>
           </select></div>
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">URL / ลิงก์</label>
-        <input type="text" id="res-url" class="w-full border rounded-lg p-2" value="${r.url||''}" /></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">อัพโหลดไฟล์</label>
-        <input type="file" id="res-file" class="w-full border rounded-lg p-2 text-sm" /></div>
+        <input type="text" id="res-url" class="w-full border rounded-lg p-2" value="${r.url||''}" placeholder="วาง URL ของวิดีโอ, Google Drive, YouTube หรือลิงก์อื่น" /></div>
+      <div id="res-video-hint" class="${r.type === 'video' ? '' : 'hidden'} bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
+        <b>สำหรับวิดีโอขนาดใหญ่:</b> อัปโหลดไฟล์ไปยัง Google Drive โดยตรง แล้ววาง URL ที่ช่องด้านบน (รองรับทุกขนาดตาม Space ของ Google Drive) สำหรับวิดีโอขนาดเล็ก (&le; 50 MB) สามารถอัปโหลดผ่านช่องด้านล่างได้
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">อัพโหลดไฟล์ <span id="res-file-limit" class="text-xs text-gray-400 font-normal">(สูงสุด 50 MB)</span></label>
+        <input type="file" id="res-file" class="w-full border rounded-lg p-2 text-sm" onchange="onResFileSelect()" />
+        <div id="res-file-size-warn" class="hidden mt-1 text-xs text-red-500"></div>
+      </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">แท็ก</label>
         <input type="text" id="res-tags" class="w-full border rounded-lg p-2" value="${r.tags||''}" placeholder="คั่นด้วยจุลภาค" /></div>
       <button onclick="saveResource('${r.id||''}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
     </div>`;
+}
+
+function onResTypeChange() {
+  const type = document.getElementById('res-type').value;
+  const hint = document.getElementById('res-video-hint');
+  if (type === 'video') hint.classList.remove('hidden');
+  else hint.classList.add('hidden');
+}
+
+function onResFileSelect() {
+  const fileInput = document.getElementById('res-file');
+  const warnEl = document.getElementById('res-file-size-warn');
+  if (!fileInput.files[0]) { warnEl.classList.add('hidden'); return; }
+  const sizeMB = (fileInput.files[0].size / (1024 * 1024)).toFixed(1);
+  if (fileInput.files[0].size > 50 * 1024 * 1024) {
+    warnEl.textContent = `ไฟล์ขนาด ${sizeMB} MB เกินขีดจำกัด 50 MB — กรุณาอัปโหลดไปยัง Google Drive โดยตรง แล้ววาง URL ที่ช่อง "URL / ลิงก์" แทน`;
+    warnEl.classList.remove('hidden');
+    fileInput.value = '';
+  } else if (fileInput.files[0].size > 30 * 1024 * 1024) {
+    warnEl.textContent = `ไฟล์ขนาด ${sizeMB} MB — การอัปโหลดอาจใช้เวลาสักครู่`;
+    warnEl.classList.remove('hidden');
+    warnEl.className = 'mt-1 text-xs text-amber-500';
+  } else {
+    warnEl.classList.add('hidden');
+  }
 }
 
 async function saveResource(existingId) {
@@ -109,9 +140,22 @@ async function saveResource(existingId) {
     let fileUrl = '';
     const fileInput = document.getElementById('res-file');
     if (fileInput.files[0]) {
+      if (fileInput.files[0].size > 50 * 1024 * 1024) {
+        hideLoading();
+        showToast('ไฟล์เกิน 50 MB — กรุณาอัปโหลดไปยัง Google Drive แล้ววาง URL แทน', 'error');
+        return;
+      }
+      const resType = document.getElementById('res-type').value;
+      const subfolder = resType === 'video' ? 'videos' : 'resources';
       const base64 = await fileToBase64(fileInput.files[0]);
-      const upRes = await callApiPost('uploadFile', { fileName: fileInput.files[0].name, fileData: base64, mimeType: fileInput.files[0].type, subfolder: 'resources' });
-      if (upRes.success && upRes.data) fileUrl = upRes.data.fileUrl;
+      const upRes = await callApiPost('uploadFile', { fileName: fileInput.files[0].name, fileData: base64, mimeType: fileInput.files[0].type, subfolder: subfolder });
+      if (upRes.success && upRes.data) {
+        fileUrl = upRes.data.fileUrl;
+      } else {
+        hideLoading();
+        showToast(upRes.message || 'ไม่สามารถอัปโหลดไฟล์ได้', 'error');
+        return;
+      }
     }
 
     const data = {

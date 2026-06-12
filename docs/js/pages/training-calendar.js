@@ -36,6 +36,9 @@ async function renderTrainingCalendar() {
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-400 rounded"></span>กำลังฝึก</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-red-400 rounded"></span>ไม่ผ่าน (ฝึกซ้ำ)</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-gray-300 rounded"></span>วางแผนไว้</span>
+          <span class="text-gray-400">|</span>
+          <span>[เช้า] = AM</span>
+          <span>[บ่าย] = PM</span>
         </div>
       </div>
     </div>
@@ -68,8 +71,9 @@ async function loadCalendarEvents() {
     (Array.isArray(progressList) ? progressList : []).forEach(p => {
       const step = stepMap[p.stepId];
       const title = (step && step.title) || p.stepTitle || 'หัวข้อการฝึก';
+      const slot = p.timeSlot || 'FULL';
+      const slotLabel = slot === 'AM' ? 'เช้า' : slot === 'PM' ? 'บ่าย' : '';
 
-      // สีตามสถานะอัตโนมัติ: ไม่ผ่าน > เสร็จสิ้น > กำลังฝึก > วางแผนไว้ (ยังไม่ถึงวัน)
       const status = deriveTrainingStatus(p);
       let color = 'bg-gray-200 text-gray-600';
       if (String(p.evalResult || '').toUpperCase() === 'FAIL') color = 'bg-red-100 text-red-700 border-l-2 border-red-400';
@@ -78,7 +82,13 @@ async function loadCalendarEvents() {
 
       expandPlanDays(p).forEach(day => {
         if (!window._calEvents[day]) window._calEvents[day] = [];
-        window._calEvents[day].push({ title: title, color: color, trainer: p.trainerName || '' });
+        window._calEvents[day].push({
+          title: title,
+          color: color,
+          trainer: p.trainerName || '',
+          slot: slot,
+          slotLabel: slotLabel
+        });
       });
     });
 
@@ -134,12 +144,15 @@ function renderCalGrid() {
     const dayEvents = events[dateStr] || [];
     const isToday = dateStr === todayStr;
 
+    const amEvents = dayEvents.filter(ev => ev.slot === 'AM' || ev.slot === 'FULL');
+    const pmEvents = dayEvents.filter(ev => ev.slot === 'PM' || ev.slot === 'FULL');
+
     html += `
       <div class="bg-white min-h-[90px] p-1.5 ${isToday ? 'ring-2 ring-inset ring-primary-400' : ''}">
         <div class="text-xs ${isToday ? 'font-bold text-primary-600' : 'text-gray-500'} mb-1">${day}</div>
         <div class="space-y-0.5">
           ${dayEvents.slice(0, 3).map(ev => `
-            <div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate" title="${ev.title}${ev.trainer ? ' (ผู้สอน: ' + ev.trainer + ')' : ''}">${ev.title}</div>
+            <div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate" title="${ev.title}${ev.slotLabel ? ' [' + ev.slotLabel + ']' : ''}${ev.trainer ? ' (ผู้สอน: ' + ev.trainer + ')' : ''}">${ev.slotLabel ? '<span class="font-semibold">[' + ev.slotLabel + ']</span> ' : ''}${ev.title}</div>
           `).join('')}
           ${dayEvents.length > 3 ? `<div class="text-[10px] text-gray-400 px-1">+${dayEvents.length - 3} เพิ่มเติม</div>` : ''}
         </div>
