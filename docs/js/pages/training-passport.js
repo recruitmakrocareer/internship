@@ -96,7 +96,7 @@ async function loadTrainingPassport() {
     const steps = trainingRoadmap?.steps || [];
     const completedCount = steps.filter(s => {
       const p = progressMap[s.id];
-      return p && p.status === 'COMPLETED';
+      return p && deriveTrainingStatus(p) === 'COMPLETED';
     }).length;
     const totalSteps = Math.max(steps.length, 1);
     const pct = Math.round((completedCount / totalSteps) * 100);

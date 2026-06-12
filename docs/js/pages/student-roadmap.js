@@ -820,9 +820,10 @@ function renderOverviewCalGrid() {
     const isToday = dateStr === today;
     const hasEvents = dayEvents.length > 0;
 
-    html += '<div class="bg-white min-h-[60px] p-1 ' + (isToday ? 'ring-2 ring-inset ring-primary-400' : '') + (hasEvents ? ' cursor-pointer hover:bg-gray-50' : '') + '"' +
-      (hasEvents ? ' onclick="onOverviewCalDayClick(\'' + dateStr + '\')"' : '') + '>' +
-      '<div class="text-[10px] ' + (isToday ? 'font-bold text-primary-600' : 'text-gray-400') + ' mb-0.5">' + day + '</div>' +
+    html += '<div class="bg-white min-h-[60px] p-1 cursor-pointer hover:bg-gray-50 group ' + (isToday ? 'ring-2 ring-inset ring-primary-400' : '') + '"' +
+      ' onclick="onOverviewCalDayClick(\'' + dateStr + '\', event)">' +
+      '<div class="text-[10px] ' + (isToday ? 'font-bold text-primary-600' : 'text-gray-400') + ' mb-0.5 flex items-center justify-between">' + day +
+      (!hasEvents ? '<span class="hidden group-hover:inline text-gray-300 text-[10px] font-bold leading-none">+</span>' : '') + '</div>' +
       '<div class="space-y-px">';
 
     dayEvents.slice(0, 2).forEach(ev => {
@@ -848,10 +849,87 @@ function renderOverviewCalGrid() {
   container.innerHTML = html;
 }
 
-function onOverviewCalDayClick(dateStr) {
+function onOverviewCalDayClick(dateStr, evt) {
   const events = (window._overviewCalEvents || {})[dateStr];
-  if (!events || events.length === 0) return;
-  // Open the first event's step modal
-  const ev = events[0];
-  openStepModal(ev.stepId, ev.rIndex, ev.sIndex);
+  if (events && events.length > 0) {
+    // Day has events — open the first event's step modal
+    const ev = events[0];
+    openStepModal(ev.stepId, ev.rIndex, ev.sIndex);
+  } else {
+    // Day is empty — show picker of unplanned / in-progress steps
+    showDayStepPicker(dateStr, evt);
+  }
+}
+
+function showDayStepPicker(dateStr, evt) {
+  // Remove any existing picker
+  const existing = document.getElementById('day-step-picker');
+  if (existing) existing.remove();
+
+  const roadmaps = window._studentRoadmaps || [];
+  const progressMap = window._studentProgressMap || {};
+
+  // Collect steps that are NOT_PLANNED or IN_PROGRESS
+  const pickableSteps = [];
+  roadmaps.forEach((r, rIndex) => {
+    (r.steps || []).forEach((s, sIndex) => {
+      const p = progressMap[s.id];
+      const status = deriveTrainingStatus(p);
+      if (status === 'NOT_PLANNED' || status === 'IN_PROGRESS') {
+        pickableSteps.push({ stepId: s.id, rIndex, sIndex, title: s.title || 'หัวข้อการฝึก', status });
+      }
+    });
+  });
+
+  if (pickableSteps.length === 0) {
+    // Nothing to plan — brief toast-style feedback
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-[100]';
+    toast.textContent = 'ไม่มีหัวข้อที่รอวางแผน';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+    return;
+  }
+
+  // Format display date
+  const parts = dateStr.split('-');
+  const displayDate = parseInt(parts[2], 10) + ' ' + (typeof THAI_MONTHS !== 'undefined' ? THAI_MONTHS[parseInt(parts[1], 10) - 1] : parts[1]) + ' ' + (parseInt(parts[0], 10) + 543);
+
+  // Build picker popup
+  const picker = document.createElement('div');
+  picker.id = 'day-step-picker';
+  picker.className = 'fixed z-[80] bg-white rounded-xl shadow-2xl border border-gray-200 w-72 max-h-80 overflow-hidden';
+  picker.style.left = Math.min(evt.clientX, window.innerWidth - 300) + 'px';
+  picker.style.top = Math.min(evt.clientY, window.innerHeight - 320) + 'px';
+
+  let listHtml = '';
+  pickableSteps.forEach(ps => {
+    const badge = ps.status === 'IN_PROGRESS'
+      ? '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-600 rounded-full ml-auto flex-shrink-0">กำลังฝึก</span>'
+      : '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded-full ml-auto flex-shrink-0">ยังไม่วางแผน</span>';
+    listHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors" ' +
+      'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ps.stepId + '\', ' + ps.rIndex + ', ' + ps.sIndex + ')">' +
+      '<span class="truncate flex-1">' + ps.title + '</span>' + badge + '</button>';
+  });
+
+  picker.innerHTML =
+    '<div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50 rounded-t-xl">' +
+      '<span class="text-xs font-semibold text-gray-600">เลือกหัวข้อสำหรับวันที่ ' + displayDate + '</span>' +
+      '<button onclick="document.getElementById(\'day-step-picker\').remove()" class="text-gray-400 hover:text-gray-600 p-0.5">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+      '</button>' +
+    '</div>' +
+    '<div class="overflow-y-auto max-h-64 divide-y divide-gray-50">' + listHtml + '</div>';
+
+  document.body.appendChild(picker);
+
+  // Close when clicking outside
+  function closePicker(e) {
+    if (!picker.contains(e.target)) {
+      picker.remove();
+      document.removeEventListener('mousedown', closePicker);
+    }
+  }
+  // Delay listener so the current click doesn't immediately close it
+  setTimeout(() => document.addEventListener('mousedown', closePicker), 0);
 }

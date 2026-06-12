@@ -38,12 +38,35 @@ var THAI_PROVINCE_POSTCODE = {
 var SKILLS_CHECKBOXES = ['Excel', 'การเขียนโปรแกรม', 'Graphic Designer', 'Automation', 'ทักษะการขาย', 'การบริการลูกค้า'];
 
 function buildProvinceOptions(selectedValue) {
+  var provs = (typeof getThaiProvinces === 'function') ? getThaiProvinces() : THAI_PROVINCES;
   var opts = '<option value="">-- เลือกจังหวัด --</option>';
-  for (var i = 0; i < THAI_PROVINCES.length; i++) {
-    var p = THAI_PROVINCES[i];
+  for (var i = 0; i < provs.length; i++) {
+    var p = provs[i];
     opts += '<option value="' + p + '"' + (p === selectedValue ? ' selected' : '') + '>' + p + '</option>';
   }
   return opts;
+}
+
+function cascadeDistrict(selectId, province, preselect) {
+  var el = document.getElementById(selectId);
+  if (!el) return;
+  var districts = (typeof getThaiDistricts === 'function') ? getThaiDistricts(province) : [];
+  var html = '<option value="">-- เลือกเขต/อำเภอ --</option>';
+  for (var i = 0; i < districts.length; i++) {
+    html += '<option value="' + districts[i] + '"' + (districts[i] === preselect ? ' selected' : '') + '>' + districts[i] + '</option>';
+  }
+  el.innerHTML = html;
+}
+
+function cascadeSubdistrict(selectId, province, district, preselect) {
+  var el = document.getElementById(selectId);
+  if (!el) return;
+  var subs = (typeof getThaiSubdistricts === 'function') ? getThaiSubdistricts(province, district) : [];
+  var html = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+  for (var i = 0; i < subs.length; i++) {
+    html += '<option value="' + subs[i] + '"' + (subs[i] === preselect ? ' selected' : '') + '>' + subs[i] + '</option>';
+  }
+  el.innerHTML = html;
 }
 
 async function loadRegDropdownData() {
@@ -279,18 +302,6 @@ function renderRegister() {
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="reg-current-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
-              <input type="text" id="reg-current-subdistrict" placeholder="แขวง/ตำบล"
-                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-            </div>
-            <div>
-              <label for="reg-current-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
-              <input type="text" id="reg-current-district" placeholder="เขต/อำเภอ"
-                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
               <label for="reg-current-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
               <select id="reg-current-province"
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
@@ -298,9 +309,25 @@ function renderRegister() {
               </select>
             </div>
             <div>
-              <label for="reg-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-              <input type="text" id="reg-current-postcode" placeholder="รหัสไปรษณีย์" maxlength="5"
+              <label for="reg-current-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+              <select id="reg-current-district"
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                <option value="">-- เลือกเขต/อำเภอ --</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-current-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+              <select id="reg-current-subdistrict"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                <option value="">-- เลือกแขวง/ตำบล --</option>
+              </select>
+            </div>
+            <div>
+              <label for="reg-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+              <input type="text" id="reg-current-postcode" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm">
             </div>
           </div>
 
@@ -337,18 +364,6 @@ function renderRegister() {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
               <div>
-                <label for="reg-idcard-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
-                <input type="text" id="reg-idcard-subdistrict" placeholder="แขวง/ตำบล"
-                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
-              </div>
-              <div>
-                <label for="reg-idcard-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
-                <input type="text" id="reg-idcard-district" placeholder="เขต/อำเภอ"
-                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-              <div>
                 <label for="reg-idcard-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
                 <select id="reg-idcard-province"
                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
@@ -356,9 +371,25 @@ function renderRegister() {
                 </select>
               </div>
               <div>
-                <label for="reg-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                <input type="text" id="reg-idcard-postcode" placeholder="รหัสไปรษณีย์" maxlength="5"
+                <label for="reg-idcard-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+                <select id="reg-idcard-district"
                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+                  <option value="">-- เลือกเขต/อำเภอ --</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label for="reg-idcard-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+                <select id="reg-idcard-subdistrict"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm reg-idcard-field">
+                  <option value="">-- เลือกแขวง/ตำบล --</option>
+                </select>
+              </div>
+              <div>
+                <label for="reg-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                <input type="text" id="reg-idcard-postcode" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm reg-idcard-field">
               </div>
             </div>
           </div>
@@ -561,19 +592,19 @@ function renderRegister() {
       </button>
     `;
 
-    // Same address checkbox handler - copy all subfields and disable idCard fields
+    // Same address checkbox handler
     document.getElementById('reg-same-address').addEventListener('change', function() {
-      var section = document.getElementById('reg-idcard-address-section');
       var idcardFields = document.querySelectorAll('.reg-idcard-field');
       if (this.checked) {
-        // Copy current values to idCard fields
         document.getElementById('reg-idcard-house-no').value = document.getElementById('reg-current-house-no').value;
         document.getElementById('reg-idcard-village').value = document.getElementById('reg-current-village').value;
         document.getElementById('reg-idcard-soi').value = document.getElementById('reg-current-soi').value;
         document.getElementById('reg-idcard-road').value = document.getElementById('reg-current-road').value;
-        document.getElementById('reg-idcard-subdistrict').value = document.getElementById('reg-current-subdistrict').value;
-        document.getElementById('reg-idcard-district').value = document.getElementById('reg-current-district').value;
-        document.getElementById('reg-idcard-province').value = document.getElementById('reg-current-province').value;
+        var cProv = document.getElementById('reg-current-province').value;
+        document.getElementById('reg-idcard-province').value = cProv;
+        cascadeDistrict('reg-idcard-district', cProv, document.getElementById('reg-current-district').value);
+        var cDist = document.getElementById('reg-current-district').value;
+        cascadeSubdistrict('reg-idcard-subdistrict', cProv, cDist, document.getElementById('reg-current-subdistrict').value);
         document.getElementById('reg-idcard-postcode').value = document.getElementById('reg-current-postcode').value;
         for (var i = 0; i < idcardFields.length; i++) {
           idcardFields[i].disabled = true;
@@ -587,21 +618,55 @@ function renderRegister() {
       }
     });
 
-    // Province change -> auto-fill postcode (current)
+    // Cascading: current address province → district → subdistrict → postcode
     document.getElementById('reg-current-province').addEventListener('change', function() {
-      var postcode = THAI_PROVINCE_POSTCODE[this.value] || '';
-      document.getElementById('reg-current-postcode').value = postcode;
-      // If same address is checked, also update idCard
+      cascadeDistrict('reg-current-district', this.value);
+      document.getElementById('reg-current-subdistrict').innerHTML = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+      document.getElementById('reg-current-postcode').value = '';
       if (document.getElementById('reg-same-address').checked) {
         document.getElementById('reg-idcard-province').value = this.value;
+        cascadeDistrict('reg-idcard-district', this.value);
+        document.getElementById('reg-idcard-subdistrict').innerHTML = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+        document.getElementById('reg-idcard-postcode').value = '';
+      }
+    });
+    document.getElementById('reg-current-district').addEventListener('change', function() {
+      var prov = document.getElementById('reg-current-province').value;
+      cascadeSubdistrict('reg-current-subdistrict', prov, this.value);
+      document.getElementById('reg-current-postcode').value = '';
+      if (document.getElementById('reg-same-address').checked) {
+        document.getElementById('reg-idcard-district').value = this.value;
+        cascadeSubdistrict('reg-idcard-subdistrict', prov, this.value);
+        document.getElementById('reg-idcard-postcode').value = '';
+      }
+    });
+    document.getElementById('reg-current-subdistrict').addEventListener('change', function() {
+      var prov = document.getElementById('reg-current-province').value;
+      var dist = document.getElementById('reg-current-district').value;
+      var postcode = getThaiPostcode(prov, dist, this.value);
+      document.getElementById('reg-current-postcode').value = postcode;
+      if (document.getElementById('reg-same-address').checked) {
+        document.getElementById('reg-idcard-subdistrict').value = this.value;
         document.getElementById('reg-idcard-postcode').value = postcode;
       }
     });
 
-    // Province change -> auto-fill postcode (idCard)
+    // Cascading: idCard address
     document.getElementById('reg-idcard-province').addEventListener('change', function() {
-      var postcode = THAI_PROVINCE_POSTCODE[this.value] || '';
-      document.getElementById('reg-idcard-postcode').value = postcode;
+      cascadeDistrict('reg-idcard-district', this.value);
+      document.getElementById('reg-idcard-subdistrict').innerHTML = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+      document.getElementById('reg-idcard-postcode').value = '';
+    });
+    document.getElementById('reg-idcard-district').addEventListener('change', function() {
+      cascadeSubdistrict('reg-idcard-subdistrict', document.getElementById('reg-idcard-province').value, this.value);
+      document.getElementById('reg-idcard-postcode').value = '';
+    });
+    document.getElementById('reg-idcard-subdistrict').addEventListener('change', function() {
+      document.getElementById('reg-idcard-postcode').value = getThaiPostcode(
+        document.getElementById('reg-idcard-province').value,
+        document.getElementById('reg-idcard-district').value,
+        this.value
+      );
     });
 
     // Skills "อื่นๆ" checkbox toggle

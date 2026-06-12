@@ -89,7 +89,8 @@ var CONFIG = {
     Resources: [
       'id', 'title', 'description', 'category', 'type',
       'url', 'fileUrl', 'content', 'tags', 'createdBy',
-      'isActive', 'createdAt', 'updatedAt'
+      'isActive', 'createdAt', 'updatedAt',
+      'sectionName', 'sortOrder', 'status'
     ],
     Notifications: [
       'id', 'userId', 'title', 'message', 'type',

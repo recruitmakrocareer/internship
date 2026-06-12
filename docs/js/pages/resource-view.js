@@ -45,6 +45,9 @@ async function renderResourceView() {
     return;
   }
 
+  // Inject responsive styles for content padding
+  _rvInjectStyles();
+
   // สร้าง layout หลัก
   app.innerHTML = `
     <!-- Top bar -->
@@ -130,10 +133,12 @@ function _rvRenderContent(resource) {
   if (_rvIsYouTube(sourceUrl)) {
     var videoId = _rvExtractYouTubeId(sourceUrl);
     return `
-      <div class="max-w-4xl mx-auto">
+      <div class="max-w-5xl mx-auto rv-content-padding">
         <div class="relative w-full" style="padding-bottom:56.25%">
-          <iframe class="absolute inset-0 w-full h-full rounded-xl shadow-lg" src="https://www.youtube.com/embed/${videoId}"
-            frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          <iframe class="absolute inset-0 w-full h-full rounded-xl shadow-lg"
+            src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+            frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen loading="lazy"></iframe>
         </div>
         ${_rvDescriptionBlock(resource)}
       </div>`;
@@ -145,28 +150,45 @@ function _rvRenderContent(resource) {
     var isVideo = (type === 'video');
     if (isVideo) {
       return `
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-5xl mx-auto rv-content-padding">
           <div class="relative w-full" style="padding-bottom:56.25%">
-            <iframe class="absolute inset-0 w-full h-full rounded-xl shadow-lg" src="https://drive.google.com/file/d/${fileId}/preview"
-              frameborder="0" allow="autoplay" allowfullscreen></iframe>
+            <iframe class="absolute inset-0 w-full h-full rounded-xl shadow-lg"
+              src="https://drive.google.com/file/d/${fileId}/preview?autoplay=1"
+              frameborder="0" allow="autoplay; encrypted-media"
+              allowfullscreen loading="lazy"></iframe>
           </div>
           ${_rvDescriptionBlock(resource)}
         </div>`;
     } else {
       return `
-        <div class="max-w-4xl mx-auto">
-          <iframe class="w-full rounded-xl shadow-lg border" style="height:75vh" src="https://drive.google.com/file/d/${fileId}/preview"
-            frameborder="0" allow="autoplay"></iframe>
+        <div class="max-w-5xl mx-auto rv-content-padding">
+          <iframe class="w-full rounded-xl shadow-lg border" style="height:75vh"
+            src="https://drive.google.com/file/d/${fileId}/preview"
+            frameborder="0" allow="autoplay" loading="lazy"></iframe>
           ${_rvDescriptionBlock(resource)}
         </div>`;
     }
   }
 
-  // 3) Direct video file (.mp4/.webm/.ogg) or type==='video' with non-Drive/non-YouTube URL
-  if (_rvIsDirectVideo(sourceUrl, type)) {
+  // 3) Google Docs / Sheets / Slides
+  if (_rvIsGoogleDocs(sourceUrl)) {
+    var previewUrl = _rvExtractGoogleDocsPreviewUrl(sourceUrl);
     return `
-      <div class="max-w-4xl mx-auto">
-        <video id="rv-video-player" controls class="w-full rounded-xl shadow-lg bg-black" style="max-height:75vh">
+      <div class="max-w-5xl mx-auto rv-content-padding">
+        <iframe class="w-full rounded-xl shadow-lg border" style="height:80vh"
+          src="${_rvEsc(previewUrl)}"
+          frameborder="0" loading="lazy"></iframe>
+        ${_rvDescriptionBlock(resource)}
+      </div>`;
+  }
+
+  // 4) Direct video file (.mp4/.webm/.ogg/.mov/.avi/.mkv)
+  if (_rvIsDirectVideo(sourceUrl)) {
+    return `
+      <div class="max-w-5xl mx-auto rv-content-padding">
+        <video id="rv-video-player" controls width="100%"
+          class="w-full rounded-xl shadow-lg bg-black"
+          style="max-height:75vh;object-fit:contain">
           <source src="${_rvEsc(sourceUrl)}" type="${_rvVideoMime(sourceUrl)}">
           เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
         </video>
@@ -174,20 +196,42 @@ function _rvRenderContent(resource) {
       </div>`;
   }
 
-  // 4) Image
+  // 5) Unplayable video URL fallback (type is 'video' but not YouTube/Drive/direct file)
+  if (type === 'video' && sourceUrl) {
+    return `
+      <div class="max-w-5xl mx-auto rv-content-padding space-y-4">
+        <div class="relative w-full" style="padding-bottom:56.25%">
+          <iframe class="absolute inset-0 w-full h-full rounded-xl shadow-lg"
+            src="${_rvEsc(sourceUrl)}"
+            frameborder="0" allow="autoplay; encrypted-media"
+            allowfullscreen loading="lazy"></iframe>
+        </div>
+        <div class="text-center py-3">
+          <p class="text-sm text-gray-500 mb-3">หากวิดีโอไม่แสดงผล สามารถเปิดลิงก์โดยตรง</p>
+          <a href="${_rvEsc(sourceUrl)}" target="_blank" rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-primary-700 transition-colors shadow-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            เปิดลิงก์
+          </a>
+        </div>
+        ${_rvDescriptionBlock(resource)}
+      </div>`;
+  }
+
+  // 6) Image
   if (_rvIsImage(sourceUrl)) {
     var imgSrc = _rvIsGoogleDrive(sourceUrl) ? driveImageUrl(sourceUrl) : sourceUrl;
     return `
-      <div class="max-w-4xl mx-auto text-center">
+      <div class="max-w-5xl mx-auto rv-content-padding text-center">
         <img src="${_rvEsc(imgSrc)}" alt="${_rvEsc(resource.title || '')}" class="max-w-full mx-auto rounded-xl shadow-lg" style="max-height:80vh;object-fit:contain" />
         ${_rvDescriptionBlock(resource)}
       </div>`;
   }
 
-  // 5) Other link
+  // 7) Other link
   if (sourceUrl) {
     return `
-      <div class="max-w-4xl mx-auto space-y-4">
+      <div class="max-w-5xl mx-auto rv-content-padding space-y-4">
         <div class="text-center py-6">
           <a href="${_rvEsc(sourceUrl)}" target="_blank" rel="noopener noreferrer"
             class="inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg">
@@ -195,15 +239,16 @@ function _rvRenderContent(resource) {
             เปิดลิงก์
           </a>
         </div>
-        <iframe src="${_rvEsc(sourceUrl)}" class="w-full rounded-xl shadow-lg border" style="height:70vh" frameborder="0"></iframe>
+        <iframe src="${_rvEsc(sourceUrl)}" class="w-full rounded-xl shadow-lg border" style="height:70vh"
+          frameborder="0" loading="lazy"></iframe>
         ${_rvDescriptionBlock(resource)}
       </div>`;
   }
 
-  // 6) Content text only
+  // 8) Content text only
   if (resource.content) {
     return `
-      <div class="max-w-3xl mx-auto">
+      <div class="max-w-3xl mx-auto rv-content-padding">
         <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
           <h2 class="text-xl font-bold text-gray-800 mb-4">${_rvEsc(resource.title || '')}</h2>
           <div class="prose max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">${_rvEsc(resource.content)}</div>
@@ -214,7 +259,7 @@ function _rvRenderContent(resource) {
 
   // Fallback: no content
   return `
-    <div class="max-w-3xl mx-auto text-center py-12">
+    <div class="max-w-3xl mx-auto rv-content-padding text-center py-12">
       <div class="bg-white rounded-xl shadow-lg p-8">
         <p class="text-gray-400 text-lg">ไม่มีเนื้อหาสำหรับแหล่งเรียนรู้นี้</p>
       </div>
@@ -339,20 +384,37 @@ function _rvExtractYouTubeId(url) {
 
 function _rvIsGoogleDrive(url) {
   if (!url) return false;
-  return /drive\.google\.com.*\/(?:file\/)?d\/[a-zA-Z0-9_-]+/.test(url);
+  // Match /file/d/ID, /d/ID, ?id=ID, open?id=ID, uc?id=ID
+  return /drive\.google\.com/.test(url) &&
+    (/\/(?:file\/)?d\/[a-zA-Z0-9_-]+/.test(url) || /[?&]id=[a-zA-Z0-9_-]+/.test(url));
 }
 
 function _rvExtractDriveId(url) {
+  // Try /d/ID first
   var m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  return m ? m[1] : '';
+  if (m) return m[1];
+  // Try ?id=ID or &id=ID
+  var m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return m2 ? m2[1] : '';
 }
 
-function _rvIsDirectVideo(url, type) {
+function _rvIsGoogleDocs(url) {
+  if (!url) return false;
+  return /(?:docs|sheets|slides|presentations)\.google\.com\/(?:document|spreadsheets|presentation)\/d\/[a-zA-Z0-9_-]+/.test(url);
+}
+
+function _rvExtractGoogleDocsPreviewUrl(url) {
+  // Convert edit/view URLs to embedded preview URLs
+  // e.g. https://docs.google.com/document/d/DOC_ID/edit -> .../d/DOC_ID/preview
+  var m = url.match(/(https:\/\/(?:docs|sheets|slides|presentations)\.google\.com\/(?:document|spreadsheets|presentation)\/d\/[a-zA-Z0-9_-]+)/);
+  if (m) return m[1] + '/preview';
+  return url;
+}
+
+function _rvIsDirectVideo(url) {
   if (!url) return false;
   if (_rvIsYouTube(url) || _rvIsGoogleDrive(url)) return false;
-  if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return true;
-  if (type === 'video') return true;
-  return false;
+  return /\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/i.test(url);
 }
 
 function _rvIsImage(url) {
@@ -372,6 +434,19 @@ function _rvEsc(str) {
   var div = document.createElement('div');
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
+}
+
+function _rvInjectStyles() {
+  if (document.getElementById('rv-responsive-styles')) return;
+  var style = document.createElement('style');
+  style.id = 'rv-responsive-styles';
+  style.textContent = `
+    @media (max-width: 639px) {
+      #rv-content { padding: 0.5rem !important; }
+      .rv-content-padding { padding-left: 0; padding-right: 0; }
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 function _rvErrorPage(backPage, title, message) {

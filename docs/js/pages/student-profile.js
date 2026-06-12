@@ -219,18 +219,6 @@ async function renderStudentProfile() {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="mb-4">
-                <label for="profile-current-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
-                <input type="text" id="profile-current-subdistrict" value="${profile.currentSubdistrict || ''}" placeholder="แขวง/ตำบล"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-              </div>
-              <div class="mb-4">
-                <label for="profile-current-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
-                <input type="text" id="profile-current-district" value="${profile.currentDistrict || ''}" placeholder="เขต/อำเภอ"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="mb-4">
                 <label for="profile-current-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
                 <select id="profile-current-province"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
@@ -238,9 +226,25 @@ async function renderStudentProfile() {
                 </select>
               </div>
               <div class="mb-4">
-                <label for="profile-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                <input type="text" id="profile-current-postcode" value="${profile.currentPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5"
+                <label for="profile-current-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+                <select id="profile-current-district"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  <option value="">-- เลือกเขต/อำเภอ --</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-current-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+                <select id="profile-current-subdistrict"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  <option value="">-- เลือกแขวง/ตำบล --</option>
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="profile-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                <input type="text" id="profile-current-postcode" value="${profile.currentPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm">
               </div>
             </div>
 
@@ -277,18 +281,6 @@ async function renderStudentProfile() {
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="mb-4">
-                  <label for="profile-idcard-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
-                  <input type="text" id="profile-idcard-subdistrict" value="${profile.idCardSubdistrict || ''}" placeholder="แขวง/ตำบล"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
-                </div>
-                <div class="mb-4">
-                  <label for="profile-idcard-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
-                  <input type="text" id="profile-idcard-district" value="${profile.idCardDistrict || ''}" placeholder="เขต/อำเภอ"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
-                </div>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="mb-4">
                   <label for="profile-idcard-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
                   <select id="profile-idcard-province"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
@@ -296,9 +288,25 @@ async function renderStudentProfile() {
                   </select>
                 </div>
                 <div class="mb-4">
-                  <label for="profile-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                  <input type="text" id="profile-idcard-postcode" value="${profile.idCardPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5"
+                  <label for="profile-idcard-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+                  <select id="profile-idcard-district"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                    <option value="">-- เลือกเขต/อำเภอ --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="mb-4">
+                  <label for="profile-idcard-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+                  <select id="profile-idcard-subdistrict"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
+                    <option value="">-- เลือกแขวง/ตำบล --</option>
+                  </select>
+                </div>
+                <div class="mb-4">
+                  <label for="profile-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                  <input type="text" id="profile-idcard-postcode" value="${profile.idCardPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm profile-idcard-field">
                 </div>
               </div>
             </div>
@@ -490,6 +498,20 @@ async function renderStudentProfile() {
       if (el && prefFields[pf][1]) el.value = prefFields[pf][1];
     }
 
+    // Pre-populate cascading dropdowns with existing profile data
+    if (profile.currentProvince) {
+      cascadeDistrict('profile-current-district', profile.currentProvince, profile.currentDistrict || '');
+      if (profile.currentDistrict) {
+        cascadeSubdistrict('profile-current-subdistrict', profile.currentProvince, profile.currentDistrict, profile.currentSubdistrict || '');
+      }
+    }
+    if (profile.idCardProvince) {
+      cascadeDistrict('profile-idcard-district', profile.idCardProvince, profile.idCardDistrict || '');
+      if (profile.idCardDistrict) {
+        cascadeSubdistrict('profile-idcard-subdistrict', profile.idCardProvince, profile.idCardDistrict, profile.idCardSubdistrict || '');
+      }
+    }
+
     // Same address checkbox handler
     document.getElementById('profile-same-address').addEventListener('change', function() {
       var idcardFields = document.querySelectorAll('.profile-idcard-field');
@@ -498,9 +520,10 @@ async function renderStudentProfile() {
         document.getElementById('profile-idcard-village').value = document.getElementById('profile-current-village').value;
         document.getElementById('profile-idcard-soi').value = document.getElementById('profile-current-soi').value;
         document.getElementById('profile-idcard-road').value = document.getElementById('profile-current-road').value;
-        document.getElementById('profile-idcard-subdistrict').value = document.getElementById('profile-current-subdistrict').value;
-        document.getElementById('profile-idcard-district').value = document.getElementById('profile-current-district').value;
-        document.getElementById('profile-idcard-province').value = document.getElementById('profile-current-province').value;
+        var cProv = document.getElementById('profile-current-province').value;
+        document.getElementById('profile-idcard-province').value = cProv;
+        cascadeDistrict('profile-idcard-district', cProv, document.getElementById('profile-current-district').value);
+        cascadeSubdistrict('profile-idcard-subdistrict', cProv, document.getElementById('profile-current-district').value, document.getElementById('profile-current-subdistrict').value);
         document.getElementById('profile-idcard-postcode').value = document.getElementById('profile-current-postcode').value;
         for (var i = 0; i < idcardFields.length; i++) {
           idcardFields[i].disabled = true;
@@ -514,19 +537,55 @@ async function renderStudentProfile() {
       }
     });
 
-    // Province change -> auto-fill postcode (current)
+    // Cascading: current address
     document.getElementById('profile-current-province').addEventListener('change', function() {
-      var postcode = THAI_PROVINCE_POSTCODE[this.value] || '';
-      document.getElementById('profile-current-postcode').value = postcode;
+      cascadeDistrict('profile-current-district', this.value);
+      document.getElementById('profile-current-subdistrict').innerHTML = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+      document.getElementById('profile-current-postcode').value = '';
       if (document.getElementById('profile-same-address').checked) {
         document.getElementById('profile-idcard-province').value = this.value;
+        cascadeDistrict('profile-idcard-district', this.value);
+        document.getElementById('profile-idcard-subdistrict').innerHTML = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+        document.getElementById('profile-idcard-postcode').value = '';
+      }
+    });
+    document.getElementById('profile-current-district').addEventListener('change', function() {
+      var prov = document.getElementById('profile-current-province').value;
+      cascadeSubdistrict('profile-current-subdistrict', prov, this.value);
+      document.getElementById('profile-current-postcode').value = '';
+      if (document.getElementById('profile-same-address').checked) {
+        document.getElementById('profile-idcard-district').value = this.value;
+        cascadeSubdistrict('profile-idcard-subdistrict', prov, this.value);
+        document.getElementById('profile-idcard-postcode').value = '';
+      }
+    });
+    document.getElementById('profile-current-subdistrict').addEventListener('change', function() {
+      var prov = document.getElementById('profile-current-province').value;
+      var dist = document.getElementById('profile-current-district').value;
+      var postcode = getThaiPostcode(prov, dist, this.value);
+      document.getElementById('profile-current-postcode').value = postcode;
+      if (document.getElementById('profile-same-address').checked) {
+        document.getElementById('profile-idcard-subdistrict').value = this.value;
         document.getElementById('profile-idcard-postcode').value = postcode;
       }
     });
 
-    // Province change -> auto-fill postcode (idCard)
+    // Cascading: idCard address
     document.getElementById('profile-idcard-province').addEventListener('change', function() {
-      document.getElementById('profile-idcard-postcode').value = THAI_PROVINCE_POSTCODE[this.value] || '';
+      cascadeDistrict('profile-idcard-district', this.value);
+      document.getElementById('profile-idcard-subdistrict').innerHTML = '<option value="">-- เลือกแขวง/ตำบล --</option>';
+      document.getElementById('profile-idcard-postcode').value = '';
+    });
+    document.getElementById('profile-idcard-district').addEventListener('change', function() {
+      cascadeSubdistrict('profile-idcard-subdistrict', document.getElementById('profile-idcard-province').value, this.value);
+      document.getElementById('profile-idcard-postcode').value = '';
+    });
+    document.getElementById('profile-idcard-subdistrict').addEventListener('change', function() {
+      document.getElementById('profile-idcard-postcode').value = getThaiPostcode(
+        document.getElementById('profile-idcard-province').value,
+        document.getElementById('profile-idcard-district').value,
+        this.value
+      );
     });
 
     // Skills "อื่นๆ" checkbox toggle
