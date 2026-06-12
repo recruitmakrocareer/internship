@@ -2,16 +2,11 @@
  * Config.gs - Configuration constants for the Internship Management System
  */
 
+var CONFIG_SPREADSHEET_ID_ = '';
+try { CONFIG_SPREADSHEET_ID_ = SpreadsheetApp.getActiveSpreadsheet().getId(); } catch (e) { CONFIG_SPREADSHEET_ID_ = ''; }
+
 var CONFIG = {
-  // Spreadsheet ID - uses active spreadsheet for bound scripts, set manually for standalone
-  SPREADSHEET_ID: (function() {
-    try {
-      return SpreadsheetApp.getActiveSpreadsheet().getId();
-    } catch (e) {
-      // Set your spreadsheet ID here for standalone scripts
-      return 'YOUR_SPREADSHEET_ID_HERE';
-    }
-  })(),
+  SPREADSHEET_ID: CONFIG_SPREADSHEET_ID_,
 
   // Sheet names mapping
   SHEETS: {

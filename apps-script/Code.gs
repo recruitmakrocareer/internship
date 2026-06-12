@@ -60,6 +60,13 @@ function doPost(e) {
 function handleApiRequest(params) {
   var action = params.action;
 
+  if (typeof CONFIG === 'undefined') {
+    return jsonResponse({
+      success: false,
+      error: 'CONFIG is not defined — ตรวจสอบว่าไฟล์ Config.gs มีอยู่ในโปรเจกต์ Apps Script และไม่มี syntax error'
+    }, 500);
+  }
+
   try {
     var result;
 

@@ -480,7 +480,7 @@ function getUserProfile(userId) {
 
 function getStoreList() {
   try {
-    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var ss = getSpreadsheet();
     var sheet = ss.getSheetByName(CONFIG.SHEETS.STORE_LIST);
     if (!sheet) return { success: true, data: [] };
     var data = sheet.getDataRange().getValues();
@@ -500,7 +500,7 @@ function getStoreList() {
 
 function getDepartmentList() {
   try {
-    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var ss = getSpreadsheet();
     var sheet = ss.getSheetByName(CONFIG.SHEETS.DEPARTMENT_LIST);
     if (!sheet) return { success: true, data: [] };
     var data = sheet.getDataRange().getValues();
