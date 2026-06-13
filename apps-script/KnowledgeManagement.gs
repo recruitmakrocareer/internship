@@ -137,12 +137,17 @@ function saveKnowledgeEntry(userId, topicNumber, data) {
     var result;
     if (existing) {
       // Update existing entry
-      result = updateRow(CONFIG.SHEETS.KNOWLEDGE_ENTRIES, existing.id, {
+      var updateData = {
         keyTakeaways: data.keyTakeaways || '',
         challenges: data.challenges || '',
         knowledgeApply: data.knowledgeApply || '',
         feedback: data.feedback || ''
-      });
+      };
+      // Only overwrite attachment when a new file is provided, so editing text
+      // without re-uploading does not wipe an existing attachment.
+      if (data.fileUrl) updateData.fileUrl = data.fileUrl;
+      if (data.fileName) updateData.fileName = data.fileName;
+      result = updateRow(CONFIG.SHEETS.KNOWLEDGE_ENTRIES, existing.id, updateData);
     } else {
       // Create new entry
       result = appendRow(CONFIG.SHEETS.KNOWLEDGE_ENTRIES, {
@@ -156,7 +161,9 @@ function saveKnowledgeEntry(userId, topicNumber, data) {
         isSelectedForPresentation: 'false',
         presentationScore: '',
         presentationScoreDetail: '',
-        evaluatorId: ''
+        evaluatorId: '',
+        fileUrl: data.fileUrl || '',
+        fileName: data.fileName || ''
       });
     }
 
