@@ -296,6 +296,40 @@ function resetPassword(email) {
 }
 
 /**
+ * Changes a user's password after verifying the current one.
+ * @param {string} userId - User ID
+ * @param {string} currentPassword - Current password (plain text)
+ * @param {string} newPassword - New password (plain text)
+ * @return {Object} Result with success status
+ */
+function changePassword(userId, currentPassword, newPassword) {
+  try {
+    if (!userId || !currentPassword || !newPassword) {
+      return { success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
+    }
+    if (String(newPassword).length < 6) {
+      return { success: false, message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' };
+    }
+
+    var user = getRowById(CONFIG.SHEETS.USERS, userId);
+    if (!user) {
+      return { success: false, message: 'ไม่พบบัญชีผู้ใช้' };
+    }
+
+    if (user.password !== hashPassword(currentPassword)) {
+      return { success: false, message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' };
+    }
+
+    updateRow(CONFIG.SHEETS.USERS, userId, { password: hashPassword(newPassword) });
+
+    return { success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จ' };
+  } catch (err) {
+    Logger.log('Error in changePassword: ' + err.message);
+    return { success: false, message: 'ไม่สามารถเปลี่ยนรหัสผ่านได้: ' + err.message };
+  }
+}
+
+/**
  * Hashes a password using SHA-256.
  * @param {string} password - The plain text password
  * @return {string} The hex-encoded SHA-256 hash

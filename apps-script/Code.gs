@@ -93,6 +93,9 @@ function handleApiRequest(params) {
       case 'resetPassword':
         result = resetPassword(params.email);
         break;
+      case 'changePassword':
+        result = changePassword(params.userId, params.currentPassword, params.newPassword);
+        break;
       case 'getCurrentUser':
         result = getCurrentUser();
         break;
