@@ -26,6 +26,214 @@ function adminDashSvgIcon(name) {
   return icons[name] || '';
 }
 
+// ==================== Admin Analytics (Recruitment Stats + Pipeline) ====================
+
+var THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+var _adminAllStudents = [];
+var _adminStatsState = { period: 'all' };
+
+var ADMIN_STATS_PERIODS = [
+  { key: 'all', label: 'ทั้งหมด' },
+  { key: 'year', label: 'ปีนี้' },
+  { key: '6m', label: '6 เดือน' },
+  { key: '3m', label: '3 เดือน' }
+];
+
+function _parseStudentDate(dateStr) {
+  if (!dateStr) return null;
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return d;
+}
+
+function _adminFilteredStudents() {
+  var period = _adminStatsState.period;
+  if (period === 'all') return _adminAllStudents.slice();
+  var now = new Date();
+  var cutoff;
+  if (period === 'year') {
+    cutoff = new Date(now.getFullYear(), 0, 1);
+  } else if (period === '6m') {
+    cutoff = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+  } else if (period === '3m') {
+    cutoff = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+  } else {
+    return _adminAllStudents.slice();
+  }
+  return _adminAllStudents.filter(function(s) {
+    var d = _parseStudentDate(s.startDate);
+    return d && d >= cutoff && d <= now;
+  });
+}
+
+function _adminCountBy(students, field) {
+  var counts = {};
+  students.forEach(function(s) {
+    var key = (s[field] || '').toString().trim() || 'ไม่ระบุ';
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.keys(counts).map(function(k) {
+    return { label: k, value: counts[k] };
+  }).sort(function(a, b) { return b.value - a.value; });
+}
+
+function _adminBarChartHtml(rows, topN) {
+  if (!rows.length) {
+    return '<p class="text-sm text-gray-400">ยังไม่มีข้อมูล</p>';
+  }
+  var top = rows.slice(0, topN || 8);
+  var max = top[0].value || 1;
+  return '<div class="space-y-2">' + top.map(function(r) {
+    var pct = Math.round((r.value / max) * 100);
+    return '<div class="flex items-center gap-2">' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="flex items-center justify-between mb-1">' +
+          '<span class="text-xs text-gray-600 truncate" title="' + r.label + '">' + r.label + '</span>' +
+          '<span class="text-xs font-semibold text-gray-700 ml-2 flex-shrink-0">' + r.value + '</span>' +
+        '</div>' +
+        '<div class="w-full bg-gray-100 rounded-full h-2">' +
+          '<div class="bg-primary-500 h-2 rounded-full transition-all" style="width:' + pct + '%"></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function renderAdminStatsPeriodControl() {
+  var el = document.getElementById('admin-stats-period');
+  if (!el) return;
+  el.innerHTML = ADMIN_STATS_PERIODS.map(function(p) {
+    var active = _adminStatsState.period === p.key;
+    return '<button type="button" data-period="' + p.key + '" class="px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+      (active ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700') + '">' + p.label + '</button>';
+  }).join('');
+  Array.prototype.forEach.call(el.querySelectorAll('button[data-period]'), function(btn) {
+    btn.addEventListener('click', function() {
+      _adminStatsState.period = btn.getAttribute('data-period');
+      renderAdminStatsPeriodControl();
+      renderAdminStatsCharts();
+    });
+  });
+}
+
+function renderAdminStatsCharts() {
+  var uniEl = document.getElementById('admin-stats-universities');
+  var typeEl = document.getElementById('admin-stats-types');
+  var deptEl = document.getElementById('admin-stats-departments');
+  if (!uniEl || !typeEl || !deptEl) return;
+
+  var students = _adminFilteredStudents();
+
+  // Universities horizontal bars
+  uniEl.innerHTML = _adminBarChartHtml(_adminCountBy(students, 'university'), 8);
+
+  // Department horizontal bars
+  deptEl.innerHTML = _adminBarChartHtml(_adminCountBy(students, 'department'), 8);
+
+  // Internship types donut
+  var typeRows = _adminCountBy(students, 'internshipType');
+  if (!typeRows.length) {
+    typeEl.innerHTML = '<p class="text-sm text-gray-400">ยังไม่มีข้อมูล</p>';
+  } else {
+    var palette = ['#6366f1', '#22c55e', '#eab308', '#ec4899', '#06b6d4', '#f97316', '#8b5cf6', '#64748b'];
+    var segments = typeRows.map(function(r, i) {
+      return { value: r.value, color: palette[i % palette.length], label: r.label };
+    });
+    typeEl.innerHTML =
+      '<div class="flex flex-col items-center gap-4">' +
+        '<div class="flex-shrink-0">' + buildDonutChart(segments, 150) + '</div>' +
+        '<div class="w-full space-y-2">' +
+          segments.map(function(seg) {
+            return '<div class="flex items-center justify-between">' +
+              '<div class="flex items-center gap-2 min-w-0">' +
+                '<span class="w-3 h-3 rounded-full flex-shrink-0" style="background:' + seg.color + '"></span>' +
+                '<span class="text-xs text-gray-600 truncate" title="' + seg.label + '">' + seg.label + '</span>' +
+              '</div>' +
+              '<span class="text-xs font-semibold ml-2 flex-shrink-0" style="color:' + seg.color + '">' + seg.value + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  }
+}
+
+function renderAdminUpcomingInterns() {
+  var el = document.getElementById('admin-upcoming-body');
+  if (!el) return;
+
+  var now = new Date();
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  var upcoming = _adminAllStudents.map(function(s) {
+    return { student: s, date: _parseStudentDate(s.startDate) };
+  }).filter(function(x) {
+    return x.date && x.date > today;
+  }).sort(function(a, b) { return a.date - b.date; });
+
+  if (!upcoming.length) {
+    el.innerHTML = '<p class="text-sm text-gray-400">ยังไม่มีนักศึกษาที่กำลังจะเริ่มฝึกงาน</p>';
+    return;
+  }
+
+  // End of this week (Sunday-based week, end Saturday)
+  var endOfWeek = new Date(today);
+  endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+  var endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  var groupsOrder = [];
+  var groupsMap = {};
+  function pushTo(key, item) {
+    if (!groupsMap[key]) { groupsMap[key] = []; groupsOrder.push(key); }
+    groupsMap[key].push(item);
+  }
+
+  upcoming.forEach(function(x) {
+    var d = x.date;
+    if (d <= endOfWeek) {
+      pushTo('สัปดาห์นี้', x);
+    } else if (d <= endOfMonth) {
+      pushTo('เดือนนี้', x);
+    } else {
+      pushTo(THAI_MONTHS[d.getMonth()] + ' ' + d.getFullYear(), x);
+    }
+  });
+
+  var header = '<div class="mb-4 inline-flex items-center gap-2 text-sm text-gray-600">' +
+    '<span class="w-2 h-2 bg-primary-500 rounded-full"></span>' +
+    'รอเริ่มฝึกงาน <span class="font-semibold text-gray-800">' + upcoming.length + '</span> คน' +
+  '</div>';
+
+  var body = groupsOrder.map(function(key) {
+    var items = groupsMap[key];
+    return '<div class="mb-5">' +
+      '<div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">' +
+        '<span class="text-sm font-semibold text-gray-700">' + key + '</span>' +
+        '<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-100 text-primary-700">' + items.length + ' คน</span>' +
+      '</div>' +
+      '<div class="space-y-2">' +
+        items.map(function(x) {
+          var s = x.student;
+          var initial = (s.name || '?').charAt(0);
+          var uni = (s.university || '').toString().trim() || 'ไม่ระบุ';
+          return '<div class="flex items-center gap-3">' +
+            '<div class="w-8 h-8 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">' +
+              '<span class="text-primary-600 font-semibold text-xs">' + initial + '</span>' +
+            '</div>' +
+            '<div class="min-w-0 flex-1">' +
+              '<p class="text-sm font-medium text-gray-800 truncate">' + (s.name || '-') + '</p>' +
+              '<p class="text-xs text-gray-400 truncate">' + uni + '</p>' +
+            '</div>' +
+            '<span class="text-xs text-gray-400 flex-shrink-0">' + formatDate(s.startDate) + '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML = header + body;
+}
+
 function buildDonutChart(segments, size) {
   size = size || 140;
   var r = size / 2 - 10;
@@ -106,11 +314,38 @@ async function renderAdminDashboard(content) {
         </div>
       </div>
       <div id="admin-quick-actions"></div>
+
+      <div id="admin-recruitment-stats" class="bg-white rounded-xl shadow-sm p-6 mt-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">สถิติการรับนักศึกษา</h3>
+          <div id="admin-stats-period" class="inline-flex flex-wrap gap-1 bg-gray-100 rounded-lg p-1"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div>
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Top สถาบันการศึกษา</h4>
+            <div id="admin-stats-universities"><p class="text-sm text-gray-400">กำลังโหลด...</p></div>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">รูปแบบการฝึกงาน</h4>
+            <div id="admin-stats-types"><p class="text-sm text-gray-400">กำลังโหลด...</p></div>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">สถิติแผนกที่ฝึกงาน</h4>
+            <div id="admin-stats-departments"><p class="text-sm text-gray-400">กำลังโหลด...</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="admin-upcoming-interns" class="bg-white rounded-xl shadow-sm p-6 mt-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Pipeline นักศึกษาที่กำลังจะเริ่มฝึก</h3>
+        <div id="admin-upcoming-body"><p class="text-sm text-gray-400">กำลังโหลด...</p></div>
+      </div>
     </div>
   `;
 
   try {
     var result = await callApi('getAdminStats', { userId: getCurrentUser().id });
+    var studentsRes = await callApi('getStudents');
     if (!result.success) return;
     var stats = result.data;
     var u = stats.users || {};
@@ -260,6 +495,14 @@ async function renderAdminDashboard(content) {
         </div>
       </div>
     `;
+
+    // Feature 4 + 5: client-side analytics from students data
+    var students = Array.isArray(studentsRes && (studentsRes.data || studentsRes))
+      ? (studentsRes.data || studentsRes) : [];
+    _adminAllStudents = students;
+    renderAdminStatsPeriodControl();
+    renderAdminStatsCharts();
+    renderAdminUpcomingInterns();
   } catch (error) {
     console.error('Error loading admin dashboard:', error);
     document.getElementById('admin-stats').innerHTML = `

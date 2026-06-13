@@ -17,24 +17,45 @@ function renderAdminStudents() {
       </div>
 
       <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1 relative">
+        <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
+          <div class="flex-1 min-w-[200px] relative">
             <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input type="text" id="student-search" placeholder="ค้นหาชื่อ, รหัสนักศึกษา, อีเมล..."
+            <input type="text" id="student-search" placeholder="ค้นหาชื่อ, รหัส, อีเมล, มหาวิทยาลัย..."
               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
           </div>
           <select id="student-dept-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">แผนกทั้งหมด</option>
-            <optgroup label="Support"></optgroup>
-            <optgroup label="Floor"></optgroup>
-            <optgroup label="O2O"></optgroup>
-            <optgroup label="B2B Sales"></optgroup>
           </select>
           <select id="student-status-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">สถานะทั้งหมด</option>
-            <option value="ACTIVE">ใช้งาน</option>
-            <option value="INACTIVE">ไม่ใช้งาน</option>
+            <option value="Active">Active</option>
+            <option value="Done">Done</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Back to School">Back to School</option>
           </select>
+          <div class="relative">
+            <button type="button" onclick="toggleColumnMenu(event)" class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01"/></svg>
+              คอลัมน์
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div id="student-col-menu" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-3">
+              <p class="text-xs font-semibold text-gray-500 uppercase mb-2 px-1">แสดงคอลัมน์</p>
+              <div id="student-col-options" class="space-y-1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 mt-3 items-start sm:items-end">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ช่วงเวลาฝึก (เริ่ม)</label>
+            <input type="date" id="student-period-start" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ถึง</label>
+            <input type="date" id="student-period-end" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+          </div>
+          <button type="button" onclick="clearStudentPeriodFilter()" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 underline">ล้างช่วงเวลา</button>
+          <span id="student-result-count" class="sm:ml-auto text-sm text-gray-400"></span>
         </div>
       </div>
 
@@ -43,15 +64,15 @@ function renderAdminStudents() {
           <table class="w-full text-sm">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">รหัส</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">มหาวิทยาลัย/สาขา</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">แผนก/สาขาที่ฝึก</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ประเภท</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ระยะเวลา</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">พี่เลี้ยง</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">เอกสาร</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">สถานะ</th>
+                <th class="scol-name text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[180px]">ชื่อ-นามสกุล</th>
+                <th class="scol-studentId text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">รหัส</th>
+                <th class="scol-university text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[180px]">มหาวิทยาลัย/สาขา</th>
+                <th class="scol-department text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">แผนก/สาขาที่ฝึก</th>
+                <th class="scol-type text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ประเภท</th>
+                <th class="scol-period text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ระยะเวลา</th>
+                <th class="scol-mentor text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">พี่เลี้ยง</th>
+                <th class="scol-documents text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">เอกสาร</th>
+                <th class="scol-status text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">สถานะ</th>
                 <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
               </tr>
             </thead>
@@ -70,8 +91,93 @@ function renderAdminStudents() {
   document.getElementById('student-search').addEventListener('input', debouncedRenderStudents);
   document.getElementById('student-status-filter').addEventListener('change', renderStudentsTable);
   document.getElementById('student-dept-filter').addEventListener('change', renderStudentsTable);
+  document.getElementById('student-period-start').addEventListener('change', renderStudentsTable);
+  document.getElementById('student-period-end').addEventListener('change', renderStudentsTable);
 
+  // ปิดเมนูคอลัมน์เมื่อคลิกที่อื่น
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('student-col-menu');
+    if (menu && !menu.classList.contains('hidden')) {
+      if (!e.target.closest('#student-col-menu') && !e.target.closest('[onclick*="toggleColumnMenu"]')) {
+        menu.classList.add('hidden');
+      }
+    }
+  });
+
+  initStudentColumnMenu();
   loadStudents();
+}
+
+// ==================== Custom Column Visibility (บันทึกใน localStorage) ====================
+
+var STUDENT_COLUMNS = [
+  { key: 'name', label: 'ชื่อ-นามสกุล', locked: true },
+  { key: 'studentId', label: 'รหัส' },
+  { key: 'university', label: 'มหาวิทยาลัย/สาขา' },
+  { key: 'department', label: 'แผนก/สาขาที่ฝึก' },
+  { key: 'type', label: 'ประเภท' },
+  { key: 'period', label: 'ระยะเวลา' },
+  { key: 'mentor', label: 'พี่เลี้ยง' },
+  { key: 'documents', label: 'เอกสาร' },
+  { key: 'status', label: 'สถานะ' }
+];
+var STUDENT_COLS_STORAGE_KEY = 'adminStudentVisibleCols';
+
+function getStudentVisibleCols() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(STUDENT_COLS_STORAGE_KEY));
+    if (Array.isArray(saved)) return saved;
+  } catch (e) {}
+  return STUDENT_COLUMNS.map(function(c) { return c.key; });
+}
+
+function initStudentColumnMenu() {
+  var container = document.getElementById('student-col-options');
+  if (!container) return;
+  var visible = getStudentVisibleCols();
+  container.innerHTML = STUDENT_COLUMNS.map(function(c) {
+    var checked = visible.indexOf(c.key) !== -1 ? 'checked' : '';
+    var disabled = c.locked ? 'disabled' : '';
+    return '<label class="flex items-center gap-2 px-1 py-1 rounded hover:bg-gray-50 cursor-pointer text-sm ' + (c.locked ? 'opacity-60' : '') + '">' +
+      '<input type="checkbox" value="' + c.key + '" ' + checked + ' ' + disabled + ' onchange="onStudentColumnToggle()" class="w-4 h-4 text-primary-600 rounded">' +
+      '<span class="text-gray-700">' + c.label + '</span></label>';
+  }).join('');
+  applyStudentColumnVisibility();
+}
+
+function toggleColumnMenu(e) {
+  if (e) e.stopPropagation();
+  var menu = document.getElementById('student-col-menu');
+  if (menu) menu.classList.toggle('hidden');
+}
+
+function onStudentColumnToggle() {
+  var checks = document.querySelectorAll('#student-col-options input[type="checkbox"]');
+  var selected = [];
+  checks.forEach(function(cb) { if (cb.checked || cb.disabled) selected.push(cb.value); });
+  // locked columns เพิ่มเสมอ
+  STUDENT_COLUMNS.forEach(function(c) {
+    if (c.locked && selected.indexOf(c.key) === -1) selected.push(c.key);
+  });
+  try { localStorage.setItem(STUDENT_COLS_STORAGE_KEY, JSON.stringify(selected)); } catch (e) {}
+  applyStudentColumnVisibility();
+}
+
+function applyStudentColumnVisibility() {
+  var visible = getStudentVisibleCols();
+  STUDENT_COLUMNS.forEach(function(c) {
+    var show = c.locked || visible.indexOf(c.key) !== -1;
+    var els = document.querySelectorAll('.scol-' + c.key);
+    els.forEach(function(el) { el.style.display = show ? '' : 'none'; });
+  });
+}
+
+function clearStudentPeriodFilter() {
+  var s = document.getElementById('student-period-start');
+  var e = document.getElementById('student-period-end');
+  if (s) s.value = '';
+  if (e) e.value = '';
+  renderStudentsTable();
 }
 
 let _studentsCache = [];
@@ -139,6 +245,8 @@ function renderStudentsTable() {
     const search = String(document.getElementById('student-search')?.value || '').toLowerCase().trim();
     const statusFilter = document.getElementById('student-status-filter')?.value || '';
     const deptFilter = document.getElementById('student-dept-filter')?.value || '';
+    const periodStart = document.getElementById('student-period-start')?.value || '';
+    const periodEnd = document.getElementById('student-period-end')?.value || '';
 
     if (search) {
       students = students.filter(function(s) {
@@ -150,14 +258,32 @@ function renderStudentsTable() {
         return haystack.indexOf(search) !== -1;
       });
     }
-    if (statusFilter === 'ACTIVE') {
-      students = students.filter(s => String(s.isActive) !== 'false');
-    } else if (statusFilter === 'INACTIVE') {
-      students = students.filter(s => String(s.isActive) === 'false');
+    if (statusFilter) {
+      students = students.filter(function(s) {
+        return deriveStudentStatusLabel(s) === statusFilter;
+      });
     }
     if (deptFilter) {
-      students = students.filter(s => s.department === deptFilter);
+      students = students.filter(function(s) { return s.department === deptFilter; });
     }
+    if (periodStart) {
+      var ps = new Date(periodStart);
+      students = students.filter(function(s) {
+        if (!s.startDate) return false;
+        return new Date(s.startDate) >= ps;
+      });
+    }
+    if (periodEnd) {
+      var pe = new Date(periodEnd);
+      pe.setHours(23, 59, 59, 999);
+      students = students.filter(function(s) {
+        if (!s.startDate) return false;
+        return new Date(s.startDate) <= pe;
+      });
+    }
+
+    var countEl = document.getElementById('student-result-count');
+    if (countEl) countEl.textContent = 'แสดง ' + students.length + ' / ' + _studentsCache.length + ' รายการ';
 
     if (students.length === 0) {
       tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-gray-400">ไม่พบข้อมูลนักศึกษา</td></tr>';
@@ -166,12 +292,11 @@ function renderStudentsTable() {
 
     tbody.innerHTML = students.map(s => {
       const docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
-      const mentorName = s.mentor ? (s.mentor.firstName + ' ' + s.mentor.lastName) : '-';
       const displayName = s.name || ((s.firstName || '') + ' ' + (s.lastName || '')) || s.email;
 
       return `
         <tr class="hover:bg-gray-50 transition-colors">
-          <td class="px-4 py-3">
+          <td class="scol-name px-4 py-3">
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${s.photoFileUrl ? '' : 'bg-primary-100'}">
                 ${s.photoFileUrl
@@ -184,35 +309,35 @@ function renderStudentsTable() {
               </div>
             </div>
           </td>
-          <td class="px-4 py-3 text-xs">${s.studentId || '<span class="text-gray-300">ไม่ระบุ</span>'}</td>
-          <td class="px-4 py-3 text-xs">
+          <td class="scol-studentId px-4 py-3 text-xs">${s.studentId || '<span class="text-gray-300">ไม่ระบุ</span>'}</td>
+          <td class="scol-university px-4 py-3 text-xs">
             <div class="text-gray-800">${s.university || '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${s.major || s.faculty || ''}</div>
           </td>
-          <td class="px-4 py-3 text-xs">
+          <td class="scol-department px-4 py-3 text-xs">
             <div class="text-gray-800">${s.department || '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${s.branch || ''}</div>
           </td>
-          <td class="px-4 py-3">
-            ${s.internshipType ? '<span class="text-xs px-2 py-0.5 rounded-full ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') + '">' + s.internshipType + '</span>' : '<span class="text-xs text-gray-400">-</span>'}
+          <td class="scol-type px-4 py-3">
+            ${s.internshipType ? '<span class="text-xs px-2 py-0.5 rounded-full ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') + '">' + s.internshipType + '</span>' : '<span class="text-xs text-gray-400">ไม่ระบุ</span>'}
           </td>
-          <td class="px-4 py-3 text-xs text-gray-600">
-            ${s.startDate ? formatDate(s.startDate) : '-'}
+          <td class="scol-period px-4 py-3 text-xs text-gray-600">
+            ${s.startDate ? formatDate(s.startDate) : '<span class="text-gray-300">ไม่ระบุ</span>'}
             ${s.endDate ? '<br>ถึง ' + formatDate(s.endDate) : ''}
           </td>
-          <td class="px-4 py-3">
+          <td class="scol-mentor px-4 py-3">
             <select class="text-xs border-0 bg-transparent text-gray-600 cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -ml-1 focus:ring-1 focus:ring-primary-300"
               onchange="inlineAssignMentor('${s.id}', this.value)" title="เลือกพี่เลี้ยง">
               <option value="">ไม่ระบุ</option>
               ${_mentorsCache.map(m => '<option value="' + m.id + '"' + (s.mentor && s.mentor.id === m.id ? ' selected' : '') + '>' + m.firstName + ' ' + m.lastName + '</option>').join('')}
             </select>
           </td>
-          <td class="px-4 py-3">
+          <td class="scol-documents px-4 py-3">
             ${docCount === 4
               ? '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">✓ ครบถ้วน</span>'
               : '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ' + (docCount === 0 ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-700') + ' font-medium">' + docCount + '/4</span>'}
           </td>
-          <td class="px-4 py-3">${studentStatusBadge(s)}</td>
+          <td class="scol-status px-4 py-3">${studentStatusBadge(s)}</td>
           <td class="px-4 py-3 text-center">
             <div class="flex items-center justify-center gap-1">
               <button onclick="viewStudentDetail('${s.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="ดูรายละเอียด">
@@ -230,6 +355,7 @@ function renderStudentsTable() {
           </td>
         </tr>`;
     }).join('');
+    applyStudentColumnVisibility();
   } catch (error) {
     console.error('Error rendering students table:', error);
     tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-red-500">เกิดข้อผิดพลาดในการแสดงผลข้อมูล</td></tr>';
@@ -529,98 +655,167 @@ async function submitAddStudent() {
   }
 }
 
+// Searchable combobox helper for department/branch
+function buildSearchableSelect(id, label, options, selectedValue, placeholder) {
+  selectedValue = selectedValue || '';
+  placeholder = placeholder || 'พิมพ์เพื่อค้นหา...';
+  return '<div class="mb-4">' +
+    '<label class="block text-sm font-medium text-gray-700 mb-1">' + label + '</label>' +
+    '<input type="text" id="' + id + '" value="' + (selectedValue || '').replace(/"/g, '&quot;') + '" placeholder="' + placeholder + '" ' +
+    'list="' + id + '-list" autocomplete="off" ' +
+    'class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">' +
+    '<datalist id="' + id + '-list">' +
+    options.map(function(o) { return '<option value="' + (o || '').replace(/"/g, '&quot;') + '">'; }).join('') +
+    '</datalist></div>';
+}
+
+var _editDeptOptions = [];
+var _editBranchOptions = [];
+
 async function openEditStudentModal(studentId) {
   try {
     showLoading();
-    const res = await callApi('getStudent', { id: studentId });
+    var [res, deptRes, storeRes] = await Promise.all([
+      callApi('getStudent', { id: studentId }),
+      callApi('getDepartmentList'),
+      callApi('getStoreList')
+    ]);
     hideLoading();
-    const student = res.success ? res.data : _studentsCache.find(s => s.id === studentId);
+    var student = res.success ? res.data : _studentsCache.find(function(s) { return s.id === studentId; });
     if (!student) { showToast('ไม่พบข้อมูล', 'error'); return; }
 
-    const mentorOptions = _mentorsCache.map(m =>
-      `<option value="${m.id}" ${student.mentor && student.mentor.id === m.id ? 'selected' : ''}>${m.firstName} ${m.lastName}</option>`
-    ).join('');
+    _editDeptOptions = (deptRes.success && deptRes.data) ? deptRes.data.map(function(d) { return d.department; }).filter(Boolean) : [];
+    _editBranchOptions = (storeRes.success && storeRes.data) ? storeRes.data.map(function(s) { return s.storeNo + ' - ' + s.storeName; }) : [];
+    var deptUnique = [];
+    _editDeptOptions.forEach(function(d) { if (deptUnique.indexOf(d) === -1) deptUnique.push(d); });
+    _editDeptOptions = deptUnique;
 
-    const mc = document.getElementById('student-modal');
-    mc.innerHTML = buildModal('edit-student-modal', 'แก้ไขข้อมูลนักศึกษา', `
-      <form id="edit-student-form" class="space-y-4">
-        <input type="hidden" id="edit-student-id" value="${student.id}">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label>
-            <select id="edit-student-prefix" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-              <option value="">-- เลือก --</option>
-              <option value="นาย" ${student.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
-              <option value="นาง" ${student.prefix === 'นาง' ? 'selected' : ''}>นาง</option>
-              <option value="นางสาว" ${student.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-            </select>
+    var mentorOptions = _mentorsCache.map(function(m) {
+      return '<option value="' + m.id + '"' + (student.mentor && student.mentor.id === m.id ? ' selected' : '') + '>' + m.firstName + ' ' + m.lastName + '</option>';
+    }).join('');
+
+    var mc = document.getElementById('student-modal');
+    mc.innerHTML = `
+      <div id="edit-student-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+          <div class="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+            <h3 class="text-lg font-semibold text-gray-800">แก้ไขข้อมูลนักศึกษา</h3>
+            <button onclick="closeModal('edit-student-modal')" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">สถานะทางทหาร</label>
-            <select id="edit-student-military" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-              <option value="">-- เลือก --</option>
-              <option value="ผ่านการเกณฑ์ทหารแล้ว" ${student.militaryStatus === 'ผ่านการเกณฑ์ทหารแล้ว' ? 'selected' : ''}>ผ่านการเกณฑ์ทหารแล้ว</option>
-              <option value="ได้รับการยกเว้น" ${student.militaryStatus === 'ได้รับการยกเว้น' ? 'selected' : ''}>ได้รับการยกเว้น</option>
-            </select>
+          <div class="p-6 overflow-y-auto flex-1">
+            <form id="edit-student-form" class="space-y-5">
+              <input type="hidden" id="edit-student-id" value="${student.id}">
+
+              <div class="border-b pb-3 mb-3"><h4 class="text-sm font-semibold text-gray-600 uppercase">ข้อมูลพื้นฐาน</h4></div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label>
+                  <select id="edit-student-prefix" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">-- เลือก --</option>
+                    <option value="นาย" ${student.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
+                    <option value="นาง" ${student.prefix === 'นาง' ? 'selected' : ''}>นาง</option>
+                    <option value="นางสาว" ${student.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+                  </select>
+                </div>
+                ${inputField('edit-student-firstName', 'ชื่อ', 'text', student.firstName || '')}
+                ${inputField('edit-student-lastName', 'นามสกุล', 'text', student.lastName || '')}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-nickname', 'ชื่อเล่น', 'text', student.nickname || '', '', false)}
+                ${inputField('edit-student-phone', 'โทรศัพท์', 'tel', student.phone || '', '', false)}
+                ${inputField('edit-student-email', 'อีเมล', 'email', student.email || '')}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-idCardNumber', 'เลขบัตรประชาชน', 'text', student.idCardNumber || '', '', false)}
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">สถานะทางทหาร</label>
+                  <select id="edit-student-military" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">-- เลือก --</option>
+                    <option value="ผ่านการเกณฑ์ทหารแล้ว" ${student.militaryStatus === 'ผ่านการเกณฑ์ทหารแล้ว' ? 'selected' : ''}>ผ่านการเกณฑ์ทหารแล้ว</option>
+                    <option value="ได้รับการยกเว้น" ${student.militaryStatus === 'ได้รับการยกเว้น' ? 'selected' : ''}>ได้รับการยกเว้น</option>
+                  </select>
+                </div>
+                ${inputField('edit-student-medical', 'โรคประจำตัว', 'text', student.medicalCondition || '', '', false)}
+              </div>
+
+              <div class="border-b pb-3 mb-3"><h4 class="text-sm font-semibold text-gray-600 uppercase">การศึกษา</h4></div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-studentId', 'รหัสนักศึกษา', 'text', student.studentId || '', '', false)}
+                ${inputField('edit-student-university', 'มหาวิทยาลัย', 'text', student.university || '', '', false)}
+                ${inputField('edit-student-faculty', 'คณะ', 'text', student.faculty || '', '', false)}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-major', 'สาขาวิชา', 'text', student.major || '', '', false)}
+                ${inputField('edit-student-year', 'ชั้นปี', 'text', student.year || '', '', false)}
+                ${inputField('edit-student-gpa', 'GPA', 'text', student.gpa || '', '', false)}
+              </div>
+
+              <div class="border-b pb-3 mb-3"><h4 class="text-sm font-semibold text-gray-600 uppercase">การฝึกงาน</h4></div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${buildSearchableSelect('edit-student-department', 'แผนกที่ฝึก', _editDeptOptions, student.department || '', 'พิมพ์เพื่อค้นหาแผนก...')}
+                ${buildSearchableSelect('edit-student-branch', 'สาขาที่ฝึก', _editBranchOptions, student.branch || '', 'พิมพ์เพื่อค้นหาสาขา...')}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-employeeId', 'รหัสพนักงาน', 'text', student.employeeId || '', '', false)}
+                ${inputField('edit-student-position', 'ตำแหน่ง', 'text', student.position || '', '', false)}
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทการฝึก</label>
+                  <select id="edit-student-internshipType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">-- เลือก --</option>
+                    <option value="สหกิจศึกษา" ${student.internshipType === 'สหกิจศึกษา' ? 'selected' : ''}>สหกิจศึกษา</option>
+                    <option value="ฝึกงานทั่วไป" ${student.internshipType === 'ฝึกงานทั่วไป' ? 'selected' : ''}>ฝึกงานทั่วไป</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">วันเริ่มฝึก</label>
+                  <input type="date" id="edit-student-startDate" value="${dateInputValue(student.startDate)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">วันสิ้นสุด</label>
+                  <input type="date" id="edit-student-endDate" value="${dateInputValue(student.endDate)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">พี่เลี้ยง</label>
+                  <select id="edit-student-mentor" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">-- ไม่ระบุ --</option>
+                    ${mentorOptions}
+                  </select>
+                </div>
+              </div>
+
+              <div class="border-b pb-3 mb-3"><h4 class="text-sm font-semibold text-gray-600 uppercase">ทักษะ / ความสนใจ</h4></div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${inputField('edit-student-skills', 'ทักษะ', 'text', student.skills || '', 'เช่น Excel, Python', false)}
+                ${inputField('edit-student-interests', 'ความสนใจ', 'text', student.interests || '', 'ความสนใจ', false)}
+              </div>
+
+              <div class="border-b pb-3 mb-3"><h4 class="text-sm font-semibold text-gray-600 uppercase">ที่อยู่ปัจจุบัน</h4></div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-currentHouseNo', 'บ้านเลขที่', 'text', student.currentHouseNo || '', '', false)}
+                ${inputField('edit-student-currentVillage', 'หมู่บ้าน/อาคาร', 'text', student.currentVillage || '', '', false)}
+                ${inputField('edit-student-currentSoi', 'ซอย', 'text', student.currentSoi || '', '', false)}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${inputField('edit-student-currentRoad', 'ถนน', 'text', student.currentRoad || '', '', false)}
+                ${inputField('edit-student-currentSubdistrict', 'แขวง/ตำบล', 'text', student.currentSubdistrict || '', '', false)}
+                ${inputField('edit-student-currentDistrict', 'เขต/อำเภอ', 'text', student.currentDistrict || '', '', false)}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${inputField('edit-student-currentProvince', 'จังหวัด', 'text', student.currentProvince || '', '', false)}
+                ${inputField('edit-student-currentPostcode', 'รหัสไปรษณีย์', 'text', student.currentPostcode || '', '', false)}
+              </div>
+            </form>
+          </div>
+          <div class="p-6 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
+            <button onclick="closeModal('edit-student-modal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">ยกเลิก</button>
+            <button onclick="submitEditStudent()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">บันทึก</button>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          ${inputField('edit-student-firstName', 'ชื่อ', 'text', student.firstName || '')}
-          ${inputField('edit-student-lastName', 'นามสกุล', 'text', student.lastName || '')}
-        </div>
-        ${inputField('edit-student-medical', 'โรคประจำตัว', 'text', student.medicalCondition || '', 'ระบุโรคประจำตัว (ถ้ามี)', false)}
-        <div class="grid grid-cols-2 gap-3">
-          ${inputField('edit-student-studentId', 'รหัสนักศึกษา', 'text', student.studentId || '')}
-          ${inputField('edit-student-email', 'อีเมล', 'email', student.email || '')}
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          ${inputField('edit-student-phone', 'โทรศัพท์', 'tel', student.phone || '', '', false)}
-          ${inputField('edit-student-university', 'มหาวิทยาลัย', 'text', student.university || '', '', false)}
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          ${inputField('edit-student-faculty', 'คณะ', 'text', student.faculty || '', '', false)}
-          ${inputField('edit-student-major', 'สาขาวิชา', 'text', student.major || '', '', false)}
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          ${inputField('edit-student-department', 'แผนกที่ฝึก', 'text', student.department || '', '', false)}
-          ${inputField('edit-student-branch', 'สาขาที่ฝึก', 'text', student.branch || '', '', false)}
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          ${inputField('edit-student-employeeId', 'รหัสพนักงาน', 'text', student.employeeId || '', '', false)}
-          ${inputField('edit-student-position', 'ตำแหน่ง', 'text', student.position || '', '', false)}
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทการฝึก</label>
-            <select id="edit-student-internshipType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-              <option value="">-- เลือก --</option>
-              <option value="สหกิจศึกษา" ${student.internshipType === 'สหกิจศึกษา' ? 'selected' : ''}>สหกิจศึกษา</option>
-              <option value="ฝึกงานทั่วไป" ${student.internshipType === 'ฝึกงานทั่วไป' ? 'selected' : ''}>ฝึกงานทั่วไป</option>
-            </select>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">พี่เลี้ยง</label>
-            <select id="edit-student-mentor" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-              <option value="">-- ไม่ระบุ --</option>
-              ${mentorOptions}
-            </select>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">วันเริ่มฝึก</label>
-            <input type="date" id="edit-student-startDate" value="${dateInputValue(student.startDate)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">วันสิ้นสุด</label>
-            <input type="date" id="edit-student-endDate" value="${dateInputValue(student.endDate)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          </div>
-        </div>
-      </form>
-    `, `
-      <button onclick="closeModal('edit-student-modal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">ยกเลิก</button>
-      <button onclick="submitEditStudent()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">บันทึก</button>
-    `);
+      </div>`;
     openModal('edit-student-modal');
   } catch (error) {
     hideLoading();
@@ -629,41 +824,57 @@ async function openEditStudentModal(studentId) {
 }
 
 async function submitEditStudent() {
-  const id = document.getElementById('edit-student-id').value;
-  const firstName = document.getElementById('edit-student-firstName').value.trim();
-  const lastName = document.getElementById('edit-student-lastName').value.trim();
+  var id = document.getElementById('edit-student-id').value;
+  var firstName = document.getElementById('edit-student-firstName').value.trim();
+  var lastName = document.getElementById('edit-student-lastName').value.trim();
 
   if (!firstName || !lastName) {
     showToast('กรุณากรอกชื่อและนามสกุล', 'error');
     return;
   }
 
+  var _v = function(elId) { var el = document.getElementById(elId); return el ? el.value.trim() : ''; };
+
   try {
     showLoading();
-    const result = await callApiPost('updateStudent', {
-      id, firstName, lastName,
+    var result = await callApiPost('updateStudent', {
+      id: id, firstName: firstName, lastName: lastName,
       name: firstName + ' ' + lastName,
-      prefix: document.getElementById('edit-student-prefix').value,
-      militaryStatus: document.getElementById('edit-student-military').value,
-      medicalCondition: document.getElementById('edit-student-medical').value.trim(),
-      studentId: document.getElementById('edit-student-studentId').value.trim(),
-      email: document.getElementById('edit-student-email').value.trim(),
-      phone: document.getElementById('edit-student-phone').value.trim(),
-      university: document.getElementById('edit-student-university').value.trim(),
-      faculty: document.getElementById('edit-student-faculty').value.trim(),
-      major: document.getElementById('edit-student-major').value.trim(),
-      department: document.getElementById('edit-student-department').value.trim(),
-      branch: document.getElementById('edit-student-branch').value.trim(),
-      employeeId: document.getElementById('edit-student-employeeId').value.trim(),
-      position: document.getElementById('edit-student-position').value.trim(),
-      internshipType: document.getElementById('edit-student-internshipType').value,
-      startDate: document.getElementById('edit-student-startDate').value,
-      endDate: document.getElementById('edit-student-endDate').value
+      prefix: _v('edit-student-prefix'),
+      nickname: _v('edit-student-nickname'),
+      militaryStatus: _v('edit-student-military'),
+      medicalCondition: _v('edit-student-medical'),
+      idCardNumber: _v('edit-student-idCardNumber'),
+      studentId: _v('edit-student-studentId'),
+      email: _v('edit-student-email'),
+      phone: _v('edit-student-phone'),
+      university: _v('edit-student-university'),
+      faculty: _v('edit-student-faculty'),
+      major: _v('edit-student-major'),
+      year: _v('edit-student-year'),
+      gpa: _v('edit-student-gpa'),
+      department: _v('edit-student-department'),
+      branch: _v('edit-student-branch'),
+      employeeId: _v('edit-student-employeeId'),
+      position: _v('edit-student-position'),
+      internshipType: _v('edit-student-internshipType'),
+      startDate: _v('edit-student-startDate'),
+      endDate: _v('edit-student-endDate'),
+      skills: _v('edit-student-skills'),
+      interests: _v('edit-student-interests'),
+      currentHouseNo: _v('edit-student-currentHouseNo'),
+      currentVillage: _v('edit-student-currentVillage'),
+      currentSoi: _v('edit-student-currentSoi'),
+      currentRoad: _v('edit-student-currentRoad'),
+      currentSubdistrict: _v('edit-student-currentSubdistrict'),
+      currentDistrict: _v('edit-student-currentDistrict'),
+      currentProvince: _v('edit-student-currentProvince'),
+      currentPostcode: _v('edit-student-currentPostcode')
     });
 
-    const mentorId = document.getElementById('edit-student-mentor').value;
+    var mentorId = _v('edit-student-mentor');
     if (mentorId) {
-      await callApiPost('assignMentor', { mentorId, studentId: id });
+      await callApiPost('assignMentor', { mentorId: mentorId, studentId: id });
     }
 
     hideLoading();
@@ -733,26 +944,34 @@ async function submitAssignRoadmap(studentId) {
   hideLoading();
 }
 
-function studentStatusBadge(s) {
-  if (String(s.isActive) === 'false') {
-    return '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">ยกเลิก</span>';
-  }
-  var docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
-  if (docCount < 4) {
-    return '<span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">รอเอกสาร</span>';
+// 4 สถานะตาม UAT: Active, Done, Inactive, Back to School
+function deriveStudentStatusLabel(s) {
+  if (String(s.isActive) === 'false') return 'Inactive';
+  if (s.endDate) {
+    var end = new Date(s.endDate);
+    var today = new Date();
+    if (today > end) return 'Back to School';
   }
   if (s.startDate) {
-    var today = new Date();
     var start = new Date(s.startDate);
-    var end = s.endDate ? new Date(s.endDate) : null;
-    if (end && today > end) {
-      return '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">ผ่านการประเมิน</span>';
-    }
-    if (today >= start) {
-      return '<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">กำลังฝึก</span>';
-    }
+    var today2 = new Date();
+    if (today2 >= start) return 'Active';
   }
-  return '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">รอดำเนินการ</span>';
+  return 'Active';
+}
+
+var STUDENT_STATUS_STYLES = {
+  'Active':         { css: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+  'Done':           { css: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
+  'Inactive':       { css: 'bg-gray-200 text-gray-600', dot: 'bg-gray-400' },
+  'Back to School': { css: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' }
+};
+
+function studentStatusBadge(s) {
+  var label = deriveStudentStatusLabel(s);
+  var style = STUDENT_STATUS_STYLES[label] || STUDENT_STATUS_STYLES['Active'];
+  return '<span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full ' + style.css + ' font-medium">' +
+    '<span class="w-1.5 h-1.5 rounded-full ' + style.dot + '"></span>' + label + '</span>';
 }
 
 async function inlineAssignMentor(studentId, mentorId) {

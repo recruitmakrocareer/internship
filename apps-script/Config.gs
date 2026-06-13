@@ -48,7 +48,8 @@ var CONFIG = {
       'currentHouseNo', 'currentVillage', 'currentSoi', 'currentRoad',
       'currentSubdistrict', 'currentDistrict',
       'idCardHouseNo', 'idCardVillage', 'idCardSoi', 'idCardRoad',
-      'idCardSubdistrict', 'idCardDistrict'
+      'idCardSubdistrict', 'idCardDistrict',
+      'maxStudents'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'

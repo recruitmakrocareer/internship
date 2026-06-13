@@ -292,7 +292,8 @@ function createMentor(data) {
       isActive: 'true',
       employeeId: data.employeeId || '',
       branch: data.branch || '',
-      position: data.position || ''
+      position: data.position || '',
+      maxStudents: data.maxStudents || '4'
     };
 
     var newUser = appendRow(CONFIG.SHEETS.USERS, userData);
@@ -358,6 +359,26 @@ function assignMentor(mentorId, studentId) {
     var student = getRowById(CONFIG.SHEETS.USERS, studentId);
     if (!student || student.role !== CONFIG.ROLES.STUDENT) {
       return { success: false, message: 'ไม่พบข้อมูลนักศึกษา' };
+    }
+
+    // Enforce mentor capacity (quota). Count active assignments for the target
+    // mentor, excluding any row for this same student so reassignment to the
+    // same/current mentor isn't double-counted.
+    var maxStudents = parseInt(mentor.maxStudents, 10);
+    if (isNaN(maxStudents) || maxStudents <= 0) {
+      maxStudents = 4;
+    }
+
+    var mentorActiveAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, {
+      mentorId: mentorId,
+      isActive: 'true'
+    });
+    var currentCount = mentorActiveAssignments.filter(function(ms) {
+      return ms.studentId !== studentId;
+    }).length;
+
+    if (currentCount >= maxStudents) {
+      return { success: false, message: 'พี่เลี้ยงคนนี้รับนักศึกษาเต็มโควตาแล้ว' };
     }
 
     // Deactivate existing mentor assignments for this student
