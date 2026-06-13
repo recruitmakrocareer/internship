@@ -88,10 +88,11 @@ function studentMentors_renderCards() {
     const fullName = m.name || ((m.firstName || '') + ' ' + (m.lastName || '')).trim() || 'ไม่ระบุ';
     const initial = (fullName || '?').charAt(0).toUpperCase();
     const imgUrl = m.profileImage ? driveImageUrl(m.profileImage) : '';
+    const safeInitial = studentMentors_escapeHtml(initial);
     const avatar = imgUrl
-      ? `<img src="${studentMentors_escapeHtml(imgUrl)}" alt="${studentMentors_escapeHtml(fullName)}" class="w-16 h-16 rounded-full object-cover flex-shrink-0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-         <div class="w-16 h-16 rounded-full bg-primary-100 items-center justify-center flex-shrink-0" style="display:none;"><span class="text-primary-700 font-bold text-xl">${initial}</span></div>`
-      : `<div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0"><span class="text-primary-700 font-bold text-xl">${initial}</span></div>`;
+      ? `<img src="${studentMentors_escapeHtml(imgUrl)}" alt="${studentMentors_escapeHtml(fullName)}" class="w-16 h-16 rounded-full object-cover flex-shrink-0" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex';">
+         <div class="w-16 h-16 rounded-full bg-primary-100 items-center justify-center flex-shrink-0" style="display:none;"><span class="text-primary-700 font-bold text-xl">${safeInitial}</span></div>`
+      : `<div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0"><span class="text-primary-700 font-bold text-xl">${safeInitial}</span></div>`;
 
     const position = m.position ? studentMentors_escapeHtml(m.position) : '<span class="text-gray-400">ไม่ระบุตำแหน่ง</span>';
     const deptParts = [m.department, m.branch].filter(Boolean).map(studentMentors_escapeHtml).join(' • ');

@@ -430,7 +430,8 @@ function buildModal(id, title, bodyHtml, footerHtml = '') {
  * @param {string} id
  */
 function openModal(id) {
-  document.getElementById(id).classList.remove('hidden');
+  var el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
 }
 
 /**
@@ -438,7 +439,8 @@ function openModal(id) {
  * @param {string} id
  */
 function closeModal(id) {
-  document.getElementById(id).classList.add('hidden');
+  var el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
 }
 
 /**
@@ -451,11 +453,15 @@ function closeModal(id) {
  * @param {boolean} required
  * @returns {string}
  */
+function escAttr(v) {
+  return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function inputField(id, label, type = 'text', value = '', placeholder = '', required = true) {
   return `
     <div class="mb-4">
       <label for="${id}" class="block text-sm font-medium text-gray-700 mb-1">${label}${required ? ' <span class="text-red-500">*</span>' : ''}</label>
-      <input type="${type}" id="${id}" value="${value}" placeholder="${placeholder}" ${required ? 'required' : ''}
+      <input type="${type}" id="${id}" value="${escAttr(value)}" placeholder="${escAttr(placeholder)}" ${required ? 'required' : ''}
         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
     </div>
   `;

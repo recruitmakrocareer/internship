@@ -42,7 +42,7 @@ function getAdminStats(params) {
     // Roadmap progress stats
     var allProgress = getAllRows(CONFIG.SHEETS.ROADMAP_PROGRESS);
     var completedProgress = allProgress.filter(function(p) {
-      return p.status === 'completed';
+      return String(p.status).toUpperCase() === 'COMPLETED';
     });
 
     // Roadmap stats

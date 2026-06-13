@@ -103,9 +103,9 @@ function getTrainingPassport(userId) {
         status = 'completed';
       } else if (signOffData.trainerSigned) {
         status = 'trainer_signed';
-      } else if (stepProgress && stepProgress.status === 'in_progress') {
+      } else if (stepProgress && String(stepProgress.status).toUpperCase() === 'IN_PROGRESS') {
         status = 'in_progress';
-      } else if (stepProgress && stepProgress.status === 'completed') {
+      } else if (stepProgress && String(stepProgress.status).toUpperCase() === 'COMPLETED') {
         status = 'completed';
       }
 

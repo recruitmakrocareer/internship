@@ -103,23 +103,36 @@ function renderAdminStudents() {
     <div id="student-modal"></div>
   `;
 
-  // Search ใช้ debounce 300ms และกรองจาก cache เท่านั้น (ไม่เรียก API ซ้ำทุกตัวอักษร)
-  document.getElementById('student-search').addEventListener('input', debouncedRenderStudents);
-  document.getElementById('student-status-filter').addEventListener('change', renderStudentsTable);
-  document.getElementById('student-dept-filter').addEventListener('change', renderStudentsTable);
-  document.getElementById('student-branch-filter').addEventListener('input', debouncedRenderStudents);
-  document.getElementById('student-period-start').addEventListener('change', renderStudentsTable);
-  document.getElementById('student-period-end').addEventListener('change', renderStudentsTable);
-
-  // ปิดเมนูคอลัมน์เมื่อคลิกที่อื่น
-  document.addEventListener('click', function(e) {
+  // Bind event listeners. Use named refs so they can be removed if page re-renders.
+  if (renderAdminStudents._cleanup) renderAdminStudents._cleanup();
+  var _sBind = [
+    ['student-search', 'input', debouncedRenderStudents],
+    ['student-status-filter', 'change', renderStudentsTable],
+    ['student-dept-filter', 'change', renderStudentsTable],
+    ['student-branch-filter', 'input', debouncedRenderStudents],
+    ['student-period-start', 'change', renderStudentsTable],
+    ['student-period-end', 'change', renderStudentsTable]
+  ];
+  _sBind.forEach(function(b) {
+    var el = document.getElementById(b[0]);
+    if (el) el.addEventListener(b[1], b[2]);
+  });
+  function _colMenuDocClick(e) {
     var menu = document.getElementById('student-col-menu');
     if (menu && !menu.classList.contains('hidden')) {
       if (!e.target.closest('#student-col-menu') && !e.target.closest('[onclick*="toggleColumnMenu"]')) {
         menu.classList.add('hidden');
       }
     }
-  });
+  }
+  document.addEventListener('click', _colMenuDocClick);
+  renderAdminStudents._cleanup = function() {
+    _sBind.forEach(function(b) {
+      var el = document.getElementById(b[0]);
+      if (el) el.removeEventListener(b[1], b[2]);
+    });
+    document.removeEventListener('click', _colMenuDocClick);
+  };
 
   initStudentColumnMenu();
   loadStudents();
@@ -397,6 +410,8 @@ function renderStudentsTable() {
     tbody.innerHTML = students.map(s => {
       const docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
       const displayName = s.name || ((s.firstName || '') + ' ' + (s.lastName || '')) || s.email;
+      const safeId = escAttr(s.id);
+      const safeName = escAttr(displayName);
 
       return `
         <tr class="hover:bg-gray-50 transition-colors">
@@ -431,9 +446,9 @@ function renderStudentsTable() {
           </td>
           <td class="scol-mentor px-4 py-3">
             <select class="text-xs border-0 bg-transparent text-gray-600 cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -ml-1 focus:ring-1 focus:ring-primary-300"
-              onchange="inlineAssignMentor('${s.id}', this.value)" title="เลือกพี่เลี้ยง">
+              onchange="inlineAssignMentor('${safeId}', this.value)" title="เลือกพี่เลี้ยง">
               <option value="">ไม่ระบุ</option>
-              ${_mentorsCache.map(m => '<option value="' + m.id + '"' + (s.mentor && s.mentor.id === m.id ? ' selected' : '') + '>' + m.firstName + ' ' + m.lastName + '</option>').join('')}
+              ${_mentorsCache.map(m => '<option value="' + m.id + '"' + (s.mentor && s.mentor.id === m.id ? ' selected' : '') + '>' + escAttr((m.firstName || '') + ' ' + (m.lastName || '')) + '</option>').join('')}
             </select>
           </td>
           <td class="scol-documents px-4 py-3">
@@ -444,13 +459,13 @@ function renderStudentsTable() {
           <td class="scol-status px-4 py-3">${studentStatusBadge(s)}</td>
           <td class="px-4 py-3 text-center">
             <div class="flex items-center justify-center gap-1">
-              <button onclick="viewStudentDetail('${s.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="ดูรายละเอียด">
+              <button onclick="viewStudentDetail('${safeId}')" class="text-blue-600 hover:text-blue-800 p-1" title="ดูรายละเอียด">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
               </button>
-              <button onclick="openEditStudentModal('${s.id}')" class="text-primary-600 hover:text-primary-800 p-1" title="แก้ไข">
+              <button onclick="openEditStudentModal('${safeId}')" class="text-primary-600 hover:text-primary-800 p-1" title="แก้ไข">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
               </button>
-              <button onclick="toggleStudentStatus('${s.id}', '${(displayName).replace(/'/g, "\\'")}')" class="${String(s.isActive) === 'false' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'} p-1" title="${String(s.isActive) === 'false' ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}">
+              <button onclick="toggleStudentStatus('${safeId}', '${safeName}')" class="${String(s.isActive) === 'false' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'} p-1" title="${String(s.isActive) === 'false' ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}">
                 ${String(s.isActive) === 'false'
                   ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
                   : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>'}
@@ -765,11 +780,11 @@ function buildSearchableSelect(id, label, options, selectedValue, placeholder) {
   placeholder = placeholder || 'พิมพ์เพื่อค้นหา...';
   return '<div class="mb-4">' +
     '<label class="block text-sm font-medium text-gray-700 mb-1">' + label + '</label>' +
-    '<input type="text" id="' + id + '" value="' + (selectedValue || '').replace(/"/g, '&quot;') + '" placeholder="' + placeholder + '" ' +
-    'list="' + id + '-list" autocomplete="off" ' +
+    '<input type="text" id="' + escAttr(id) + '" value="' + escAttr(selectedValue) + '" placeholder="' + escAttr(placeholder) + '" ' +
+    'list="' + escAttr(id) + '-list" autocomplete="off" ' +
     'class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">' +
-    '<datalist id="' + id + '-list">' +
-    options.map(function(o) { return '<option value="' + (o || '').replace(/"/g, '&quot;') + '">'; }).join('') +
+    '<datalist id="' + escAttr(id) + '-list">' +
+    options.map(function(o) { return '<option value="' + escAttr(o) + '">'; }).join('') +
     '</datalist></div>';
 }
 

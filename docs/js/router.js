@@ -46,9 +46,10 @@ function router() {
   }
 
   const renderFn = routes[page];
-  if (renderFn) {
-    renderFn();
+  if (typeof renderFn === 'function') {
+    try { renderFn(); } catch (err) { console.error('[Router] render error on page "' + page + '":', err); }
   } else {
+    console.warn('[Router] No render function for page:', page);
     renderLogin();
   }
 }
