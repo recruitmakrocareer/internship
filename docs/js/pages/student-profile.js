@@ -51,6 +51,61 @@ function switchProfileTab(tabId) {
   if (panel) panel.classList.remove('hidden');
 }
 
+var _profileCurrentStep = 1;
+var _profileTotalSteps = 4;
+
+function changeProfileStep(delta) {
+  var target = _profileCurrentStep + delta;
+  if (target < 1 || target > _profileTotalSteps) return;
+  gotoProfileStep(target);
+}
+
+function gotoProfileStep(step) {
+  _profileCurrentStep = step;
+
+  // Toggle panels
+  document.querySelectorAll('.profile-step').forEach(function(p) {
+    p.classList.toggle('hidden', parseInt(p.getAttribute('data-pstep'), 10) !== step);
+  });
+
+  // Update step indicator dots/labels/lines
+  for (var i = 1; i <= _profileTotalSteps; i++) {
+    var dot = document.getElementById('pstep-dot-' + i);
+    var label = document.getElementById('pstep-label-' + i);
+    var line = document.getElementById('pstep-line-' + i);
+    if (dot) {
+      if (i < step) {
+        dot.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors bg-green-500 text-white';
+        dot.innerHTML = '✓';
+      } else if (i === step) {
+        dot.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors bg-primary-600 text-white';
+        dot.innerHTML = i;
+      } else {
+        dot.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors bg-gray-200 text-gray-500';
+        dot.innerHTML = i;
+      }
+    }
+    if (label) {
+      label.className = 'text-[10px] mt-1 whitespace-nowrap ' + (i === step ? 'text-primary-600 font-medium' : 'text-gray-400');
+    }
+    if (line) {
+      line.className = 'flex-1 h-0.5 mx-2 -mt-4 ' + (i < step ? 'bg-green-500' : 'bg-gray-200');
+    }
+  }
+
+  // Toggle navigation buttons
+  var prevBtn = document.getElementById('profile-prev-btn');
+  var nextBtn = document.getElementById('profile-next-btn');
+  var saveBtn = document.getElementById('profile-save-btn');
+  if (prevBtn) prevBtn.classList.toggle('hidden', step === 1);
+  if (nextBtn) nextBtn.classList.toggle('hidden', step === _profileTotalSteps);
+  if (saveBtn) saveBtn.classList.toggle('hidden', step !== _profileTotalSteps);
+
+  // Scroll form into view
+  var form = document.getElementById('profile-form');
+  if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function handleAvatarDrop(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -207,11 +262,27 @@ async function renderStudentProfile() {
 
         <!-- Tab: ข้อมูลส่วนตัว -->
         <div id="tab-personal" class="profile-tab-panel">
-        <form id="profile-form" class="p-6 space-y-6">
+        <form id="profile-form" class="p-6">
 
+          <!-- Step Indicator -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between">
+              ${[['1','ข้อมูลพื้นฐาน'],['2','การติดต่อ'],['3','การศึกษา'],['4','ทักษะ/บันทึก']].map(function(s, idx, arr) {
+                return '<div class="flex items-center ' + (idx < arr.length - 1 ? 'flex-1' : '') + '">' +
+                  '<div class="flex flex-col items-center">' +
+                    '<div id="pstep-dot-' + s[0] + '" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ' + (s[0] === '1' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500') + '">' + s[0] + '</div>' +
+                    '<span id="pstep-label-' + s[0] + '" class="text-[10px] mt-1 whitespace-nowrap ' + (s[0] === '1' ? 'text-primary-600 font-medium' : 'text-gray-400') + '">' + s[1] + '</span>' +
+                  '</div>' +
+                  (idx < arr.length - 1 ? '<div id="pstep-line-' + s[0] + '" class="flex-1 h-0.5 mx-2 bg-gray-200 -mt-4"></div>' : '') +
+                '</div>';
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="profile-step" data-pstep="1">
           <!-- Section: ข้อมูลส่วนตัว -->
           <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลส่วนตัว</h3>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลพื้นฐาน</h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="mb-4">
                 <label for="profile-prefix" class="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label>
@@ -290,11 +361,12 @@ async function renderStudentProfile() {
             </div>
           </div>
 
-          <hr class="border-gray-200">
+          </div><!-- /step 1 -->
 
+          <div class="profile-step hidden" data-pstep="2">
           <!-- Section: ที่อยู่ -->
           <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ที่อยู่</h3>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ที่อยู่ / การติดต่อ</h3>
             <p class="text-xs text-gray-500 mb-2 font-medium">ที่อยู่ปัจจุบัน</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="mb-4">
@@ -415,8 +487,9 @@ async function renderStudentProfile() {
             </div>
           </div>
 
-          <hr class="border-gray-200">
+          </div><!-- /step 2 -->
 
+          <div class="profile-step hidden" data-pstep="3">
           <!-- Section: ข้อมูลการศึกษา -->
           <div>
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลการศึกษา</h3>
@@ -491,21 +564,33 @@ async function renderStudentProfile() {
             </div>
           </div>
 
-          <hr class="border-gray-200">
+          </div><!-- /step 3 -->
 
+          <div class="profile-step hidden" data-pstep="4">
           <!-- Section: ข้อมูลเพิ่มเติม -->
           <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลเพิ่มเติม</h3>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ทักษะ / ข้อมูลเพิ่มเติม</h3>
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">ทักษะ/ความสามารถ</label>
               ${buildProfileSkillsHtml(profile.skills || '')}
             </div>
             ${textareaField('profile-interests', 'ความสนใจ', profile.interests || '', 'สิ่งที่สนใจหรืออยากเรียนรู้', 2)}
           </div>
+          </div><!-- /step 4 -->
 
-          <div class="flex justify-end pt-4 gap-3">
+          <!-- Navigation bar -->
+          <div class="flex justify-between items-center pt-6 mt-6 border-t border-gray-200">
+            <button type="button" id="profile-prev-btn" onclick="changeProfileStep(-1)"
+              class="hidden px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+              ← ย้อนกลับ
+            </button>
+            <div class="flex-1"></div>
+            <button type="button" id="profile-next-btn" onclick="changeProfileStep(1)"
+              class="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm transition-colors">
+              ต่อไป →
+            </button>
             <button type="submit" id="profile-save-btn"
-              class="bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
+              class="hidden px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm transition-colors">
               บันทึกข้อมูล
             </button>
           </div>
@@ -764,8 +849,16 @@ async function renderStudentProfile() {
 
     window._profileDocFiles = {};
 
+    // Initialize multi-step wizard at step 1
+    gotoProfileStep(1);
+
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      // In the wizard, only save on the final step (avoid premature submit via Enter key)
+      if (_profileCurrentStep !== _profileTotalSteps) {
+        changeProfileStep(1);
+        return;
+      }
       const btn = document.getElementById('profile-save-btn');
       btn.disabled = true;
       btn.textContent = 'กำลังบันทึก...';
