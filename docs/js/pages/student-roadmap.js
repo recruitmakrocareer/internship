@@ -852,13 +852,84 @@ function renderOverviewCalGrid() {
 function onOverviewCalDayClick(dateStr, evt) {
   const events = (window._overviewCalEvents || {})[dateStr];
   if (events && events.length > 0) {
-    // Day has events — open the first event's step modal
-    const ev = events[0];
-    openStepModal(ev.stepId, ev.rIndex, ev.sIndex);
+    showDaySummary(dateStr, events, evt);
   } else {
-    // Day is empty — show picker of unplanned / in-progress steps
     showDayStepPicker(dateStr, evt);
   }
+}
+
+function showDaySummary(dateStr, events, evt) {
+  var existing = document.getElementById('day-step-picker');
+  if (existing) existing.remove();
+
+  var parts = dateStr.split('-');
+  var displayDate = parseInt(parts[2], 10) + ' ' + (typeof THAI_MONTHS !== 'undefined' ? THAI_MONTHS[parseInt(parts[1], 10) - 1] : parts[1]) + ' ' + (parseInt(parts[0], 10) + 543);
+
+  var eventsHtml = '';
+  events.forEach(function(ev) {
+    eventsHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors" ' +
+      'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ev.stepId + '\', ' + ev.rIndex + ', ' + ev.sIndex + ')">' +
+      '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + (ev.color.indexOf('green') >= 0 ? 'bg-green-400' : ev.color.indexOf('blue') >= 0 ? 'bg-blue-400' : ev.color.indexOf('red') >= 0 ? 'bg-red-400' : 'bg-gray-400') + '"></span>' +
+      '<span class="truncate flex-1">' + ev.title + '</span>' +
+      (ev.timeLabel ? '<span class="text-[10px] text-gray-400 flex-shrink-0">' + ev.timeLabel + '</span>' : '') +
+      '<svg class="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+      '</button>';
+  });
+
+  var roadmaps = window._studentRoadmaps || [];
+  var progressMap = window._studentProgressMap || {};
+  var pickableSteps = [];
+  roadmaps.forEach(function(r, rIndex) {
+    (r.steps || []).forEach(function(s, sIndex) {
+      var p = progressMap[s.id];
+      var status = deriveTrainingStatus(p);
+      if (status === 'NOT_PLANNED' || status === 'IN_PROGRESS') {
+        pickableSteps.push({ stepId: s.id, rIndex: rIndex, sIndex: sIndex, title: s.title || 'หัวข้อการฝึก', status: status });
+      }
+    });
+  });
+
+  var addHtml = '';
+  if (pickableSteps.length > 0) {
+    addHtml = '<div class="border-t border-gray-100"><div class="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">เพิ่มวิชาใหม่</div>';
+    pickableSteps.forEach(function(ps) {
+      var badge = ps.status === 'IN_PROGRESS'
+        ? '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-600 rounded-full ml-auto flex-shrink-0">กำลังฝึก</span>'
+        : '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded-full ml-auto flex-shrink-0">ยังไม่วางแผน</span>';
+      addHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors" ' +
+        'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ps.stepId + '\', ' + ps.rIndex + ', ' + ps.sIndex + ')">' +
+        '<svg class="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>' +
+        '<span class="truncate flex-1">' + ps.title + '</span>' + badge + '</button>';
+    });
+    addHtml += '</div>';
+  }
+
+  var picker = document.createElement('div');
+  picker.id = 'day-step-picker';
+  picker.className = 'fixed z-[80] bg-white rounded-xl shadow-2xl border border-gray-200 w-80 max-h-96 overflow-hidden';
+  picker.style.left = Math.min(evt.clientX, window.innerWidth - 330) + 'px';
+  picker.style.top = Math.min(evt.clientY, window.innerHeight - 400) + 'px';
+
+  picker.innerHTML =
+    '<div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50 rounded-t-xl">' +
+      '<span class="text-xs font-semibold text-gray-600">📅 ' + displayDate + ' <span class="font-normal text-gray-400">(' + events.length + ' วิชา)</span></span>' +
+      '<button onclick="document.getElementById(\'day-step-picker\').remove()" class="text-gray-400 hover:text-gray-600 p-0.5">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+      '</button>' +
+    '</div>' +
+    '<div class="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">แผนที่มีอยู่</div>' +
+    '<div class="divide-y divide-gray-50">' + eventsHtml + '</div>' +
+    addHtml;
+
+  document.body.appendChild(picker);
+
+  function closePicker(e) {
+    if (!picker.contains(e.target)) {
+      picker.remove();
+      document.removeEventListener('mousedown', closePicker);
+    }
+  }
+  setTimeout(function() { document.addEventListener('mousedown', closePicker); }, 0);
 }
 
 function showDayStepPicker(dateStr, evt) {

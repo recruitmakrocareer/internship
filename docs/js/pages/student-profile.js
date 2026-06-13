@@ -34,6 +34,52 @@ function collectProfileSkillsValue() {
   return skills.join(', ');
 }
 
+function switchProfileTab(tabId) {
+  document.querySelectorAll('.profile-tab-btn').forEach(function(btn) {
+    btn.classList.remove('border-primary-500', 'text-primary-600');
+    btn.classList.add('border-transparent', 'text-gray-500');
+  });
+  document.querySelectorAll('.profile-tab-panel').forEach(function(p) {
+    p.classList.add('hidden');
+  });
+  var activeBtn = document.querySelector('[data-tab="' + tabId + '"]');
+  if (activeBtn) {
+    activeBtn.classList.add('border-primary-500', 'text-primary-600');
+    activeBtn.classList.remove('border-transparent', 'text-gray-500');
+  }
+  var panel = document.getElementById('tab-' + tabId);
+  if (panel) panel.classList.remove('hidden');
+}
+
+function handleAvatarDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  var zone = document.getElementById('profile-avatar-zone');
+  if (zone) zone.classList.remove('ring-4', 'ring-primary-300');
+  var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+  if (!files || !files.length) return;
+  var file = files[0];
+  if (!file.type.match(/^image\/(jpeg|png|jpg)$/)) {
+    showToast('กรุณาเลือกไฟล์ JPG หรือ PNG เท่านั้น', 'error');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('ไฟล์รูปภาพมีขนาดใหญ่เกินไป (สูงสุด 5MB)', 'error');
+    return;
+  }
+  window._profileDocFiles = window._profileDocFiles || {};
+  window._profileDocFiles['photo'] = file;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = document.getElementById('profile-avatar-img');
+    if (img) { img.src = ev.target.result; img.classList.remove('hidden'); }
+    var initials = document.getElementById('profile-avatar-initials');
+    if (initials) initials.classList.add('hidden');
+    showToast('เลือกรูปแล้ว กดบันทึกเพื่ออัปโหลด', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
 async function renderStudentProfile() {
   if (!checkAuth()) return;
   const user = getCurrentUser();
@@ -43,10 +89,38 @@ async function renderStudentProfile() {
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">ข้อมูลส่วนตัว</h2>
       <div id="profile-content" class="max-w-3xl">
-        <div class="bg-white rounded-xl shadow-sm p-6 animate-pulse">
-          <div class="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div class="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
-          <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="bg-gradient-to-r from-primary-500 to-primary-700 p-6">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 bg-white/20 rounded-full animate-pulse"></div>
+              <div class="space-y-2 flex-1">
+                <div class="h-5 bg-white/20 rounded w-1/3 animate-pulse"></div>
+                <div class="h-3 bg-white/20 rounded w-1/4 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          <div class="border-b border-gray-200 px-6">
+            <div class="flex gap-6 py-3">
+              <div class="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+              <div class="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+              <div class="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div class="h-10 bg-gray-100 rounded-lg animate-pulse"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -92,18 +166,47 @@ async function renderStudentProfile() {
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="bg-gradient-to-r from-primary-500 to-primary-700 p-6">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
-              ${profile.photoFileUrl
-                ? '<img src="' + driveImageUrl(profile.photoFileUrl) + '" alt="Photo" class="w-full h-full object-cover">'
-                : '<span class="text-primary-700 font-bold text-2xl">' + (firstName || 'U').charAt(0).toUpperCase() + '</span>'}
+            <div id="profile-avatar-zone" class="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden relative cursor-pointer group flex-shrink-0 transition-all"
+              ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('ring-4','ring-primary-300');"
+              ondragleave="this.classList.remove('ring-4','ring-primary-300');"
+              ondrop="handleAvatarDrop(event)"
+              onclick="document.getElementById('profile-avatar-input').click()">
+              <img id="profile-avatar-img" src="${profile.photoFileUrl ? driveImageUrl(profile.photoFileUrl) : ''}" alt="Photo"
+                class="w-full h-full object-cover ${profile.photoFileUrl ? '' : 'hidden'}">
+              <span id="profile-avatar-initials" class="text-primary-700 font-bold text-2xl ${profile.photoFileUrl ? 'hidden' : ''}">${(firstName || 'U').charAt(0).toUpperCase()}</span>
+              <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <input type="file" id="profile-avatar-input" accept=".jpg,.jpeg,.png" class="hidden" onchange="handleAvatarDrop(event)">
             </div>
             <div class="text-white">
               <h3 class="text-xl font-bold">${profile.prefix ? profile.prefix + ' ' : ''}${firstName} ${lastName}</h3>
               <p class="text-primary-100 text-sm">${profile.email || '-'}</p>
+              <p class="text-primary-200 text-xs mt-0.5">ลากรูปมาวาง หรือคลิกที่รูปเพื่อเปลี่ยน</p>
             </div>
           </div>
         </div>
 
+        <!-- Tabs -->
+        <div class="border-b border-gray-200">
+          <nav class="flex px-6 -mb-px">
+            <button type="button" data-tab="personal" onclick="switchProfileTab('personal')"
+              class="profile-tab-btn px-4 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600 transition-colors">
+              ข้อมูลส่วนตัว
+            </button>
+            <button type="button" data-tab="documents" onclick="switchProfileTab('documents')"
+              class="profile-tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors">
+              เอกสาร
+            </button>
+            <button type="button" data-tab="security" onclick="switchProfileTab('security')"
+              class="profile-tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors">
+              ความปลอดภัย
+            </button>
+          </nav>
+        </div>
+
+        <!-- Tab: ข้อมูลส่วนตัว -->
+        <div id="tab-personal" class="profile-tab-panel">
         <form id="profile-form" class="p-6 space-y-6">
 
           <!-- Section: ข้อมูลส่วนตัว -->
@@ -400,80 +503,6 @@ async function renderStudentProfile() {
             ${textareaField('profile-interests', 'ความสนใจ', profile.interests || '', 'สิ่งที่สนใจหรืออยากเรียนรู้', 2)}
           </div>
 
-          <hr class="border-gray-200">
-
-          <!-- Section: เอกสาร -->
-          <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">เอกสารประกอบ</h3>
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-              <h4 class="text-sm font-medium text-gray-700 mb-2">สถานะเอกสาร</h4>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div class="flex items-center gap-2">
-                  <span class="${profile.cvFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.cvFileUrl ? '✓' : '○'}</span>
-                  <span class="text-sm ${profile.cvFileUrl ? 'text-green-700' : 'text-gray-500'}">Resume/CV</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="${profile.transcriptFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.transcriptFileUrl ? '✓' : '○'}</span>
-                  <span class="text-sm ${profile.transcriptFileUrl ? 'text-green-700' : 'text-gray-500'}">ใบรับรองผลการเรียน</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="${profile.idCardFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.idCardFileUrl ? '✓' : '○'}</span>
-                  <span class="text-sm ${profile.idCardFileUrl ? 'text-green-700' : 'text-gray-500'}">สำเนาบัตรประชาชน</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="${profile.photoFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.photoFileUrl ? '✓' : '○'}</span>
-                  <span class="text-sm ${profile.photoFileUrl ? 'text-green-700' : 'text-gray-500'}">รูปถ่าย</span>
-                </div>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
-                <label for="profile-doc-cv" class="cursor-pointer block">
-                  <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <p class="text-sm font-medium text-gray-700">Resume / CV</p>
-                  <p class="text-xs text-gray-400 mt-1">PDF, DOC (สูงสุด 10MB)</p>
-                  <input type="file" id="profile-doc-cv" accept=".pdf,.doc,.docx" class="hidden" onchange="handleProfileDocSelect(this, 'cv')">
-                </label>
-                <div id="profile-doc-cv-status" class="mt-2 text-xs">
-                  ${profile.cvFileUrl ? '<a href="' + profile.cvFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
-                </div>
-              </div>
-              <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
-                <label for="profile-doc-transcript" class="cursor-pointer block">
-                  <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                  <p class="text-sm font-medium text-gray-700">ใบรับรองผลการเรียน</p>
-                  <p class="text-xs text-gray-400 mt-1">PDF (สูงสุด 10MB)</p>
-                  <input type="file" id="profile-doc-transcript" accept=".pdf" class="hidden" onchange="handleProfileDocSelect(this, 'transcript')">
-                </label>
-                <div id="profile-doc-transcript-status" class="mt-2 text-xs">
-                  ${profile.transcriptFileUrl ? '<a href="' + profile.transcriptFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
-                </div>
-              </div>
-              <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
-                <label for="profile-doc-idcard" class="cursor-pointer block">
-                  <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>
-                  <p class="text-sm font-medium text-gray-700">สำเนาบัตรประชาชน</p>
-                  <p class="text-xs text-gray-400 mt-1">PDF, รูปภาพ (สูงสุด 10MB)</p>
-                  <input type="file" id="profile-doc-idcard" accept=".pdf,.jpg,.jpeg,.png" class="hidden" onchange="handleProfileDocSelect(this, 'idcard')">
-                </label>
-                <div id="profile-doc-idcard-status" class="mt-2 text-xs">
-                  ${profile.idCardFileUrl ? '<a href="' + profile.idCardFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
-                </div>
-              </div>
-              <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
-                <label for="profile-doc-photo" class="cursor-pointer block">
-                  <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  <p class="text-sm font-medium text-gray-700">รูปถ่ายนักศึกษา</p>
-                  <p class="text-xs text-gray-400 mt-1">JPG, PNG (สูงสุด 5MB)</p>
-                  <input type="file" id="profile-doc-photo" accept=".jpg,.jpeg,.png" class="hidden" onchange="handleProfileDocSelect(this, 'photo')">
-                </label>
-                <div id="profile-doc-photo-status" class="mt-2 text-xs">
-                  ${profile.photoFileUrl ? '<a href="' + profile.photoFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="flex justify-end pt-4 gap-3">
             <button type="submit" id="profile-save-btn"
               class="bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
@@ -481,6 +510,141 @@ async function renderStudentProfile() {
             </button>
           </div>
         </form>
+        </div>
+
+        <!-- Tab: เอกสาร -->
+        <div id="tab-documents" class="profile-tab-panel hidden">
+        <div class="p-6 space-y-6">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">สถานะเอกสาร</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span class="text-lg ${profile.cvFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.cvFileUrl ? '✓' : '○'}</span>
+                <span class="text-sm ${profile.cvFileUrl ? 'text-green-700 font-medium' : 'text-gray-500'}">Resume/CV</span>
+              </div>
+              <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span class="text-lg ${profile.transcriptFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.transcriptFileUrl ? '✓' : '○'}</span>
+                <span class="text-sm ${profile.transcriptFileUrl ? 'text-green-700 font-medium' : 'text-gray-500'}">ผลการเรียน</span>
+              </div>
+              <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span class="text-lg ${profile.idCardFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.idCardFileUrl ? '✓' : '○'}</span>
+                <span class="text-sm ${profile.idCardFileUrl ? 'text-green-700 font-medium' : 'text-gray-500'}">บัตรประชาชน</span>
+              </div>
+              <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span class="text-lg ${profile.photoFileUrl ? 'text-green-500' : 'text-gray-300'}">${profile.photoFileUrl ? '✓' : '○'}</span>
+                <span class="text-sm ${profile.photoFileUrl ? 'text-green-700 font-medium' : 'text-gray-500'}">รูปถ่าย</span>
+              </div>
+            </div>
+          </div>
+
+          <form id="profile-doc-form" onsubmit="return false;">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
+              <label for="profile-doc-cv" class="cursor-pointer block">
+                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <p class="text-sm font-medium text-gray-700">Resume / CV</p>
+                <p class="text-xs text-gray-400 mt-1">PDF, DOC (สูงสุด 10MB)</p>
+                <input type="file" id="profile-doc-cv" accept=".pdf,.doc,.docx" class="hidden" onchange="handleProfileDocSelect(this, 'cv')">
+              </label>
+              <div id="profile-doc-cv-status" class="mt-2 text-xs">
+                ${profile.cvFileUrl ? '<a href="' + profile.cvFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+              </div>
+            </div>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
+              <label for="profile-doc-transcript" class="cursor-pointer block">
+                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <p class="text-sm font-medium text-gray-700">ใบรับรองผลการเรียน</p>
+                <p class="text-xs text-gray-400 mt-1">PDF (สูงสุด 10MB)</p>
+                <input type="file" id="profile-doc-transcript" accept=".pdf" class="hidden" onchange="handleProfileDocSelect(this, 'transcript')">
+              </label>
+              <div id="profile-doc-transcript-status" class="mt-2 text-xs">
+                ${profile.transcriptFileUrl ? '<a href="' + profile.transcriptFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+              </div>
+            </div>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
+              <label for="profile-doc-idcard" class="cursor-pointer block">
+                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>
+                <p class="text-sm font-medium text-gray-700">สำเนาบัตรประชาชน</p>
+                <p class="text-xs text-gray-400 mt-1">PDF, รูปภาพ (สูงสุด 10MB)</p>
+                <input type="file" id="profile-doc-idcard" accept=".pdf,.jpg,.jpeg,.png" class="hidden" onchange="handleProfileDocSelect(this, 'idcard')">
+              </label>
+              <div id="profile-doc-idcard-status" class="mt-2 text-xs">
+                ${profile.idCardFileUrl ? '<a href="' + profile.idCardFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+              </div>
+            </div>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
+              <label for="profile-doc-photo" class="cursor-pointer block">
+                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <p class="text-sm font-medium text-gray-700">รูปถ่ายนักศึกษา</p>
+                <p class="text-xs text-gray-400 mt-1">JPG, PNG (สูงสุด 5MB)</p>
+                <input type="file" id="profile-doc-photo" accept=".jpg,.jpeg,.png" class="hidden" onchange="handleProfileDocSelect(this, 'photo')">
+              </label>
+              <div id="profile-doc-photo-status" class="mt-2 text-xs">
+                ${profile.photoFileUrl ? '<a href="' + profile.photoFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end pt-4">
+            <button type="button" onclick="saveProfileDocuments()"
+              id="profile-doc-save-btn"
+              class="bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
+              อัปโหลดเอกสาร
+            </button>
+          </div>
+          </form>
+        </div>
+        </div>
+
+        <!-- Tab: ความปลอดภัย -->
+        <div id="tab-security" class="profile-tab-panel hidden">
+        <div class="p-6 space-y-6">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">เปลี่ยนรหัสผ่าน</h3>
+            <div class="max-w-md space-y-4">
+              <div>
+                <label for="profile-current-password" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านปัจจุบัน</label>
+                <input type="password" id="profile-current-password" placeholder="กรอกรหัสผ่านปัจจุบัน"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div>
+                <label for="profile-new-password" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านใหม่</label>
+                <input type="password" id="profile-new-password" placeholder="อย่างน้อย 6 ตัวอักษร"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div>
+                <label for="profile-confirm-password" class="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
+                <input type="password" id="profile-confirm-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div class="flex justify-end pt-2">
+                <button type="button" onclick="changeProfilePassword()" id="profile-pw-btn"
+                  class="bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
+                  เปลี่ยนรหัสผ่าน
+                </button>
+              </div>
+            </div>
+          </div>
+          <hr class="border-gray-200">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลบัญชี</h3>
+            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">อีเมล</span>
+                <span class="text-gray-700 font-medium">${profile.email || '-'}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">บทบาท</span>
+                <span class="text-gray-700 font-medium">${profile.role === 'student' ? 'นักศึกษา' : profile.role || '-'}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">สถานะ</span>
+                <span class="inline-flex items-center gap-1 text-green-700"><span class="w-2 h-2 bg-green-500 rounded-full"></span> ใช้งานอยู่</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+
       </div>
     `;
 
@@ -743,7 +907,83 @@ function handleProfileDocSelect(input, docType) {
     return;
   }
 
+  window._profileDocFiles = window._profileDocFiles || {};
   window._profileDocFiles[docType] = file;
   const statusEl = document.getElementById('profile-doc-' + docType + '-status');
   statusEl.innerHTML = '<span class="text-blue-600">' + file.name + '</span>';
+}
+
+async function saveProfileDocuments() {
+  var user = getCurrentUser();
+  var btn = document.getElementById('profile-doc-save-btn');
+  if (!window._profileDocFiles || Object.keys(window._profileDocFiles).length === 0) {
+    showToast('กรุณาเลือกไฟล์ก่อน', 'error');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'กำลังอัปโหลด...';
+  var data = { userId: user.id };
+  var docFieldMap = { cv: 'cv', transcript: 'transcript', idcard: 'idCard', photo: 'photo' };
+  try {
+    for (var docType in window._profileDocFiles) {
+      var file = window._profileDocFiles[docType];
+      var statusEl = document.getElementById('profile-doc-' + docType + '-status');
+      if (statusEl) statusEl.innerHTML = '<span class="text-blue-500">กำลังอัปโหลด...</span>';
+      try {
+        var base64 = await fileToBase64(file);
+        var uploadResult = await callApiPost('uploadFile', {
+          fileName: file.name, fileData: base64, mimeType: file.type, subfolder: 'profiles'
+        });
+        if (uploadResult.success !== false && uploadResult.data) {
+          var fieldPrefix = docFieldMap[docType] || docType;
+          data[fieldPrefix + 'FileUrl'] = uploadResult.data.fileUrl;
+          data[fieldPrefix + 'FileName'] = uploadResult.data.fileName;
+          if (statusEl) statusEl.innerHTML = '<span class="text-green-600">อัปโหลดสำเร็จ</span>';
+        }
+      } catch (err) {
+        if (statusEl) statusEl.innerHTML = '<span class="text-red-500">อัปโหลดล้มเหลว</span>';
+      }
+    }
+    if (Object.keys(data).length > 1) {
+      await callApiPost('updateProfile', data);
+      showToast('อัปโหลดเอกสารสำเร็จ', 'success');
+      window._profileDocFiles = {};
+    }
+  } catch (error) {
+    showToast('เกิดข้อผิดพลาดในการอัปโหลด', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'อัปโหลดเอกสาร';
+  }
+}
+
+async function changeProfilePassword() {
+  var user = getCurrentUser();
+  var currentPw = document.getElementById('profile-current-password').value;
+  var newPw = document.getElementById('profile-new-password').value;
+  var confirmPw = document.getElementById('profile-confirm-password').value;
+  if (!currentPw) { showToast('กรุณากรอกรหัสผ่านปัจจุบัน', 'error'); return; }
+  if (!newPw || newPw.length < 6) { showToast('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร', 'error'); return; }
+  if (newPw !== confirmPw) { showToast('รหัสผ่านใหม่ไม่ตรงกัน', 'error'); return; }
+  var btn = document.getElementById('profile-pw-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังเปลี่ยน...';
+  try {
+    var result = await callApiPost('changePassword', {
+      userId: user.id, currentPassword: currentPw, newPassword: newPw
+    });
+    if (result.success) {
+      showToast('เปลี่ยนรหัสผ่านสำเร็จ', 'success');
+      document.getElementById('profile-current-password').value = '';
+      document.getElementById('profile-new-password').value = '';
+      document.getElementById('profile-confirm-password').value = '';
+    } else {
+      showToast(result.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+  } catch (error) {
+    showToast('เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'เปลี่ยนรหัสผ่าน';
+  }
 }
