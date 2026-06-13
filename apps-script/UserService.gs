@@ -30,6 +30,30 @@ function getStudents(search, activeOnly) {
       });
     }
 
+    // Build mentor lookup so each student row carries its assigned mentor.
+    // Done in bulk (two reads) instead of per-student to avoid N+1 lookups.
+    var activeAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, { isActive: 'true' });
+    var allUsers = getAllRows(CONFIG.SHEETS.USERS);
+    var userById = {};
+    for (var u0 = 0; u0 < allUsers.length; u0++) {
+      userById[String(allUsers[u0].id)] = allUsers[u0];
+    }
+    var mentorByStudent = {};
+    for (var a = 0; a < activeAssignments.length; a++) {
+      var sid = String(activeAssignments[a].studentId);
+      if (mentorByStudent[sid]) continue; // keep first active assignment
+      var mu = userById[String(activeAssignments[a].mentorId)];
+      if (mu) {
+        mentorByStudent[sid] = {
+          id: mu.id,
+          firstName: mu.firstName,
+          lastName: mu.lastName,
+          email: mu.email,
+          department: mu.department
+        };
+      }
+    }
+
     // Remove password from results
     var students = users.map(function(u) {
       var copy = {};
@@ -39,6 +63,7 @@ function getStudents(search, activeOnly) {
           copy[keys[i]] = u[keys[i]];
         }
       }
+      copy.mentor = mentorByStudent[String(u.id)] || null;
       return copy;
     });
 

@@ -980,6 +980,12 @@ async function inlineAssignMentor(studentId, mentorId) {
     var result = await callApiPost('assignMentor', { mentorId: mentorId, studentId: studentId });
     if (result.success) {
       showToast('กำหนดพี่เลี้ยงสำเร็จ', 'success');
+      // Keep the cache in sync so re-renders (search/filter) preserve the selection.
+      var cached = _studentsCache.find(function(s) { return s.id === studentId; });
+      var m = _mentorsCache.find(function(x) { return x.id === mentorId; });
+      if (cached && m) {
+        cached.mentor = { id: m.id, firstName: m.firstName, lastName: m.lastName, email: m.email, department: m.department };
+      }
     } else {
       showToast(result.message || 'ไม่สามารถกำหนดพี่เลี้ยงได้', 'error');
     }
