@@ -66,9 +66,10 @@ function renderAdminStudents() {
     <div id="student-modal"></div>
   `;
 
-  document.getElementById('student-search').addEventListener('input', loadStudents);
-  document.getElementById('student-status-filter').addEventListener('change', loadStudents);
-  document.getElementById('student-dept-filter').addEventListener('change', loadStudents);
+  // Search ใช้ debounce 300ms และกรองจาก cache เท่านั้น (ไม่เรียก API ซ้ำทุกตัวอักษร)
+  document.getElementById('student-search').addEventListener('input', debouncedRenderStudents);
+  document.getElementById('student-status-filter').addEventListener('change', renderStudentsTable);
+  document.getElementById('student-dept-filter').addEventListener('change', renderStudentsTable);
 
   loadStudents();
 }
@@ -77,6 +78,19 @@ let _studentsCache = [];
 let _mentorsCache = [];
 let _roadmapsCache = [];
 
+// Debounce helper เพื่อกันการ re-render ถี่เกินไปขณะพิมพ์
+function _debounce(fn, delay) {
+  let timer = null;
+  return function() {
+    const args = arguments;
+    const ctx = this;
+    clearTimeout(timer);
+    timer = setTimeout(function() { fn.apply(ctx, args); }, delay);
+  };
+}
+const debouncedRenderStudents = _debounce(renderStudentsTable, 300);
+
+// โหลดข้อมูลจาก API ครั้งเดียว แล้วเก็บไว้ใน cache จากนั้นค่อย render
 async function loadStudents() {
   const tbody = document.getElementById('students-table-body');
   if (!tbody) return;
@@ -93,8 +107,6 @@ async function loadStudents() {
     _mentorsCache = (mentorResult.success && mentorResult.data) ? mentorResult.data : [];
     _roadmapsCache = (roadmapResult.success && roadmapResult.data) ? roadmapResult.data : [];
 
-    let students = _studentsCache;
-
     // Populate dept filter from loaded data
     var deptFilterEl = document.getElementById('student-dept-filter');
     if (deptFilterEl && !deptFilterEl._populated) {
@@ -109,18 +121,34 @@ async function loadStudents() {
       }
     }
 
-    const search = (document.getElementById('student-search')?.value || '').toLowerCase();
+    renderStudentsTable();
+  } catch (error) {
+    console.error('Error loading students:', error);
+    tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+  }
+}
+
+// กรองจาก cache + render (ไม่เรียก API) — รองรับ partial match และค่า null/undefined
+function renderStudentsTable() {
+  const tbody = document.getElementById('students-table-body');
+  if (!tbody) return;
+
+  try {
+    let students = Array.isArray(_studentsCache) ? _studentsCache.slice() : [];
+
+    const search = String(document.getElementById('student-search')?.value || '').toLowerCase().trim();
     const statusFilter = document.getElementById('student-status-filter')?.value || '';
     const deptFilter = document.getElementById('student-dept-filter')?.value || '';
 
     if (search) {
-      students = students.filter(s =>
-        (s.name || '').toLowerCase().includes(search) ||
-        (s.firstName || '').toLowerCase().includes(search) ||
-        (s.lastName || '').toLowerCase().includes(search) ||
-        (s.studentId || '').toLowerCase().includes(search) ||
-        (s.email || '').toLowerCase().includes(search)
-      );
+      students = students.filter(function(s) {
+        if (!s) return false;
+        var haystack = [
+          s.name, s.firstName, s.lastName, s.studentId,
+          s.email, s.university, s.major, s.department, s.branch
+        ].map(function(v) { return v == null ? '' : String(v).toLowerCase(); }).join(' ');
+        return haystack.indexOf(search) !== -1;
+      });
     }
     if (statusFilter === 'ACTIVE') {
       students = students.filter(s => String(s.isActive) !== 'false');
@@ -203,8 +231,8 @@ async function loadStudents() {
         </tr>`;
     }).join('');
   } catch (error) {
-    console.error('Error loading students:', error);
-    tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+    console.error('Error rendering students table:', error);
+    tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-8 text-center text-red-500">เกิดข้อผิดพลาดในการแสดงผลข้อมูล</td></tr>';
   }
 }
 
