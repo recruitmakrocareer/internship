@@ -140,6 +140,17 @@ function handleApiRequest(params) {
         result = getStudentsByMentor(params.mentorId);
         break;
 
+      // === Mentor Contacts (student multi-mentor) ===
+      case 'getMyMentors':
+        result = getMyMentors(params.studentId);
+        break;
+      case 'addMentorContact':
+        result = addMentorContact(params.studentId, params.mentorId);
+        break;
+      case 'removeMentorContact':
+        result = removeMentorContact(params.studentId, params.mentorId);
+        break;
+
       // === Roadmaps ===
       case 'getRoadmaps':
         result = getRoadmaps();

@@ -49,7 +49,7 @@ var CONFIG = {
       'currentSubdistrict', 'currentDistrict',
       'idCardHouseNo', 'idCardVillage', 'idCardSoi', 'idCardRoad',
       'idCardSubdistrict', 'idCardDistrict',
-      'maxStudents'
+      'maxStudents', 'studentStatus'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'

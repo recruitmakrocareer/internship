@@ -26,6 +26,12 @@ function renderAdminStudents() {
           <select id="student-dept-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">แผนกทั้งหมด</option>
           </select>
+          <div class="relative min-w-[180px]">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-4h.01M9 9h.01M9 13h.01M13 9h.01M13 13h.01M13 17h.01"/></svg>
+            <input list="student-branch-options" id="student-branch-filter" placeholder="ค้นหาสาขา..." autocomplete="off"
+              class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            <datalist id="student-branch-options"></datalist>
+          </div>
           <select id="student-status-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">สถานะทั้งหมด</option>
             <option value="Active">Active</option>
@@ -45,17 +51,27 @@ function renderAdminStudents() {
             </div>
           </div>
         </div>
-        <div class="flex flex-col sm:flex-row gap-3 mt-3 items-start sm:items-end">
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">ช่วงเวลาฝึก (เริ่ม)</label>
-            <input type="date" id="student-period-start" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+        <div class="flex flex-col gap-3 mt-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium text-gray-500 mr-1">ช่วงเวลาฝึก:</span>
+            <button type="button" data-preset="active" onclick="setStudentPeriodPreset('active')" class="student-period-chip text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition">กำลังฝึกอยู่</button>
+            <button type="button" data-preset="thisMonth" onclick="setStudentPeriodPreset('thisMonth')" class="student-period-chip text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition">เริ่มเดือนนี้</button>
+            <button type="button" data-preset="summer" onclick="setStudentPeriodPreset('summer')" class="student-period-chip text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition">ฝึกช่วงซัมเมอร์</button>
+            <button type="button" data-preset="thisYear" onclick="setStudentPeriodPreset('thisYear')" class="student-period-chip text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition">ปีนี้</button>
+            <button type="button" data-preset="custom" onclick="setStudentPeriodPreset('custom')" class="student-period-chip text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition">กำหนดช่วงเวลาเอง…</button>
+            <button type="button" onclick="clearStudentPeriodFilter()" class="text-xs px-2 py-1.5 text-gray-400 hover:text-gray-600 underline">ล้าง</button>
+            <span id="student-result-count" class="ml-auto text-sm text-gray-400"></span>
           </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">ถึง</label>
-            <input type="date" id="student-period-end" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+          <div id="student-custom-range" class="hidden flex flex-wrap items-end gap-3 pt-1">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">เริ่ม</label>
+              <input type="date" id="student-period-start" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">ถึง</label>
+              <input type="date" id="student-period-end" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+            </div>
           </div>
-          <button type="button" onclick="clearStudentPeriodFilter()" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 underline">ล้างช่วงเวลา</button>
-          <span id="student-result-count" class="sm:ml-auto text-sm text-gray-400"></span>
         </div>
       </div>
 
@@ -91,6 +107,7 @@ function renderAdminStudents() {
   document.getElementById('student-search').addEventListener('input', debouncedRenderStudents);
   document.getElementById('student-status-filter').addEventListener('change', renderStudentsTable);
   document.getElementById('student-dept-filter').addEventListener('change', renderStudentsTable);
+  document.getElementById('student-branch-filter').addEventListener('input', debouncedRenderStudents);
   document.getElementById('student-period-start').addEventListener('change', renderStudentsTable);
   document.getElementById('student-period-end').addEventListener('change', renderStudentsTable);
 
@@ -172,11 +189,96 @@ function applyStudentColumnVisibility() {
   });
 }
 
+// Smart date-range filter: เก็บ preset ที่เลือกไว้ ('', 'active', 'thisMonth', 'summer', 'thisYear', 'custom')
+var _studentPeriodPreset = '';
+
+function setStudentPeriodPreset(preset) {
+  // คลิกซ้ำที่ chip เดิม = ยกเลิก
+  _studentPeriodPreset = (_studentPeriodPreset === preset) ? '' : preset;
+  var customBox = document.getElementById('student-custom-range');
+  if (customBox) customBox.classList.toggle('hidden', _studentPeriodPreset !== 'custom');
+  applyPeriodChipStyles();
+  renderStudentsTable();
+}
+
+function applyPeriodChipStyles() {
+  document.querySelectorAll('.student-period-chip').forEach(function(chip) {
+    var on = chip.getAttribute('data-preset') === _studentPeriodPreset;
+    chip.className = 'student-period-chip text-xs px-3 py-1.5 rounded-full border transition ' +
+      (on ? 'border-primary-500 bg-primary-50 text-primary-700 font-medium' : 'border-gray-300 text-gray-600 hover:bg-gray-50');
+  });
+}
+
+// แปลง preset เป็น logic การกรองช่วงเวลาฝึก (ทำงานบน cache)
+function applyStudentPeriodFilter(students) {
+  var preset = _studentPeriodPreset;
+  if (!preset) return students;
+
+  var now = new Date();
+  var year = now.getFullYear();
+
+  if (preset === 'custom') {
+    var psv = document.getElementById('student-period-start')?.value || '';
+    var pev = document.getElementById('student-period-end')?.value || '';
+    if (psv) {
+      var ps = new Date(psv);
+      students = students.filter(function(s) { return s.startDate && new Date(s.startDate) >= ps; });
+    }
+    if (pev) {
+      var pe = new Date(pev); pe.setHours(23, 59, 59, 999);
+      students = students.filter(function(s) { return s.startDate && new Date(s.startDate) <= pe; });
+    }
+    return students;
+  }
+
+  if (preset === 'active') {
+    // กำลังฝึกอยู่: เริ่มแล้ว และยังไม่สิ้นสุด (หรือไม่มีวันสิ้นสุด)
+    return students.filter(function(s) {
+      if (!s.startDate) return false;
+      var start = new Date(s.startDate);
+      if (start > now) return false;
+      if (s.endDate) { var end = new Date(s.endDate); end.setHours(23,59,59,999); return end >= now; }
+      return true;
+    });
+  }
+
+  if (preset === 'thisMonth') {
+    // เริ่มฝึกในเดือนนี้
+    return students.filter(function(s) {
+      if (!s.startDate) return false;
+      var d = new Date(s.startDate);
+      return d.getFullYear() === year && d.getMonth() === now.getMonth();
+    });
+  }
+
+  if (preset === 'summer') {
+    // ฝึกช่วงซัมเมอร์: เริ่มเดือน พ.ค.–ส.ค. (index 4–7) ของปีนี้
+    return students.filter(function(s) {
+      if (!s.startDate) return false;
+      var d = new Date(s.startDate);
+      return d.getFullYear() === year && d.getMonth() >= 4 && d.getMonth() <= 7;
+    });
+  }
+
+  if (preset === 'thisYear') {
+    return students.filter(function(s) {
+      if (!s.startDate) return false;
+      return new Date(s.startDate).getFullYear() === year;
+    });
+  }
+
+  return students;
+}
+
 function clearStudentPeriodFilter() {
+  _studentPeriodPreset = '';
   var s = document.getElementById('student-period-start');
   var e = document.getElementById('student-period-end');
   if (s) s.value = '';
   if (e) e.value = '';
+  var customBox = document.getElementById('student-custom-range');
+  if (customBox) customBox.classList.add('hidden');
+  applyPeriodChipStyles();
   renderStudentsTable();
 }
 
@@ -227,6 +329,18 @@ async function loadStudents() {
       }
     }
 
+    // Populate branch datalist (searchable combobox) from loaded data
+    var branchListEl = document.getElementById('student-branch-options');
+    if (branchListEl && !branchListEl._populated) {
+      var branches = {};
+      _studentsCache.forEach(function(s) { if (s.branch) branches[s.branch] = true; });
+      var branchKeys = Object.keys(branches).sort();
+      if (branchKeys.length > 0) {
+        branchListEl.innerHTML = branchKeys.map(function(b) { return '<option value="' + b + '">'; }).join('');
+        branchListEl._populated = true;
+      }
+    }
+
     renderStudentsTable();
   } catch (error) {
     console.error('Error loading students:', error);
@@ -245,8 +359,7 @@ function renderStudentsTable() {
     const search = String(document.getElementById('student-search')?.value || '').toLowerCase().trim();
     const statusFilter = document.getElementById('student-status-filter')?.value || '';
     const deptFilter = document.getElementById('student-dept-filter')?.value || '';
-    const periodStart = document.getElementById('student-period-start')?.value || '';
-    const periodEnd = document.getElementById('student-period-end')?.value || '';
+    const branchFilter = String(document.getElementById('student-branch-filter')?.value || '').toLowerCase().trim();
 
     if (search) {
       students = students.filter(function(s) {
@@ -266,21 +379,12 @@ function renderStudentsTable() {
     if (deptFilter) {
       students = students.filter(function(s) { return s.department === deptFilter; });
     }
-    if (periodStart) {
-      var ps = new Date(periodStart);
+    if (branchFilter) {
       students = students.filter(function(s) {
-        if (!s.startDate) return false;
-        return new Date(s.startDate) >= ps;
+        return String(s.branch || '').toLowerCase().indexOf(branchFilter) !== -1;
       });
     }
-    if (periodEnd) {
-      var pe = new Date(periodEnd);
-      pe.setHours(23, 59, 59, 999);
-      students = students.filter(function(s) {
-        if (!s.startDate) return false;
-        return new Date(s.startDate) <= pe;
-      });
-    }
+    students = applyStudentPeriodFilter(students);
 
     var countEl = document.getElementById('student-result-count');
     if (countEl) countEl.textContent = 'แสดง ' + students.length + ' / ' + _studentsCache.length + ' รายการ';
@@ -945,8 +1049,16 @@ async function submitAssignRoadmap(studentId) {
 }
 
 // 4 สถานะตาม UAT: Active, Done, Inactive, Back to School
+var STUDENT_STATUS_VALUES = ['Active', 'Done', 'Inactive', 'Back to School'];
+
 function deriveStudentStatusLabel(s) {
+  // ปิดการใช้งานชนะเสมอ เพื่อให้ปุ่ม toggle สอดคล้องกับ badge
   if (String(s.isActive) === 'false') return 'Inactive';
+  // ถ้า Admin ตั้งสถานะไว้เองให้ใช้ค่านั้น
+  if (s.studentStatus && STUDENT_STATUS_VALUES.indexOf(s.studentStatus) !== -1) {
+    return s.studentStatus;
+  }
+  // มิฉะนั้นคำนวณจากช่วงเวลาฝึก
   if (s.endDate) {
     var end = new Date(s.endDate);
     var today = new Date();
@@ -967,11 +1079,73 @@ var STUDENT_STATUS_STYLES = {
   'Back to School': { css: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' }
 };
 
+// Badge แบบกดได้ — คลิกเพื่อเปิดเมนูเปลี่ยนสถานะ
 function studentStatusBadge(s) {
   var label = deriveStudentStatusLabel(s);
   var style = STUDENT_STATUS_STYLES[label] || STUDENT_STATUS_STYLES['Active'];
-  return '<span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full ' + style.css + ' font-medium">' +
-    '<span class="w-1.5 h-1.5 rounded-full ' + style.dot + '"></span>' + label + '</span>';
+  return '<button type="button" onclick="openStudentStatusMenu(event, \'' + s.id + '\')" ' +
+    'class="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full ' + style.css + ' font-medium hover:ring-2 hover:ring-offset-1 hover:ring-gray-300 transition cursor-pointer" title="คลิกเพื่อเปลี่ยนสถานะ">' +
+    '<span class="w-1.5 h-1.5 rounded-full ' + style.dot + '"></span>' + label +
+    '<svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>' +
+    '</button>';
+}
+
+// เมนู dropdown สำหรับเปลี่ยนสถานะ — วางแบบ fixed ตามตำแหน่งปุ่ม เพื่อไม่ให้ถูกตารางบัง
+function openStudentStatusMenu(event, studentId) {
+  event.stopPropagation();
+  closeStudentStatusMenu();
+  var s = _studentsCache.find(function(x) { return x.id === studentId; });
+  var current = s ? deriveStudentStatusLabel(s) : '';
+  var rect = event.currentTarget.getBoundingClientRect();
+
+  var menu = document.createElement('div');
+  menu.id = 'student-status-menu';
+  menu.className = 'fixed z-50 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 188) + 'px';
+  menu.innerHTML = STUDENT_STATUS_VALUES.map(function(v) {
+    var st = STUDENT_STATUS_STYLES[v];
+    var active = v === current;
+    return '<button type="button" onclick="changeStudentStatus(\'' + studentId + '\', \'' + v + '\')" ' +
+      'class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 ' + (active ? 'bg-gray-50 font-semibold' : '') + '">' +
+      '<span class="w-2 h-2 rounded-full ' + st.dot + '"></span>' + v +
+      (active ? '<svg class="w-3.5 h-3.5 ml-auto text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : '') +
+      '</button>';
+  }).join('');
+  document.body.appendChild(menu);
+
+  setTimeout(function() {
+    document.addEventListener('click', closeStudentStatusMenu, { once: true });
+  }, 0);
+}
+
+function closeStudentStatusMenu() {
+  var m = document.getElementById('student-status-menu');
+  if (m) m.remove();
+}
+
+async function changeStudentStatus(studentId, status) {
+  closeStudentStatusMenu();
+  var s = _studentsCache.find(function(x) { return x.id === studentId; });
+  if (s && deriveStudentStatusLabel(s) === status) return;
+
+  // 'Inactive' = ปิดการใช้งาน, สถานะอื่น = เปิดใช้งาน — ซิงค์ isActive ให้สอดคล้อง
+  var isActive = status === 'Inactive' ? 'false' : 'true';
+  showLoading();
+  try {
+    var result = await callApiPost('updateStudent', { id: studentId, studentStatus: status, isActive: isActive });
+    hideLoading();
+    if (result.success) {
+      if (s) { s.studentStatus = status; s.isActive = isActive; }
+      renderStudentsTable();
+      showToast('อัปเดตสถานะเป็น ' + status + ' สำเร็จ', 'success');
+    } else {
+      showToast(result.message || 'ไม่สามารถอัปเดตสถานะได้', 'error');
+    }
+  } catch (e) {
+    hideLoading();
+    showToast('เกิดข้อผิดพลาด', 'error');
+  }
 }
 
 async function inlineAssignMentor(studentId, mentorId) {
@@ -1005,9 +1179,10 @@ async function toggleStudentStatus(id, name) {
     showLoading();
     var result;
     if (currentlyActive) {
-      result = await callApiPost('deactivateStudent', { id: id });
+      result = await callApiPost('updateStudent', { id: id, isActive: 'false', studentStatus: 'Inactive' });
     } else {
-      result = await callApiPost('updateStudent', { id: id, isActive: 'true' });
+      // เปิดใช้งานใหม่ — ล้างสถานะ Inactive ที่ค้างอยู่ ไม่ให้ badge ยังขึ้น Inactive
+      result = await callApiPost('updateStudent', { id: id, isActive: 'true', studentStatus: 'Active' });
     }
     hideLoading();
 

@@ -11,6 +11,7 @@ const routes = {
   'student-assignments': renderStudentAssignments,
   'student-evaluations': renderStudentEvaluations,
   'student-resources': renderStudentResources,
+  'student-mentors': renderStudentMentors,
   'admin-students': renderAdminStudents,
   'admin-mentors': renderAdminMentors,
   'admin-roadmaps': renderAdminRoadmaps,
