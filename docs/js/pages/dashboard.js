@@ -28,7 +28,7 @@ function adminDashSvgIcon(name) {
 
 // ==================== Admin Analytics (Recruitment Stats + Pipeline) ====================
 
-var THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+var ADMIN_THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 
 var _adminAllStudents = [];
 var _adminStatsState = { period: 'all' };
@@ -195,7 +195,7 @@ function renderAdminUpcomingInterns() {
     } else if (d <= endOfMonth) {
       pushTo('เดือนนี้', x);
     } else {
-      pushTo(THAI_MONTHS[d.getMonth()] + ' ' + d.getFullYear(), x);
+      pushTo(ADMIN_THAI_MONTHS[d.getMonth()] + ' ' + d.getFullYear(), x);
     }
   });
 
