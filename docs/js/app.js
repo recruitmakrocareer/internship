@@ -410,15 +410,15 @@ function initLayout(user) {
 function buildModal(id, title, bodyHtml, footerHtml = '') {
   return `
     <div id="${id}" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <h3 class="text-lg font-semibold text-gray-800">${title}</h3>
-          <button onclick="document.getElementById('${id}').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+          <button onclick="closeModal('${id}')" class="text-gray-400 hover:text-gray-600">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <div class="p-6">${bodyHtml}</div>
-        ${footerHtml ? `<div class="p-6 border-t border-gray-200 flex justify-end gap-3">${footerHtml}</div>` : ''}
+        <div class="p-6 overflow-y-auto flex-1">${bodyHtml}</div>
+        ${footerHtml ? `<div class="p-6 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">${footerHtml}</div>` : ''}
       </div>
     </div>
   `;

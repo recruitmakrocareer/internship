@@ -36,7 +36,7 @@ function renderTrainingPassport() {
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
         <div class="p-6 border-b flex justify-between items-center">
           <h3 class="text-lg font-bold" id="modal-week-title"></h3>
-          <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+          <button onclick="closePassportModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
         <div class="p-6" id="modal-content"></div>
       </div>
@@ -232,7 +232,7 @@ function openWeekDetail(weekIndex, stepId) {
       <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
         <div class="flex items-center justify-between mb-2">
           <h4 class="font-medium text-gray-700">ข้อมูลจากแผนการฝึก</h4>
-          <a href="#student-roadmap" onclick="closeModal()" class="text-xs text-blue-600 hover:underline">แก้ไขแผน →</a>
+          <a href="#student-roadmap" onclick="closePassportModal()" class="text-xs text-blue-600 hover:underline">แก้ไขแผน →</a>
         </div>
         ${p.trainerName || p.startDate ? `
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
@@ -286,7 +286,7 @@ function openWeekDetail(weekIndex, stepId) {
   document.getElementById('signoff-modal').classList.remove('hidden');
 }
 
-function closeModal() {
+function closePassportModal() {
   document.getElementById('signoff-modal').classList.add('hidden');
 }
 
@@ -296,7 +296,7 @@ async function updateWeekStatus(stepId, status, weekIndex) {
   try {
     await callApiPost('updateRoadmapProgress', { userId: user.id, stepId, status });
     showToast('อัพเดทสถานะสำเร็จ', 'success');
-    closeModal();
+    closePassportModal();
     await loadTrainingPassport();
   } catch (e) {
     showToast('เกิดข้อผิดพลาด', 'error');
@@ -310,7 +310,7 @@ async function signOff(stepId, role, weekIndex) {
   try {
     await callApiPost('signOffWeek', { userId: user.id, weekNumber: String(weekIndex), role, notes: '' });
     showToast('ลงชื่อสำเร็จ', 'success');
-    closeModal();
+    closePassportModal();
     await loadTrainingPassport();
   } catch (e) {
     showToast('เกิดข้อผิดพลาด', 'error');

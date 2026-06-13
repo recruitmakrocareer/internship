@@ -18,18 +18,23 @@ function renderAdminStudents() {
 
       <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
         <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1">
+          <div class="flex-1 relative">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input type="text" id="student-search" placeholder="ค้นหาชื่อ, รหัสนักศึกษา, อีเมล..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
           </div>
+          <select id="student-dept-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            <option value="">แผนกทั้งหมด</option>
+            <optgroup label="Support"></optgroup>
+            <optgroup label="Floor"></optgroup>
+            <optgroup label="O2O"></optgroup>
+            <optgroup label="B2B Sales"></optgroup>
+          </select>
           <select id="student-status-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             <option value="">สถานะทั้งหมด</option>
             <option value="ACTIVE">ใช้งาน</option>
             <option value="INACTIVE">ไม่ใช้งาน</option>
           </select>
-          <button onclick="loadStudents()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-            ค้นหา
-          </button>
         </div>
       </div>
 
@@ -61,10 +66,9 @@ function renderAdminStudents() {
     <div id="student-modal"></div>
   `;
 
-  document.getElementById('student-search').addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') loadStudents();
-  });
+  document.getElementById('student-search').addEventListener('input', loadStudents);
   document.getElementById('student-status-filter').addEventListener('change', loadStudents);
+  document.getElementById('student-dept-filter').addEventListener('change', loadStudents);
 
   loadStudents();
 }
@@ -91,8 +95,23 @@ async function loadStudents() {
 
     let students = _studentsCache;
 
+    // Populate dept filter from loaded data
+    var deptFilterEl = document.getElementById('student-dept-filter');
+    if (deptFilterEl && !deptFilterEl._populated) {
+      var depts = {};
+      _studentsCache.forEach(function(s) { if (s.department) depts[s.department] = true; });
+      var deptKeys = Object.keys(depts).sort();
+      if (deptKeys.length > 0) {
+        var deptHtml = '<option value="">แผนกทั้งหมด</option>';
+        deptKeys.forEach(function(d) { deptHtml += '<option value="' + d + '">' + d + '</option>'; });
+        deptFilterEl.innerHTML = deptHtml;
+        deptFilterEl._populated = true;
+      }
+    }
+
     const search = (document.getElementById('student-search')?.value || '').toLowerCase();
     const statusFilter = document.getElementById('student-status-filter')?.value || '';
+    const deptFilter = document.getElementById('student-dept-filter')?.value || '';
 
     if (search) {
       students = students.filter(s =>
@@ -105,6 +124,9 @@ async function loadStudents() {
     }
     if (statusFilter) {
       students = students.filter(s => s.status === statusFilter || (statusFilter === 'ACTIVE' && s.isActive !== 'false'));
+    }
+    if (deptFilter) {
+      students = students.filter(s => s.department === deptFilter);
     }
 
     if (students.length === 0) {
@@ -132,13 +154,13 @@ async function loadStudents() {
               </div>
             </div>
           </td>
-          <td class="px-4 py-3 text-gray-600 text-xs">${s.studentId || '-'}</td>
+          <td class="px-4 py-3 text-xs">${s.studentId || '<span class="text-gray-300">ไม่ระบุ</span>'}</td>
           <td class="px-4 py-3 text-xs">
-            <div class="text-gray-800">${s.university || '-'}</div>
+            <div class="text-gray-800">${s.university || '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${s.major || s.faculty || ''}</div>
           </td>
           <td class="px-4 py-3 text-xs">
-            <div class="text-gray-800">${s.department || '-'}</div>
+            <div class="text-gray-800">${s.department || '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${s.branch || ''}</div>
           </td>
           <td class="px-4 py-3">
@@ -148,11 +170,19 @@ async function loadStudents() {
             ${s.startDate ? formatDate(s.startDate) : '-'}
             ${s.endDate ? '<br>ถึง ' + formatDate(s.endDate) : ''}
           </td>
-          <td class="px-4 py-3 text-xs text-gray-600">${mentorName}</td>
           <td class="px-4 py-3">
-            <span class="text-xs ${docCount > 0 ? 'text-green-600' : 'text-gray-400'}">${docCount}/4</span>
+            <select class="text-xs border-0 bg-transparent text-gray-600 cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -ml-1 focus:ring-1 focus:ring-primary-300"
+              onchange="inlineAssignMentor('${s.id}', this.value)" title="เลือกพี่เลี้ยง">
+              <option value="">ไม่ระบุ</option>
+              ${_mentorsCache.map(m => '<option value="' + m.id + '"' + (s.mentor && s.mentor.id === m.id ? ' selected' : '') + '>' + m.firstName + ' ' + m.lastName + '</option>').join('')}
+            </select>
           </td>
-          <td class="px-4 py-3">${statusBadge(s.isActive === 'false' ? 'INACTIVE' : 'ACTIVE')}</td>
+          <td class="px-4 py-3">
+            ${docCount === 4
+              ? '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">✓ ครบถ้วน</span>'
+              : '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ' + (docCount === 0 ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-700') + ' font-medium">' + docCount + '/4</span>'}
+          </td>
+          <td class="px-4 py-3">${studentStatusBadge(s)}</td>
           <td class="px-4 py-3 text-center">
             <div class="flex items-center justify-center gap-1">
               <button onclick="viewStudentDetail('${s.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="ดูรายละเอียด">
@@ -161,8 +191,10 @@ async function loadStudents() {
               <button onclick="openEditStudentModal('${s.id}')" class="text-primary-600 hover:text-primary-800 p-1" title="แก้ไข">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
               </button>
-              <button onclick="deactivateStudent('${s.id}', '${(displayName).replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 p-1" title="ปิดการใช้งาน">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+              <button onclick="toggleStudentStatus('${s.id}', '${(displayName).replace(/'/g, "\\'")}')" class="${s.isActive === 'false' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'} p-1" title="${s.isActive === 'false' ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}">
+                ${s.isActive === 'false'
+                  ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                  : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>'}
               </button>
             </div>
           </td>
@@ -671,19 +703,64 @@ async function submitAssignRoadmap(studentId) {
   hideLoading();
 }
 
-async function deactivateStudent(id, name) {
-  if (!confirm(`ต้องการปิดการใช้งานนักศึกษา "${name}" หรือไม่?`)) return;
+function studentStatusBadge(s) {
+  if (s.isActive === 'false') {
+    return '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">ยกเลิก</span>';
+  }
+  var docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
+  if (docCount < 4) {
+    return '<span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">รอเอกสาร</span>';
+  }
+  if (s.startDate) {
+    var today = new Date();
+    var start = new Date(s.startDate);
+    var end = s.endDate ? new Date(s.endDate) : null;
+    if (end && today > end) {
+      return '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">ผ่านการประเมิน</span>';
+    }
+    if (today >= start) {
+      return '<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">กำลังฝึก</span>';
+    }
+  }
+  return '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">รอดำเนินการ</span>';
+}
+
+async function inlineAssignMentor(studentId, mentorId) {
+  if (!mentorId) return;
+  try {
+    var result = await callApiPost('assignMentor', { mentorId: mentorId, studentId: studentId });
+    if (result.success) {
+      showToast('กำหนดพี่เลี้ยงสำเร็จ', 'success');
+    } else {
+      showToast(result.message || 'ไม่สามารถกำหนดพี่เลี้ยงได้', 'error');
+    }
+  } catch (error) {
+    showToast('เกิดข้อผิดพลาด', 'error');
+  }
+}
+
+async function toggleStudentStatus(id, name) {
+  var student = _studentsCache.find(function(s) { return s.id === id; });
+  var currentlyActive = !student || student.isActive !== 'false';
+  var actionLabel = currentlyActive ? 'ปิดการใช้งาน' : 'เปิดใช้งาน';
+
+  if (!confirm('ต้องการ' + actionLabel + 'นักศึกษา "' + name + '" หรือไม่?')) return;
 
   try {
     showLoading();
-    const result = await callApiPost('deactivateStudent', { id });
+    var result;
+    if (currentlyActive) {
+      result = await callApiPost('deactivateStudent', { id: id });
+    } else {
+      result = await callApiPost('updateStudent', { id: id, isActive: 'true' });
+    }
     hideLoading();
 
     if (result.success) {
-      showToast('ปิดการใช้งานนักศึกษาสำเร็จ', 'success');
+      showToast(actionLabel + 'นักศึกษาสำเร็จ', 'success');
       loadStudents();
     } else {
-      showToast(result.message || 'ไม่สามารถปิดการใช้งานได้', 'error');
+      showToast(result.message || 'ไม่สามารถ' + actionLabel + 'ได้', 'error');
     }
   } catch (error) {
     hideLoading();
