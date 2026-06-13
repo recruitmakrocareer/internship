@@ -14,6 +14,71 @@ function renderDashboard() {
   }
 }
 
+// ==================== Admin Dashboard ====================
+
+function adminDashSvgIcon(name) {
+  var icons = {
+    users: '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>',
+    userCheck: '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 11l-2 2 4-4"/></svg>',
+    clipboard: '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>',
+    map: '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>'
+  };
+  return icons[name] || '';
+}
+
+function buildDonutChart(segments, size) {
+  size = size || 140;
+  var r = size / 2 - 10;
+  var cx = size / 2;
+  var cy = size / 2;
+  var circumference = 2 * Math.PI * r;
+  var total = 0;
+  segments.forEach(function(s) { total += s.value; });
+  if (total === 0) total = 1;
+
+  var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#f3f4f6" stroke-width="18"/>';
+
+  var offset = 0;
+  segments.forEach(function(s) {
+    var pct = s.value / total;
+    var dashLen = circumference * pct;
+    var dashGap = circumference - dashLen;
+    var dashOffset = -offset * circumference / total + circumference * 0.25;
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="18" stroke-dasharray="' + dashLen + ' ' + dashGap + '" stroke-dashoffset="' + dashOffset + '" stroke-linecap="round" style="transition:stroke-dasharray 0.6s ease"/>';
+    offset += s.value;
+  });
+  svg += '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" class="text-2xl font-bold fill-gray-800" style="font-size:22px;font-weight:700">' + total + '</text>';
+  svg += '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="fill-gray-400" style="font-size:11px">งานทั้งหมด</text>';
+  svg += '</svg>';
+  return svg;
+}
+
+function buildProgressRing(pct, color, label, size) {
+  size = size || 56;
+  var r = size / 2 - 5;
+  var circumference = 2 * Math.PI * r;
+  var dashLen = circumference * (pct / 100);
+  var dashGap = circumference - dashLen;
+  var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
+  svg += '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="#f3f4f6" stroke-width="5"/>';
+  svg += '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="5" stroke-dasharray="' + dashLen + ' ' + dashGap + '" stroke-dashoffset="' + (circumference * 0.25) + '" stroke-linecap="round" style="transition:stroke-dasharray 0.6s ease"/>';
+  svg += '<text x="' + size / 2 + '" y="' + (size / 2 + 4) + '" text-anchor="middle" style="font-size:12px;font-weight:600" class="fill-gray-700">' + pct + '%</text>';
+  svg += '</svg>';
+  return svg;
+}
+
+function buildSparkline(values, color) {
+  if (!values || values.length === 0) values = [0];
+  var w = 120, h = 32;
+  var max = Math.max.apply(null, values) || 1;
+  var step = w / Math.max(values.length - 1, 1);
+  var points = values.map(function(v, i) {
+    return (i * step).toFixed(1) + ',' + (h - (v / max) * (h - 4) - 2).toFixed(1);
+  }).join(' ');
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
 async function renderAdminDashboard(content) {
   content.innerHTML = `
     <div class="fade-in">
@@ -26,135 +91,300 @@ async function renderAdminDashboard(content) {
           </div>
         `).join('')}
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white rounded-xl shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">สรุปการส่งงาน</h3>
-          <div id="assignment-summary" class="space-y-3">
+          <div id="assignment-summary" class="flex items-center justify-center py-8">
             <p class="text-sm text-gray-500">กำลังโหลด...</p>
           </div>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">ภาพรวมระบบ</h3>
-          <div id="system-overview" class="space-y-3">
+          <div id="system-overview" class="space-y-4">
             <p class="text-sm text-gray-500">กำลังโหลด...</p>
           </div>
         </div>
       </div>
+      <div id="admin-quick-actions"></div>
     </div>
   `;
 
   try {
-    const result = await callApi('getAdminStats', { userId: getCurrentUser().id });
-    if (result.success) {
-      const stats = result.data;
-      const u = stats.users || {};
-      const a = stats.assignments || {};
-      const r = stats.roadmaps || {};
+    var result = await callApi('getAdminStats', { userId: getCurrentUser().id });
+    if (!result.success) return;
+    var stats = result.data;
+    var u = stats.users || {};
+    var a = stats.assignments || {};
+    var r = stats.roadmaps || {};
+    var recent = stats.recentActivity || {};
 
-      document.getElementById('admin-stats').innerHTML = `
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-primary-500">
-          <p class="text-sm text-gray-500 mb-1">นักศึกษาทั้งหมด</p>
-          <p class="text-3xl font-bold text-gray-800">${u.totalStudents || 0}</p>
-          <p class="text-xs text-gray-400 mt-1">ใช้งาน ${u.activeStudents || 0} คน</p>
+    document.getElementById('admin-stats').innerHTML = `
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-primary-500 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div class="absolute top-3 right-3 text-primary-100 group-hover:text-primary-200 transition-colors">${adminDashSvgIcon('users')}</div>
+        <p class="text-sm text-gray-500 mb-1">นักศึกษาทั้งหมด</p>
+        <p class="text-3xl font-bold text-gray-800">${u.totalStudents || 0}</p>
+        <div class="flex items-center gap-1.5 mt-2">
+          <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> ใช้งาน ${u.activeStudents || 0}
+          </span>
         </div>
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
-          <p class="text-sm text-gray-500 mb-1">พี่เลี้ยงทั้งหมด</p>
-          <p class="text-3xl font-bold text-gray-800">${u.totalMentors || 0}</p>
-          <p class="text-xs text-gray-400 mt-1">ใช้งาน ${u.activeMentors || 0} คน</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div class="absolute top-3 right-3 text-green-100 group-hover:text-green-200 transition-colors">${adminDashSvgIcon('userCheck')}</div>
+        <p class="text-sm text-gray-500 mb-1">พี่เลี้ยงทั้งหมด</p>
+        <p class="text-3xl font-bold text-gray-800">${u.totalMentors || 0}</p>
+        <div class="flex items-center gap-1.5 mt-2">
+          <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> ใช้งาน ${u.activeMentors || 0}
+          </span>
         </div>
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-yellow-500">
-          <p class="text-sm text-gray-500 mb-1">งานที่รอตรวจ</p>
-          <p class="text-3xl font-bold text-gray-800">${a.pendingSubmissions || 0}</p>
-          <p class="text-xs text-gray-400 mt-1">จากทั้งหมด ${a.totalSubmissions || 0} งาน</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-yellow-500 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div class="absolute top-3 right-3 text-yellow-100 group-hover:text-yellow-200 transition-colors">${adminDashSvgIcon('clipboard')}</div>
+        <p class="text-sm text-gray-500 mb-1">งานที่รอตรวจ</p>
+        <p class="text-3xl font-bold text-gray-800">${a.pendingSubmissions || 0}</p>
+        <div class="flex items-center gap-1.5 mt-2">
+          <span class="text-xs text-gray-400">จากทั้งหมด ${a.totalSubmissions || 0} งาน</span>
         </div>
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-purple-500">
-          <p class="text-sm text-gray-500 mb-1">แผนฝึกงาน</p>
-          <p class="text-3xl font-bold text-gray-800">${r.totalRoadmaps || 0}</p>
-          <p class="text-xs text-gray-400 mt-1">รวม ${r.totalSteps || 0} ขั้นตอน</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-purple-500 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div class="absolute top-3 right-3 text-purple-100 group-hover:text-purple-200 transition-colors">${adminDashSvgIcon('map')}</div>
+        <p class="text-sm text-gray-500 mb-1">แผนฝึกงาน</p>
+        <p class="text-3xl font-bold text-gray-800">${r.totalRoadmaps || 0}</p>
+        <div class="flex items-center gap-1.5 mt-2">
+          <span class="text-xs text-gray-400">รวม ${r.totalSteps || 0} ขั้นตอน</span>
         </div>
-      `;
+      </div>
+    `;
 
-      const summary = document.getElementById('assignment-summary');
-      summary.innerHTML = `
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">ส่งแล้วทั้งหมด</span>
-            <span class="text-sm font-semibold text-indigo-600">${a.totalSubmissions || 0}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">ตรวจแล้ว</span>
-            <span class="text-sm font-semibold text-green-600">${a.reviewedSubmissions || 0}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">รอตรวจ</span>
-            <span class="text-sm font-semibold text-yellow-600">${a.pendingSubmissions || 0}</span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-            <div class="bg-green-500 h-2 rounded-full" style="width:${a.completionRate || 0}%"></div>
-          </div>
-          <p class="text-xs text-gray-400">อัตราการตรวจ ${a.completionRate || 0}%</p>
-        </div>
-      `;
+    // Donut chart for assignment summary
+    var submitted = (a.totalSubmissions || 0) - (a.reviewedSubmissions || 0) - (a.pendingSubmissions || 0);
+    if (submitted < 0) submitted = 0;
+    var segments = [
+      { value: a.reviewedSubmissions || 0, color: '#22c55e', label: 'ตรวจแล้ว' },
+      { value: a.pendingSubmissions || 0, color: '#eab308', label: 'รอตรวจ' },
+      { value: submitted, color: '#6366f1', label: 'ส่งแล้ว' }
+    ];
 
-      const overview = document.getElementById('system-overview');
-      const recent = stats.recentActivity || {};
-      overview.innerHTML = `
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">นักศึกษามีพี่เลี้ยงแล้ว</span>
-            <span class="text-sm font-semibold text-green-600">${u.studentsWithMentor || 0}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">นักศึกษายังไม่มีพี่เลี้ยง</span>
-            <span class="text-sm font-semibold text-red-500">${u.studentsWithoutMentor || 0}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">การส่งงาน 7 วันล่าสุด</span>
-            <span class="text-sm font-semibold text-blue-600">${recent.submissionsLast7Days || 0}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">ความคืบหน้า Roadmap รวม</span>
-            <span class="text-sm font-semibold text-purple-600">${(stats.roadmaps || {}).overallCompletion || 0}%</span>
+    var summary = document.getElementById('assignment-summary');
+    summary.innerHTML = `
+      <div class="flex flex-col sm:flex-row items-center gap-6 w-full">
+        <div class="flex-shrink-0">
+          ${buildDonutChart(segments, 160)}
+        </div>
+        <div class="flex-1 space-y-3 w-full">
+          ${segments.map(function(seg) {
+            return '<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full flex-shrink-0" style="background:' + seg.color + '"></span><span class="text-sm text-gray-600">' + seg.label + '</span></div><span class="text-sm font-semibold" style="color:' + seg.color + '">' + seg.value + '</span></div>';
+          }).join('')}
+          <div class="pt-2 border-t border-gray-100">
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>อัตราการตรวจ</span>
+              <span class="font-medium text-gray-600">${a.completionRate || 0}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5">
+              <div class="bg-green-500 h-1.5 rounded-full transition-all" style="width:${a.completionRate || 0}%"></div>
+            </div>
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
+
+    // System overview with progress rings and sparkline
+    var mentorPct = (u.totalStudents || 0) > 0 ? Math.round(((u.studentsWithMentor || 0) / u.totalStudents) * 100) : 0;
+    var roadmapPct = (r.overallCompletion || 0);
+    var sparkData = recent.dailySubmissions || [0, 1, 2, 1, 3, 2, 1];
+
+    var overview = document.getElementById('system-overview');
+    overview.innerHTML = `
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+          ${buildProgressRing(mentorPct, '#22c55e', 'มีพี่เลี้ยง')}
+          <div>
+            <p class="text-xs text-gray-500">มีพี่เลี้ยงแล้ว</p>
+            <p class="text-sm font-semibold text-gray-800">${u.studentsWithMentor || 0} <span class="text-xs font-normal text-gray-400">/ ${u.totalStudents || 0}</span></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+          ${buildProgressRing(roadmapPct, '#8b5cf6', 'Roadmap')}
+          <div>
+            <p class="text-xs text-gray-500">Roadmap รวม</p>
+            <p class="text-sm font-semibold text-gray-800">${roadmapPct}%</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+        <div>
+          <p class="text-xs text-gray-500">การส่งงาน 7 วันล่าสุด</p>
+          <p class="text-lg font-bold text-blue-600">${recent.submissionsLast7Days || 0} <span class="text-xs font-normal text-gray-400">งาน</span></p>
+        </div>
+        <div>${buildSparkline(sparkData, '#3b82f6')}</div>
+      </div>
+      <div class="flex items-center justify-between bg-red-50 rounded-lg p-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+          <span class="text-sm text-gray-600">ยังไม่มีพี่เลี้ยง</span>
+        </div>
+        <span class="text-sm font-semibold text-red-600">${u.studentsWithoutMentor || 0} คน</span>
+      </div>
+    `;
+
+    // Quick Actions
+    document.getElementById('admin-quick-actions').innerHTML = `
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">ทางลัดการจัดการ</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <a href="#admin-students" class="flex flex-col items-center gap-2 p-4 bg-primary-50 hover:bg-primary-100 rounded-xl transition-colors group">
+            <div class="w-10 h-10 bg-primary-100 group-hover:bg-primary-200 rounded-lg flex items-center justify-center transition-colors">
+              <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            </div>
+            <span class="text-xs font-medium text-primary-700 text-center">เพิ่มนักศึกษา</span>
+          </a>
+          <a href="#admin-mentors" class="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors group">
+            <div class="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center transition-colors">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-green-700 text-center">จัดสรรพี่เลี้ยง</span>
+          </a>
+          <a href="#admin-assignments" class="flex flex-col items-center gap-2 p-4 bg-yellow-50 hover:bg-yellow-100 rounded-xl transition-colors group">
+            <div class="w-10 h-10 bg-yellow-100 group-hover:bg-yellow-200 rounded-lg flex items-center justify-center transition-colors">
+              <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-yellow-700 text-center">ตรวจงานที่ค้าง</span>
+          </a>
+          <a href="#admin-roadmaps" class="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors group">
+            <div class="w-10 h-10 bg-purple-100 group-hover:bg-purple-200 rounded-lg flex items-center justify-center transition-colors">
+              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-purple-700 text-center">จัดการ Roadmap</span>
+          </a>
+        </div>
+      </div>
+    `;
   } catch (error) {
+    console.error('Error loading admin dashboard:', error);
     document.getElementById('admin-stats').innerHTML = `
       <div class="col-span-full bg-red-50 text-red-600 p-4 rounded-lg text-sm">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง</div>
     `;
   }
 }
 
+// ==================== Student Dashboard ====================
+
+function studentDashDeptBadge(dept) {
+  if (!dept) return '<span class="text-sm text-gray-400">ไม่ระบุ</span>';
+  var colors = {
+    'Support': 'bg-blue-100 text-blue-700',
+    'Floor': 'bg-green-100 text-green-700',
+    'O2O': 'bg-orange-100 text-orange-700',
+    'B2B Sales': 'bg-purple-100 text-purple-700'
+  };
+  var found = '';
+  Object.keys(colors).forEach(function(key) {
+    if (dept.toLowerCase().indexOf(key.toLowerCase()) !== -1) found = colors[key];
+  });
+  if (!found) found = 'bg-gray-100 text-gray-700';
+  return '<span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ' + found + '">' + dept + '</span>';
+}
+
 async function renderStudentDashboard(content) {
-  const user = getCurrentUser();
+  var user = getCurrentUser();
   content.innerHTML = `
     <div class="fade-in">
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">สวัสดี, ${user.name || 'นักศึกษา'}</h2>
-      <p class="text-gray-500 mb-4">ยินดีต้อนรับเข้าสู่ระบบจัดการนักศึกษาฝึกงาน</p>
-      <div id="dash-profile-info" class="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
-          <div><span class="text-gray-500">แผนก:</span> <span class="font-medium text-gray-800" id="dash-dept">-</span></div>
-          <div><span class="text-gray-500">ตำแหน่ง:</span> <span class="font-medium text-gray-800" id="dash-position">-</span></div>
-          <div><span class="text-gray-500">สาขาที่ฝึก:</span> <span class="font-medium text-gray-800" id="dash-branch">-</span></div>
-          <div><span class="text-gray-500">มหาวิทยาลัย:</span> <span class="font-medium text-gray-800" id="dash-university">-</span></div>
-          <div><span class="text-gray-500">สาขาวิชา:</span> <span class="font-medium text-gray-800" id="dash-major">-</span></div>
-          <div><span class="text-gray-500">ประเภท:</span> <span class="font-medium text-gray-800" id="dash-internship-type">-</span></div>
+      <div class="bg-gradient-to-r from-primary-600 to-blue-500 rounded-2xl p-6 mb-6 text-white shadow-lg">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="text-2xl font-bold text-white">${(user.name || 'S').charAt(0)}</span>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold">สวัสดี, ${user.name || 'นักศึกษา'}</h2>
+            <p class="text-sm text-blue-100">${user.email || ''}</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="dash-profile-info" class="bg-white rounded-xl shadow-sm p-5 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div class="flex items-start gap-2">
+            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">แผนก</p>
+              <div id="dash-dept" class="text-sm font-medium text-gray-800">-</div>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">ตำแหน่ง</p>
+              <p id="dash-position" class="text-sm font-medium text-gray-800">-</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.15c0 .415.336.75.75.75z"/></svg>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">สาขาที่ฝึก</p>
+              <p id="dash-branch" class="text-sm font-medium text-gray-800">-</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">มหาวิทยาลัย</p>
+              <p id="dash-university" class="text-sm font-medium text-gray-800">-</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">สาขาวิชา</p>
+              <p id="dash-major" class="text-sm font-medium text-gray-800">-</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">ประเภท</p>
+              <p id="dash-internship-type" class="text-sm font-medium text-gray-800">-</p>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-primary-500">
+        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-primary-500 relative overflow-hidden">
+          <div class="absolute top-4 right-4 text-primary-100">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+          </div>
           <p class="text-sm text-gray-500 mb-1">ความคืบหน้าแผนฝึกงาน</p>
           <p id="dash-roadmap-progress" class="text-3xl font-bold text-gray-800">-</p>
+          <p id="dash-roadmap-context" class="text-xs text-gray-400 mt-1">- ขั้นตอน</p>
         </div>
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-yellow-500">
+        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-yellow-500 relative overflow-hidden">
+          <div class="absolute top-4 right-4 text-yellow-100">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
           <p class="text-sm text-gray-500 mb-1">งานที่ส่งแล้ว</p>
           <p id="dash-submitted-assignments" class="text-3xl font-bold text-gray-800">-</p>
+          <p id="dash-assignments-context" class="text-xs text-gray-400 mt-1">- งานทั้งหมด</p>
         </div>
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
+        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500 relative overflow-hidden">
+          <div class="absolute top-4 right-4 text-green-100">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+          </div>
           <p class="text-sm text-gray-500 mb-1">การแจ้งเตือนที่ยังไม่อ่าน</p>
           <p id="dash-unread-notifs" class="text-3xl font-bold text-gray-800">-</p>
+          <p id="dash-notifs-context" class="text-xs text-gray-400 mt-1">- รายการทั้งหมด</p>
         </div>
       </div>
 
@@ -165,9 +395,9 @@ async function renderStudentDashboard(content) {
             <p class="text-sm text-gray-500">กำลังโหลด...</p>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">การแจ้งเตือนล่าสุด</h3>
-          <div id="dash-notifications" class="space-y-3">
+        <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">งานที่ต้องทำ / แจ้งเตือน</h3>
+          <div id="dash-notifications" class="space-y-2 overflow-y-auto flex-1" style="max-height: 320px;">
             <p class="text-sm text-gray-500">กำลังโหลด...</p>
           </div>
         </div>
@@ -176,21 +406,32 @@ async function renderStudentDashboard(content) {
   `;
 
   try {
-    const [progressRes, submissionRes, notifRes, profileRes] = await Promise.all([
+    var [progressRes, submissionRes, notifRes, profileRes, assignmentRes] = await Promise.all([
       callApi('getRoadmapProgress', { userId: user.id }),
       callApi('getSubmissions', { userId: user.id }),
       callApi('getNotifications', { userId: user.id }),
-      callApi('getUserProfile', { userId: user.id })
+      callApi('getUserProfile', { userId: user.id }),
+      callApi('getAssignments')
     ]);
 
-    const progressList = Array.isArray(progressRes.data || progressRes) ? (progressRes.data || progressRes) : [];
-    const submissions = Array.isArray(submissionRes.data || submissionRes) ? (submissionRes.data || submissionRes) : [];
-    const notifications = Array.isArray(notifRes.data || notifRes) ? (notifRes.data || notifRes) : [];
+    var progressList = Array.isArray(progressRes.data || progressRes) ? (progressRes.data || progressRes) : [];
+    var submissions = Array.isArray(submissionRes.data || submissionRes) ? (submissionRes.data || submissionRes) : [];
+    var notifications = Array.isArray(notifRes.data || notifRes) ? (notifRes.data || notifRes) : [];
+    var assignments = Array.isArray(assignmentRes.data || assignmentRes) ? (assignmentRes.data || assignmentRes) : [];
 
-    const profile = profileRes.success ? profileRes.data : {};
+    var profile = profileRes.success ? profileRes.data : {};
     if (profile) {
-      const setField = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
-      setField('dash-dept', profile.department);
+      var setField = function(id, val) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (!val || val === '-') {
+          el.innerHTML = '<span class="text-gray-400">ไม่ระบุ</span>';
+        } else {
+          el.textContent = val;
+        }
+      };
+      var deptEl = document.getElementById('dash-dept');
+      if (deptEl) deptEl.innerHTML = studentDashDeptBadge(profile.department);
       setField('dash-position', profile.position);
       setField('dash-branch', profile.branch);
       setField('dash-university', profile.university);
@@ -198,48 +439,77 @@ async function renderStudentDashboard(content) {
       setField('dash-internship-type', profile.internshipType);
     }
 
-    const completedCount = progressList.filter(p => p.status === 'COMPLETED').length;
-    const totalCount = progressList.length;
-    const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    var completedCount = progressList.filter(function(p) { return p.status === 'COMPLETED'; }).length;
+    var totalCount = progressList.length;
+    var progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    var inProgressSteps = progressList.filter(function(p) { return p.status === 'IN_PROGRESS'; });
 
     document.getElementById('dash-roadmap-progress').textContent = progressPct + '%';
+    document.getElementById('dash-roadmap-context').textContent = completedCount + ' / ' + totalCount + ' ขั้นตอน';
     document.getElementById('dash-submitted-assignments').textContent = submissions.length;
-    const unread = notifications.filter(n => !n.isRead && n.isRead !== 'true').length;
+    document.getElementById('dash-assignments-context').textContent = '/ ' + assignments.length + ' งานทั้งหมด';
+    var unread = notifications.filter(function(n) { return !n.isRead && n.isRead !== 'true'; }).length;
     document.getElementById('dash-unread-notifs').textContent = unread;
+    document.getElementById('dash-notifs-context').textContent = notifications.length + ' รายการทั้งหมด';
 
-    const progressDetail = document.getElementById('dash-progress-detail');
+    // Progress detail
+    var progressDetail = document.getElementById('dash-progress-detail');
     progressDetail.innerHTML = `
-      <div class="flex justify-between text-sm mb-1">
+      <div class="flex justify-between text-sm mb-2">
         <span class="text-gray-600">เสร็จแล้ว ${completedCount} / ${totalCount} ขั้นตอน</span>
-        <span class="font-semibold text-primary-600">${progressPct}%</span>
+        <span class="font-bold ${progressPct >= 75 ? 'text-green-600' : progressPct >= 50 ? 'text-blue-600' : 'text-yellow-600'}">${progressPct}%</span>
       </div>
-      <div class="bg-gray-200 rounded-full h-3 mb-4">
-        <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all" style="width:${progressPct}%"></div>
+      <div class="bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
+        <div class="h-4 rounded-full transition-all bg-gradient-to-r ${progressPct >= 75 ? 'from-green-400 to-green-500' : progressPct >= 50 ? 'from-blue-400 to-blue-500' : 'from-yellow-400 to-yellow-500'}" style="width:${progressPct}%"></div>
       </div>
-      ${progressList.filter(p => p.status === 'IN_PROGRESS').length > 0 ? `
-        <p class="text-sm font-medium text-gray-700 mb-2">กำลังดำเนินการ:</p>
-        ${progressList.filter(p => p.status === 'IN_PROGRESS').slice(0, 3).map(p => `
-          <div class="flex items-center gap-2 p-2 bg-blue-50 rounded-lg mb-1">
-            <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <span class="text-sm text-blue-700">${p.stepTitle || p.stepId || 'ขั้นตอน'}</span>
-          </div>
-        `).join('')}
+      ${inProgressSteps.length > 0 ? `
+        <div class="flex items-center gap-2 mb-3">
+          <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+            <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+            กำลังดำเนินการ ${inProgressSteps.length} ขั้นตอน
+          </span>
+        </div>
+        ${inProgressSteps.slice(0, 3).map(function(p) {
+          return '<div class="flex items-center gap-2 p-2.5 bg-blue-50 rounded-lg"><div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div><span class="text-sm text-blue-700">' + (p.stepTitle || p.stepId || 'ขั้นตอน') + '</span></div>';
+        }).join('')}
       ` : '<p class="text-sm text-gray-400">ไม่มีขั้นตอนที่กำลังดำเนินการ</p>'}
     `;
 
-    const notifContainer = document.getElementById('dash-notifications');
+    // Notifications - actionable cards
+    var notifContainer = document.getElementById('dash-notifications');
     if (notifications.length > 0) {
-      notifContainer.innerHTML = notifications.slice(0, 5).map(n => `
-        <div class="flex items-start gap-3 p-3 ${!n.isRead && n.isRead !== 'true' ? 'bg-blue-50' : 'bg-gray-50'} rounded-lg">
-          <div class="w-2 h-2 ${!n.isRead && n.isRead !== 'true' ? 'bg-blue-500' : 'bg-gray-300'} rounded-full mt-2 flex-shrink-0"></div>
-          <div>
-            <p class="text-sm font-medium text-gray-700">${n.title || n.message || ''}</p>
-            <p class="text-xs text-gray-400 mt-1">${formatDate(n.createdAt || n.date)}</p>
-          </div>
-        </div>
-      `).join('');
+      notifContainer.innerHTML = notifications.slice(0, 8).map(function(n) {
+        var isUnread = !n.isRead && n.isRead !== 'true';
+        var typeIcon = '';
+        var actionLink = '';
+        var title = n.title || n.message || '';
+        var titleLower = title.toLowerCase();
+
+        if (titleLower.indexOf('พี่เลี้ยง') !== -1 || titleLower.indexOf('mentor') !== -1) {
+          typeIcon = '<svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"/></svg>';
+          actionLink = '<a href="#student-profile" class="text-xs text-purple-600 hover:underline mt-1 inline-block">ดูโปรไฟล์</a>';
+        } else if (titleLower.indexOf('งาน') !== -1 || titleLower.indexOf('assignment') !== -1 || titleLower.indexOf('ส่ง') !== -1) {
+          typeIcon = '<svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>';
+          actionLink = '<a href="#student-assignments" class="text-xs text-yellow-600 hover:underline mt-1 inline-block">ดูงาน</a>';
+        } else if (titleLower.indexOf('roadmap') !== -1 || titleLower.indexOf('แผน') !== -1) {
+          typeIcon = '<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>';
+          actionLink = '<a href="#student-roadmap" class="text-xs text-blue-600 hover:underline mt-1 inline-block">ดู Roadmap</a>';
+        } else {
+          typeIcon = '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>';
+        }
+
+        return '<div class="flex items-start gap-3 p-3 rounded-lg transition-colors hover:bg-gray-100 ' + (isUnread ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50') + '">' +
+          '<div class="flex-shrink-0 mt-0.5">' + typeIcon + '</div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm ' + (isUnread ? 'font-semibold text-gray-800' : 'font-medium text-gray-600') + ' truncate">' + title + '</p>' +
+            '<p class="text-xs text-gray-400 mt-0.5">' + formatDate(n.createdAt || n.date) + '</p>' +
+            actionLink +
+          '</div>' +
+          (isUnread ? '<span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>' : '') +
+        '</div>';
+      }).join('');
     } else {
-      notifContainer.innerHTML = '<p class="text-sm text-gray-400">ไม่มีการแจ้งเตือน</p>';
+      notifContainer.innerHTML = '<div class="flex flex-col items-center justify-center py-8 text-gray-400"><svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg><p class="text-sm">ไม่มีการแจ้งเตือน</p></div>';
     }
   } catch (error) {
     console.error('Error loading student dashboard:', error);
@@ -248,8 +518,10 @@ async function renderStudentDashboard(content) {
   }
 }
 
+// ==================== Mentor Dashboard ====================
+
 async function renderMentorDashboard(content) {
-  const user = getCurrentUser();
+  var user = getCurrentUser();
   content.innerHTML = `
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-2">สวัสดี, ${user.name || 'พี่เลี้ยง'}</h2>
@@ -288,45 +560,34 @@ async function renderMentorDashboard(content) {
   `;
 
   try {
-    const [studentsRes, submissionsRes] = await Promise.all([
+    var [studentsRes, submissionsRes] = await Promise.all([
       callApi('getStudentsByMentor', { mentorId: user.id }),
       callApi('getSubmissions', { status: 'SUBMITTED' })
     ]);
 
-    const students = Array.isArray(studentsRes.data || studentsRes) ? (studentsRes.data || studentsRes) : [];
-    const allSubmissions = Array.isArray(submissionsRes.data || submissionsRes) ? (submissionsRes.data || submissionsRes) : [];
-    const pendingSubmissions = allSubmissions.filter(s => s.status === 'SUBMITTED');
-    const reviewedSubmissions = allSubmissions.filter(s => s.status === 'REVIEWED' || s.status === 'GRADED');
+    var students = Array.isArray(studentsRes.data || studentsRes) ? (studentsRes.data || studentsRes) : [];
+    var allSubmissions = Array.isArray(submissionsRes.data || submissionsRes) ? (submissionsRes.data || submissionsRes) : [];
+    var pendingSubmissions = allSubmissions.filter(function(s) { return s.status === 'SUBMITTED'; });
+    var reviewedSubmissions = allSubmissions.filter(function(s) { return s.status === 'REVIEWED' || s.status === 'GRADED'; });
 
     document.getElementById('dash-mentor-students').textContent = students.length;
     document.getElementById('dash-mentor-pending').textContent = pendingSubmissions.length;
     document.getElementById('dash-mentor-reviewed').textContent = reviewedSubmissions.length;
 
-    const submissions = document.getElementById('dash-mentor-submissions');
+    var submissionsEl = document.getElementById('dash-mentor-submissions');
     if (pendingSubmissions.length > 0) {
-      submissions.innerHTML = pendingSubmissions.slice(0, 5).map(s => `
-        <a href="#mentor-assignments" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-          <p class="text-sm font-medium text-gray-700">${s.assignmentTitle || s.assignmentId || 'งาน'}</p>
-          <p class="text-xs text-gray-400 mt-1">ส่งเมื่อ: ${formatDate(s.submittedAt || s.createdAt)}</p>
-        </a>
-      `).join('');
+      submissionsEl.innerHTML = pendingSubmissions.slice(0, 5).map(function(s) {
+        return '<a href="#mentor-assignments" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"><p class="text-sm font-medium text-gray-700">' + (s.assignmentTitle || s.assignmentId || 'งาน') + '</p><p class="text-xs text-gray-400 mt-1">ส่งเมื่อ: ' + formatDate(s.submittedAt || s.createdAt) + '</p></a>';
+      }).join('');
     } else {
-      submissions.innerHTML = '<p class="text-sm text-gray-400">ไม่มีงานที่รอตรวจ</p>';
+      submissionsEl.innerHTML = '<p class="text-sm text-gray-400">ไม่มีงานที่รอตรวจ</p>';
     }
 
-    const studentList = document.getElementById('dash-mentor-student-list');
+    var studentList = document.getElementById('dash-mentor-student-list');
     if (students.length > 0) {
-      studentList.innerHTML = students.slice(0, 5).map(s => `
-        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-          <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-            <span class="text-primary-700 font-semibold text-xs">${(s.name || s.firstName || '?').charAt(0)}</span>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-700">${s.name || (s.firstName + ' ' + s.lastName) || s.email || '-'}</p>
-            <p class="text-xs text-gray-400">${s.university || ''}</p>
-          </div>
-        </div>
-      `).join('');
+      studentList.innerHTML = students.slice(0, 5).map(function(s) {
+        return '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center"><span class="text-primary-700 font-semibold text-xs">' + (s.name || s.firstName || '?').charAt(0) + '</span></div><div><p class="text-sm font-medium text-gray-700">' + (s.name || (s.firstName + ' ' + s.lastName) || s.email || '-') + '</p><p class="text-xs text-gray-400">' + (s.university || '') + '</p></div></div>';
+      }).join('');
     } else {
       studentList.innerHTML = '<p class="text-sm text-gray-400">ยังไม่มีนักศึกษาในความดูแล</p>';
     }

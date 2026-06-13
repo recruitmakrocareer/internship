@@ -122,8 +122,10 @@ async function loadStudents() {
         (s.email || '').toLowerCase().includes(search)
       );
     }
-    if (statusFilter) {
-      students = students.filter(s => s.status === statusFilter || (statusFilter === 'ACTIVE' && s.isActive !== 'false'));
+    if (statusFilter === 'ACTIVE') {
+      students = students.filter(s => String(s.isActive) !== 'false');
+    } else if (statusFilter === 'INACTIVE') {
+      students = students.filter(s => String(s.isActive) === 'false');
     }
     if (deptFilter) {
       students = students.filter(s => s.department === deptFilter);
@@ -191,8 +193,8 @@ async function loadStudents() {
               <button onclick="openEditStudentModal('${s.id}')" class="text-primary-600 hover:text-primary-800 p-1" title="แก้ไข">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
               </button>
-              <button onclick="toggleStudentStatus('${s.id}', '${(displayName).replace(/'/g, "\\'")}')" class="${s.isActive === 'false' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'} p-1" title="${s.isActive === 'false' ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}">
-                ${s.isActive === 'false'
+              <button onclick="toggleStudentStatus('${s.id}', '${(displayName).replace(/'/g, "\\'")}')" class="${String(s.isActive) === 'false' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'} p-1" title="${String(s.isActive) === 'false' ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}">
+                ${String(s.isActive) === 'false'
                   ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
                   : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>'}
               </button>
@@ -704,7 +706,7 @@ async function submitAssignRoadmap(studentId) {
 }
 
 function studentStatusBadge(s) {
-  if (s.isActive === 'false') {
+  if (String(s.isActive) === 'false') {
     return '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">ยกเลิก</span>';
   }
   var docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
@@ -741,7 +743,7 @@ async function inlineAssignMentor(studentId, mentorId) {
 
 async function toggleStudentStatus(id, name) {
   var student = _studentsCache.find(function(s) { return s.id === id; });
-  var currentlyActive = !student || student.isActive !== 'false';
+  var currentlyActive = !student || String(student.isActive) !== 'false';
   var actionLabel = currentlyActive ? 'ปิดการใช้งาน' : 'เปิดใช้งาน';
 
   if (!confirm('ต้องการ' + actionLabel + 'นักศึกษา "' + name + '" หรือไม่?')) return;
