@@ -58,16 +58,16 @@ async function loadAdminAssignments() {
             ${assignments.map(a => `
               <tr class="hover:bg-gray-50">
                 <td class="p-3">
-                  <div class="font-medium text-gray-800">${a.title || ''}</div>
-                  <div class="text-xs text-gray-500">${(a.description || '').substring(0, 60)}...</div>
+                  <div class="font-medium text-gray-800">${escAttr(a.title || '')}</div>
+                  <div class="text-xs text-gray-500">${escAttr((a.description || '').substring(0, 60))}${(a.description || '').length > 60 ? '...' : ''}</div>
                 </td>
                 <td class="p-3">${a.source === 'มหาวิทยาลัย' ? '<span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">มหาวิทยาลัย</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Makro</span>'}</td>
                 <td class="p-3 text-gray-600">${a.dueDate ? formatDate(a.dueDate) : '-'}</td>
                 <td class="p-3 text-gray-600">${a.maxScore || '-'}</td>
                 <td class="p-3"><span class="px-2 py-1 text-xs rounded-full ${a.isActive === 'true' || a.isActive === true ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">${a.isActive === 'true' || a.isActive === true ? 'เปิดใช้งาน' : 'ปิด'}</span></td>
                 <td class="p-3 text-center">
-                  <button onclick="editAssignment('${a.id}')" class="text-blue-600 hover:underline text-sm mr-2">แก้ไข</button>
-                  <button onclick="viewSubmissions('${a.id}','${(a.title||'').replace(/'/g,"\\'")}')" class="text-green-600 hover:underline text-sm">ดูงานที่ส่ง</button>
+                  <button onclick="editAssignment('${escJs(a.id)}')" class="text-blue-600 hover:underline text-sm mr-2">แก้ไข</button>
+                  <button onclick="viewSubmissions('${escJs(a.id)}','${escJs(a.title||'')}')" class="text-green-600 hover:underline text-sm">ดูงานที่ส่ง</button>
                 </td>
               </tr>
             `).join('')}
@@ -197,12 +197,12 @@ async function viewSubmissions(assignmentId, title) {
         ${subs.map(s => `
           <div class="border rounded-lg p-3">
             <div class="flex justify-between items-center mb-1">
-              <span class="font-medium text-gray-700">${studentMap[s.userId] || s.userId}</span>
+              <span class="font-medium text-gray-700">${escAttr(studentMap[s.userId] || s.userId)}</span>
               <span class="px-2 py-1 text-xs rounded-full ${s.status === 'reviewed' || s.status === 'graded' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${s.status === 'reviewed' || s.status === 'graded' ? 'ตรวจแล้ว' : 'รอตรวจ'}</span>
             </div>
-            <p class="text-sm text-gray-600">${s.content || ''}</p>
-            ${s.fileUrl ? '<a href="' + s.fileUrl + '" target="_blank" class="text-sm text-blue-600 hover:underline">ไฟล์แนบ</a>' : ''}
-            ${s.score ? '<div class="text-sm text-green-600 mt-1">คะแนน: ' + s.score + ' | ' + (s.feedback || '') + '</div>' : ''}
+            <p class="text-sm text-gray-600">${escAttr(s.content || '')}</p>
+            ${s.fileUrl ? '<a href="' + safeUrl(s.fileUrl) + '" target="_blank" class="text-sm text-blue-600 hover:underline">ไฟล์แนบ</a>' : ''}
+            ${s.score != null ? '<div class="text-sm text-green-600 mt-1">คะแนน: ' + escAttr(s.score) + ' | ' + escAttr(s.feedback || '') + '</div>' : ''}
           </div>
         `).join('')}
       </div>`;

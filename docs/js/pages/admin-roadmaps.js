@@ -44,19 +44,19 @@ async function loadAdminRoadmaps() {
     container.innerHTML = roadmaps.map(r => {
       const stepCount = (r.steps || []).filter(s => s.isActive !== 'false').length;
       return `
-      <div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow cursor-pointer" onclick="viewRoadmapDetail('${r.id}')">
+      <div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow cursor-pointer" onclick="viewRoadmapDetail('${escJs(r.id)}')">
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="font-bold text-gray-800 text-lg">${r.title || ''}</h3>
-            <p class="text-sm text-gray-500 mt-1">${r.description || ''}</p>
+            <h3 class="font-bold text-gray-800 text-lg">${escAttr(r.title || '')}</h3>
+            <p class="text-sm text-gray-500 mt-1">${escAttr(r.description || '')}</p>
             <div class="flex gap-2 mt-2">
-              <span class="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">${r.department || 'ทั่วไป'}</span>
+              <span class="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">${escAttr(r.department || 'ทั่วไป')}</span>
               <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">${stepCount} ขั้นตอน</span>
             </div>
           </div>
           <div class="flex gap-2">
-            <button onclick="event.stopPropagation();editRoadmapInfo('${r.id}')" class="text-sm text-blue-600 hover:underline">แก้ไข</button>
-            <button onclick="event.stopPropagation();deleteRoadmapById('${r.id}')" class="text-sm text-red-600 hover:underline">ลบ</button>
+            <button onclick="event.stopPropagation();editRoadmapInfo('${escJs(r.id)}')" class="text-sm text-blue-600 hover:underline">แก้ไข</button>
+            <button onclick="event.stopPropagation();deleteRoadmapById('${escJs(r.id)}')" class="text-sm text-red-600 hover:underline">ลบ</button>
           </div>
         </div>
       </div>`;
@@ -113,7 +113,7 @@ async function viewRoadmapDetail(id) {
 
     document.getElementById('roadmap-modal-title').textContent = roadmap.title || 'Roadmap';
     document.getElementById('roadmap-modal-content').innerHTML = `
-      <p class="text-sm text-gray-500 mb-4">${roadmap.description || ''}</p>
+      <p class="text-sm text-gray-500 mb-4">${escAttr(roadmap.description || '')}</p>
       <div class="flex justify-between items-center mb-3">
         <h4 class="font-bold text-gray-700">ขั้นตอน (${steps.length})</h4>
         <button id="btn-add-step" onclick="toggleStepForm()" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">+ เพิ่มขั้นตอน</button>
@@ -178,13 +178,13 @@ function renderStepCard(s) {
             ${duration ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">${duration}</span>` : ''}
             ${dueDate ? `<span class="text-xs text-gray-400">กำหนด: ${dueDate}</span>` : ''}
           </div>
-          <h5 class="font-medium text-gray-800">${s.title || ''}</h5>
-          ${s.description ? `<p class="text-xs text-gray-500 mt-1">${s.description}</p>` : ''}
+          <h5 class="font-medium text-gray-800">${escAttr(s.title || '')}</h5>
+          ${s.description ? `<p class="text-xs text-gray-500 mt-1">${escAttr(s.description)}</p>` : ''}
           <div class="flex gap-3 mt-2">
-            ${hasFile ? `<a href="${s.fileUrl}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+            ${hasFile ? `<a href="${safeUrl(s.fileUrl)}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-              ${s.fileName || 'ไฟล์แนบ'}</a>` : ''}
-            ${hasResources ? `<a href="${s.resources}" target="_blank" class="text-xs text-green-600 hover:underline flex items-center gap-1">
+              ${escAttr(s.fileName || 'ไฟล์แนบ')}</a>` : ''}
+            ${hasResources ? `<a href="${safeUrl(s.resources)}" target="_blank" class="text-xs text-green-600 hover:underline flex items-center gap-1">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
               แหล่งเรียนรู้</a>` : ''}
           </div>
@@ -215,7 +215,7 @@ function handleStepFileSelect(input) {
   document.getElementById('step-file-preview').classList.remove('hidden');
   document.getElementById('step-file-box').classList.add('hidden');
 
-  fileToBase64(file).then(base64 => { _stepFileData = base64; });
+  fileToBase64(file).then(base64 => { _stepFileData = base64; }).catch(err => showToast('ไม่สามารถอ่านไฟล์ได้', 'error'));
 }
 
 function clearStepFile() {
@@ -324,7 +324,7 @@ async function openEditStep(stepId) {
         <div><label class="block text-xs text-gray-600 mb-1">ไฟล์แนบ</label>
           ${step.fileUrl ? `
             <div id="edit-existing-file" class="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2 rounded mb-2">
-              <a href="${step.fileUrl}" target="_blank" class="hover:underline flex-1">${step.fileName || 'ไฟล์แนบ'}</a>
+              <a href="${safeUrl(step.fileUrl)}" target="_blank" class="hover:underline flex-1">${escAttr(step.fileName || 'ไฟล์แนบ')}</a>
               <button onclick="document.getElementById('edit-existing-file').remove();document.getElementById('edit-step-remove-file').value='true';document.getElementById('edit-file-upload-box').classList.remove('hidden')" class="text-red-500 text-xs hover:text-red-700">เปลี่ยนไฟล์</button>
             </div>` : ''}
           <input type="hidden" id="edit-step-remove-file" value="false" />
@@ -363,7 +363,7 @@ function handleEditStepFile(input) {
   document.getElementById('edit-step-file-preview').classList.remove('hidden');
   document.getElementById('edit-file-upload-box').classList.add('hidden');
 
-  fileToBase64(file).then(base64 => { _editStepFileData = base64; });
+  fileToBase64(file).then(base64 => { _editStepFileData = base64; }).catch(err => showToast('ไม่สามารถอ่านไฟล์ได้', 'error'));
 }
 
 function clearEditStepFile() {

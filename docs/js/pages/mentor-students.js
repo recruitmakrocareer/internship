@@ -43,27 +43,27 @@ async function loadMentorStudents() {
       const displayName = ((s.firstName || '') + ' ' + (s.lastName || '')).trim() || s.name || '-';
       const docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
       return `
-      <div class="bg-white rounded-xl border p-5 hover:shadow-lg transition-shadow cursor-pointer" onclick="showStudentDetail('${s.id}')">
+      <div class="bg-white rounded-xl border p-5 hover:shadow-lg transition-shadow cursor-pointer" onclick="showStudentDetail('${escJs(s.id)}')">
         <div class="flex items-center gap-4 mb-3">
           <div class="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden ${s.photoFileUrl ? '' : 'bg-blue-100'}">
             ${s.photoFileUrl
-              ? '<img src="' + driveImageUrl(s.photoFileUrl) + '" class="w-full h-full object-cover">'
-              : '<span class="text-blue-700 font-bold text-lg">' + (displayName).charAt(0).toUpperCase() + '</span>'}
+              ? '<img src="' + safeUrl(driveImageUrl(s.photoFileUrl)) + '" class="w-full h-full object-cover" onerror="this.style.display=\'none\'">'
+              : '<span class="text-blue-700 font-bold text-lg">' + escAttr((displayName).charAt(0).toUpperCase()) + '</span>'}
           </div>
           <div>
-            <h3 class="font-bold text-gray-800">${displayName}</h3>
-            <p class="text-sm text-gray-500">${s.studentId || ''} | ${s.department || ''}</p>
+            <h3 class="font-bold text-gray-800">${escAttr(displayName)}</h3>
+            <p class="text-sm text-gray-500">${escAttr(s.studentId || '')} | ${escAttr(s.department || '')}</p>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-          <div><span class="text-gray-400">มหาวิทยาลัย:</span> <span class="text-gray-700">${s.university || '-'}</span></div>
-          <div><span class="text-gray-400">สาขา:</span> <span class="text-gray-700">${s.major || '-'}</span></div>
-          <div><span class="text-gray-400">ประเภท:</span> <span class="text-gray-700">${s.internshipType || '-'}</span></div>
+          <div><span class="text-gray-400">มหาวิทยาลัย:</span> <span class="text-gray-700">${escAttr(s.university || '-')}</span></div>
+          <div><span class="text-gray-400">สาขา:</span> <span class="text-gray-700">${escAttr(s.major || '-')}</span></div>
+          <div><span class="text-gray-400">ประเภท:</span> <span class="text-gray-700">${escAttr(s.internshipType || '-')}</span></div>
           <div><span class="text-gray-400">เอกสาร:</span> <span class="text-gray-700">${docCount}/4</span></div>
         </div>
         <div class="flex gap-2 text-xs flex-wrap">
-          <span class="px-2 py-1 rounded-full bg-blue-50 text-blue-700">${s.email || ''}</span>
-          ${s.phone ? '<span class="px-2 py-1 rounded-full bg-gray-50 text-gray-600">' + s.phone + '</span>' : ''}
+          <span class="px-2 py-1 rounded-full bg-blue-50 text-blue-700">${escAttr(s.email || '')}</span>
+          ${s.phone ? '<span class="px-2 py-1 rounded-full bg-gray-50 text-gray-600">' + escAttr(s.phone) + '</span>' : ''}
         </div>
       </div>`;
     }).join('');
@@ -103,52 +103,52 @@ async function showStudentDetail(studentId) {
         <div class="flex items-center gap-4 mb-4">
           <div class="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden ${p.photoFileUrl ? '' : 'bg-blue-100'}">
             ${p.photoFileUrl
-              ? '<img src="' + driveImageUrl(p.photoFileUrl) + '" class="w-full h-full object-cover">'
-              : '<span class="text-blue-700 font-bold text-2xl">' + (displayName).charAt(0).toUpperCase() + '</span>'}
+              ? '<img src="' + safeUrl(driveImageUrl(p.photoFileUrl)) + '" class="w-full h-full object-cover" onerror="this.style.display=\'none\'">'
+              : '<span class="text-blue-700 font-bold text-2xl">' + escAttr((displayName).charAt(0).toUpperCase()) + '</span>'}
           </div>
           <div>
-            <h3 class="text-lg font-bold text-gray-800">${displayName}</h3>
-            <p class="text-sm text-gray-500">${p.email || '-'} | ${p.phone || '-'}</p>
-            ${p.nickname ? '<p class="text-xs text-gray-400">ชื่อเล่น: ' + p.nickname + '</p>' : ''}
+            <h3 class="text-lg font-bold text-gray-800">${escAttr(displayName)}</h3>
+            <p class="text-sm text-gray-500">${escAttr(p.email || '-')} | ${escAttr(p.phone || '-')}</p>
+            ${p.nickname ? '<p class="text-xs text-gray-400">ชื่อเล่น: ' + escAttr(p.nickname) + '</p>' : ''}
           </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">รหัสนักศึกษา</div>
-            <div class="font-medium text-sm">${p.studentId || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.studentId || '-')}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">มหาวิทยาลัย</div>
-            <div class="font-medium text-sm">${p.university || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.university || '-')}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">คณะ</div>
-            <div class="font-medium text-sm">${p.faculty || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.faculty || '-')}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">สาขา</div>
-            <div class="font-medium text-sm">${p.major || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.major || '-')}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">ชั้นปี / GPA</div>
-            <div class="font-medium text-sm">${p.year ? 'ปี ' + p.year : '-'} ${p.gpa ? '/ ' + p.gpa : ''}</div>
+            <div class="font-medium text-sm">${p.year ? 'ปี ' + escAttr(p.year) : '-'} ${p.gpa ? '/ ' + escAttr(p.gpa) : ''}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">ประเภทฝึกงาน</div>
-            <div class="font-medium text-sm">${p.internshipType || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.internshipType || '-')}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">แผนก / สาขาที่ฝึก</div>
-            <div class="font-medium text-sm">${p.department || '-'} ${p.branch ? '/ ' + p.branch : ''}</div>
+            <div class="font-medium text-sm">${escAttr(p.department || '-')} ${p.branch ? '/ ' + escAttr(p.branch) : ''}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">วันฝึกงาน</div>
-            <div class="font-medium text-sm">${p.startDate || '-'} ~ ${p.endDate || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.startDate || '-')} ~ ${escAttr(p.endDate || '-')}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="text-xs text-gray-500">อาจารย์ที่ปรึกษา</div>
-            <div class="font-medium text-sm">${p.advisorName || '-'}</div>
+            <div class="font-medium text-sm">${escAttr(p.advisorName || '-')}</div>
           </div>
         </div>
 
@@ -164,8 +164,8 @@ async function showStudentDetail(studentId) {
 
         ${p.skills || p.interests ? `
         <div class="bg-gray-50 rounded-lg p-3">
-          ${p.skills ? '<div class="text-xs text-gray-500 mb-1">ทักษะ</div><div class="text-sm text-gray-700 mb-2">' + p.skills + '</div>' : ''}
-          ${p.interests ? '<div class="text-xs text-gray-500 mb-1">ความสนใจ</div><div class="text-sm text-gray-700">' + p.interests + '</div>' : ''}
+          ${p.skills ? '<div class="text-xs text-gray-500 mb-1">ทักษะ</div><div class="text-sm text-gray-700 mb-2">' + escAttr(p.skills) + '</div>' : ''}
+          ${p.interests ? '<div class="text-xs text-gray-500 mb-1">ความสนใจ</div><div class="text-sm text-gray-700">' + escAttr(p.interests) + '</div>' : ''}
         </div>` : ''}
 
         <div class="bg-green-50 rounded-xl p-4">
@@ -203,7 +203,7 @@ async function showStudentDetail(studentId) {
                 <div class="bg-purple-600 h-2 rounded-full" style="width:${km.progressPercent || 0}%"></div>
               </div>
               <div class="text-xs text-purple-600 mt-1">
-                ${km.selectedTopic ? 'หัวข้อนำเสนอ: ' + km.selectedTopic.topicName : 'ยังไม่ได้เลือกหัวข้อนำเสนอ'}
+                ${km.selectedTopic ? 'หัวข้อนำเสนอ: ' + escAttr(km.selectedTopic.topicName) : 'ยังไม่ได้เลือกหัวข้อนำเสนอ'}
                 ${km.presentationScore ? ' | คะแนน: ' + km.presentationScore + '/100' : ''}
               </div>
             </div>

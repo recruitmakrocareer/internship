@@ -87,7 +87,7 @@ function _mentorQuota(m) {
 function _muted(v) {
   return (v === undefined || v === null || String(v).trim() === '')
     ? '<span class="text-gray-400">ไม่ระบุ</span>'
-    : String(v);
+    : escAttr(String(v));
 }
 
 // โหลดข้อมูลจาก API ครั้งเดียว แล้วเก็บไว้ใน cache จากนั้นค่อย render
@@ -154,7 +154,7 @@ function renderMentorsTable() {
     const max = _mentorQuota(m);
     const isFull = assigned >= max;
     const isInactive = String(m.isActive) === 'false';
-    const nameSafe = (m.name || '').replace(/'/g, "\\'");
+    const nameSafe = escJs(m.name || '');
 
     const quotaBadge = isFull
       ? `<div class="flex flex-col items-center gap-1">
@@ -172,34 +172,34 @@ function renderMentorsTable() {
         <td class="px-4 py-4">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-green-700 font-semibold text-xs">${(fullName || '?').charAt(0)}</span>
+              <span class="text-green-700 font-semibold text-xs">${escAttr((fullName || '?').charAt(0))}</span>
             </div>
             <div>
-              <p class="font-medium text-gray-800">${fullName}</p>
-              <p class="text-xs text-gray-500">${m.email || 'ไม่ระบุ'}</p>
+              <p class="font-medium text-gray-800">${escAttr(fullName)}</p>
+              <p class="text-xs text-gray-500">${escAttr(m.email || 'ไม่ระบุ')}</p>
             </div>
           </div>
         </td>
         <td class="px-4 py-4 text-gray-600">${_muted(m.employeeId)}</td>
         <td class="px-4 py-4 text-gray-600">
           <p>${_muted(m.department)}</p>
-          <p class="text-xs text-gray-400">${m.branch || 'ไม่ระบุ'}</p>
+          <p class="text-xs text-gray-400">${escAttr(m.branch || 'ไม่ระบุ')}</p>
         </td>
         <td class="px-4 py-4 text-gray-600">${_muted(m.phone)}</td>
         <td class="px-4 py-4 text-center">${quotaBadge}</td>
         <td class="px-4 py-4 text-center">${statusBadge}</td>
         <td class="px-4 py-4 text-center">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="openMentorStudentsModal('${m.id}', '${nameSafe}')" class="text-gray-500 hover:text-gray-800 transition-colors" title="ดูนักศึกษา">
+            <button onclick="openMentorStudentsModal('${escJs(m.id)}', '${nameSafe}')" class="text-gray-500 hover:text-gray-800 transition-colors" title="ดูนักศึกษา">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-2.83-4"/></svg>
             </button>
-            <button onclick="openEditMentorModal('${m.id}')" class="text-primary-600 hover:text-primary-800 transition-colors" title="แก้ไข">
+            <button onclick="openEditMentorModal('${escJs(m.id)}')" class="text-primary-600 hover:text-primary-800 transition-colors" title="แก้ไข">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             </button>
-            <button onclick="openAssignStudentModal('${m.id}', '${nameSafe}')" class="text-green-600 hover:text-green-800 transition-colors" title="มอบหมายนักศึกษา">
+            <button onclick="openAssignStudentModal('${escJs(m.id)}', '${nameSafe}')" class="text-green-600 hover:text-green-800 transition-colors" title="มอบหมายนักศึกษา">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
             </button>
-            <button onclick="toggleMentorActive('${m.id}', ${isInactive ? 'true' : 'false'})" class="${isInactive ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'} transition-colors" title="${isInactive ? 'เปิดใช้งาน' : 'ระงับ'}">
+            <button onclick="toggleMentorActive('${escJs(m.id)}', ${isInactive ? 'true' : 'false'})" class="${isInactive ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'} transition-colors" title="${isInactive ? 'เปิดใช้งาน' : 'ระงับ'}">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isInactive ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636'}"/></svg>
             </button>
           </div>
@@ -339,7 +339,7 @@ async function submitEditMentor() {
 // ดูรายชื่อนักศึกษาที่อยู่ในความดูแลของพี่เลี้ยง
 async function openMentorStudentsModal(mentorId, mentorName) {
   const modalContainer = document.getElementById('mentor-modal');
-  modalContainer.innerHTML = buildModal('mentor-students-modal', `นักศึกษาในความดูแลของ ${mentorName || ''}`.trim(), `
+  modalContainer.innerHTML = buildModal('mentor-students-modal', `นักศึกษาในความดูแลของ ${escAttr(mentorName || '')}`.trim(), `
     <div id="mentor-students-list" class="space-y-2">
       <p class="text-sm text-gray-500">กำลังโหลดรายชื่อนักศึกษา...</p>
     </div>
@@ -365,11 +365,11 @@ async function openMentorStudentsModal(mentorId, mentorName) {
       return `
         <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
           <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-primary-700 font-semibold text-xs">${(fullName || '?').charAt(0)}</span>
+            <span class="text-primary-700 font-semibold text-xs">${escAttr((fullName || '?').charAt(0))}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-800">${fullName}</p>
-            <p class="text-xs text-gray-500">${uni || 'ไม่ระบุมหาวิทยาลัย'}</p>
+            <p class="text-sm font-medium text-gray-800">${escAttr(fullName)}</p>
+            <p class="text-xs text-gray-500">${escAttr(uni || 'ไม่ระบุมหาวิทยาลัย')}</p>
           </div>
         </div>
       `;
@@ -394,7 +394,7 @@ async function openAssignStudentModal(mentorId, mentorName) {
     : '';
 
   const modalContainer = document.getElementById('mentor-modal');
-  modalContainer.innerHTML = buildModal('assign-student-modal', `มอบหมายนักศึกษาให้ ${mentorName}`, `
+  modalContainer.innerHTML = buildModal('assign-student-modal', `มอบหมายนักศึกษาให้ ${escAttr(mentorName || '')}`, `
     ${warningBanner}
     <div id="assign-student-list" class="space-y-2">
       <p class="text-sm text-gray-500">กำลังโหลดรายชื่อนักศึกษา...</p>
@@ -417,14 +417,14 @@ async function openAssignStudentModal(mentorId, mentorName) {
         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-              <span class="text-primary-700 font-semibold text-xs">${(s.name || s.firstName || '?').charAt(0)}</span>
+              <span class="text-primary-700 font-semibold text-xs">${escAttr((s.name || s.firstName || '?').charAt(0))}</span>
             </div>
             <div>
-              <p class="text-sm font-medium text-gray-800">${s.name || ((s.firstName || '') + ' ' + (s.lastName || '')).trim()}</p>
-              <p class="text-xs text-gray-500">${s.studentId || ''} ${s.department ? '| ' + s.department : ''}</p>
+              <p class="text-sm font-medium text-gray-800">${escAttr(s.name || ((s.firstName || '') + ' ' + (s.lastName || '')).trim())}</p>
+              <p class="text-xs text-gray-500">${escAttr(s.studentId || '')} ${s.department ? '| ' + escAttr(s.department) : ''}</p>
             </div>
           </div>
-          <button onclick="assignStudentToMentor('${mentorId}', '${s.id}')" class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+          <button onclick="assignStudentToMentor('${escJs(mentorId)}', '${escJs(s.id)}')" class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
             มอบหมาย
           </button>
         </div>

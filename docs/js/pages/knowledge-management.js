@@ -113,7 +113,7 @@ async function loadKmSchedule() {
       <div class="rounded-lg border p-3 ${roundColors[i] || roundColors[0]}">
         <div class="font-semibold text-sm">${roundLabels[i] || 'รอบที่ ' + (i+1)}</div>
         <div class="text-lg font-bold mt-1">${s.title ? formatDate(s.title) : '-'}</div>
-        ${s.description ? '<div class="text-xs mt-1 opacity-80">' + s.description + '</div>' : ''}
+        ${s.description ? '<div class="text-xs mt-1 opacity-80">' + escAttr(s.description) + '</div>' : ''}
       </div>
     `).join('');
   } catch (e) {
@@ -224,7 +224,7 @@ async function loadKnowledgeEntries() {
                 <div>${entry.challenges ? '✓' : '○'} ปัญหาและแนวทางแก้ไข</div>
                 <div>${entry.knowledgeApply ? '✓' : '○'} การนำไปประยุกต์ใช้</div>
                 <div>${entry.feedback ? '✓' : '○'} ฟีดแบคและข้อเสนอแนะ</div>
-                ${entry.fileUrl ? '<div class="mt-2"><a href="' + entry.fileUrl + '" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-1 text-blue-600 hover:underline">📎 ' + (entry.fileName || 'ไฟล์แนบ') + '</a></div>' : ''}
+                ${entry.fileUrl ? '<div class="mt-2"><a href="' + safeUrl(entry.fileUrl) + '" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-1 text-blue-600 hover:underline">📎 ' + escAttr(entry.fileName || 'ไฟล์แนบ') + '</a></div>' : ''}
               </div>
             ` : ''}
           </div>
@@ -237,8 +237,8 @@ async function loadKnowledgeEntries() {
     document.getElementById('km-progress-bar').style.width = Math.round((completedCount/6)*100) + '%';
 
     // Show presentation score if exists
-    const selectedEntry = Object.values(entriesMap).find(e => e.isSelectedForPresentation === 'true');
-    if (selectedEntry && selectedEntry.presentationScore) {
+    const selectedEntry = Object.values(entriesMap).find(e => e.isSelectedForPresentation === 'true' || e.isSelectedForPresentation === true);
+    if (selectedEntry && selectedEntry.presentationScore != null) {
       const scoreDiv = document.getElementById('presentation-score');
       scoreDiv.classList.remove('hidden');
 
@@ -249,11 +249,11 @@ async function loadKnowledgeEntries() {
         <div class="flex items-center gap-6">
           <div class="text-4xl font-bold text-purple-700">${parseFloat(selectedEntry.presentationScore).toFixed(1)}<span class="text-lg text-purple-400">/100</span></div>
           <div class="flex-1 grid grid-cols-5 gap-3 text-center text-sm">
-            <div><div class="font-medium">${scoreDetail.format || '-'}</div><div class="text-xs text-gray-500">รูปแบบ (15%)</div></div>
-            <div><div class="font-medium">${scoreDetail.content || '-'}</div><div class="text-xs text-gray-500">เนื้อหา (40%)</div></div>
-            <div><div class="font-medium">${scoreDetail.timeManagement || '-'}</div><div class="text-xs text-gray-500">เวลา (15%)</div></div>
-            <div><div class="font-medium">${scoreDetail.presentationSkill || '-'}</div><div class="text-xs text-gray-500">ทักษะ (15%)</div></div>
-            <div><div class="font-medium">${scoreDetail.qaSkill || '-'}</div><div class="text-xs text-gray-500">ตอบคำถาม (15%)</div></div>
+            <div><div class="font-medium">${escAttr(scoreDetail.format || '-')}</div><div class="text-xs text-gray-500">รูปแบบ (15%)</div></div>
+            <div><div class="font-medium">${escAttr(scoreDetail.content || '-')}</div><div class="text-xs text-gray-500">เนื้อหา (40%)</div></div>
+            <div><div class="font-medium">${escAttr(scoreDetail.timeManagement || '-')}</div><div class="text-xs text-gray-500">เวลา (15%)</div></div>
+            <div><div class="font-medium">${escAttr(scoreDetail.presentationSkill || '-')}</div><div class="text-xs text-gray-500">ทักษะ (15%)</div></div>
+            <div><div class="font-medium">${escAttr(scoreDetail.qaSkill || '-')}</div><div class="text-xs text-gray-500">ตอบคำถาม (15%)</div></div>
           </div>
         </div>`;
     }
@@ -276,19 +276,19 @@ function openKmEntry(topicNumber) {
     <div class="space-y-5">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">สิ่งที่ได้เรียนรู้ (Key Takeaways)</label>
-        <textarea id="km-takeaways" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="บันทึกสิ่งที่ได้เรียนรู้จากหัวข้อนี้...">${entry.keyTakeaways || ''}</textarea>
+        <textarea id="km-takeaways" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="บันทึกสิ่งที่ได้เรียนรู้จากหัวข้อนี้...">${escAttr(entry.keyTakeaways || '')}</textarea>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">ปัญหาหรืออุปสรรคที่พบ และแนวทางแก้ไข (Challenges and Solutions)</label>
-        <textarea id="km-challenges" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="ปัญหาที่พบและวิธีแก้ไข...">${entry.challenges || ''}</textarea>
+        <textarea id="km-challenges" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="ปัญหาที่พบและวิธีแก้ไข...">${escAttr(entry.challenges || '')}</textarea>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">การนำไปประยุกต์ใช้ในงานจริง (Knowledge Apply)</label>
-        <textarea id="km-apply" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="นำความรู้ไปใช้อย่างไร...">${entry.knowledgeApply || ''}</textarea>
+        <textarea id="km-apply" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="นำความรู้ไปใช้อย่างไร...">${escAttr(entry.knowledgeApply || '')}</textarea>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">ฟีดแบค และข้อเสนอแนะอื่นๆ (Feedback and Suggestion)</label>
-        <textarea id="km-feedback" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="ข้อเสนอแนะเพิ่มเติม...">${entry.feedback || ''}</textarea>
+        <textarea id="km-feedback" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400" rows="4" placeholder="ข้อเสนอแนะเพิ่มเติม...">${escAttr(entry.feedback || '')}</textarea>
       </div>
 
       <!-- File Attachment -->
@@ -302,7 +302,7 @@ function openKmEntry(topicNumber) {
           </label>
         </div>
         <div id="km-file-status" class="mt-2 text-xs">
-          ${entry.fileUrl ? '<a href="' + entry.fileUrl + '" target="_blank" class="text-blue-600 hover:underline">📎 ' + (entry.fileName || 'ดูไฟล์ที่แนบ') + '</a>' : ''}
+          ${entry.fileUrl ? '<a href="' + safeUrl(entry.fileUrl) + '" target="_blank" class="text-blue-600 hover:underline">📎 ' + escAttr(entry.fileName || 'ดูไฟล์ที่แนบ') + '</a>' : ''}
         </div>
       </div>
 
