@@ -176,7 +176,7 @@ function _rvRenderContent(resource) {
     return `
       <div class="max-w-5xl mx-auto rv-content-padding">
         <iframe class="w-full rounded-xl shadow-lg border" style="height:80vh"
-          src="${_rvEsc(previewUrl)}"
+          src="${safeUrl(previewUrl)}"
           frameborder="0" loading="lazy"></iframe>
         ${_rvDescriptionBlock(resource)}
       </div>`;
@@ -189,7 +189,7 @@ function _rvRenderContent(resource) {
         <video id="rv-video-player" controls width="100%"
           class="w-full rounded-xl shadow-lg bg-black"
           style="max-height:75vh;object-fit:contain">
-          <source src="${_rvEsc(sourceUrl)}" type="${_rvVideoMime(sourceUrl)}">
+          <source src="${safeUrl(sourceUrl)}" type="${_rvVideoMime(sourceUrl)}">
           เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
         </video>
         ${_rvDescriptionBlock(resource)}
@@ -202,13 +202,13 @@ function _rvRenderContent(resource) {
       <div class="max-w-5xl mx-auto rv-content-padding space-y-4">
         <div class="relative w-full" style="padding-bottom:56.25%">
           <iframe class="absolute inset-0 w-full h-full rounded-xl shadow-lg"
-            src="${_rvEsc(sourceUrl)}"
+            src="${safeUrl(sourceUrl)}"
             frameborder="0" allow="autoplay; encrypted-media"
             allowfullscreen loading="lazy"></iframe>
         </div>
         <div class="text-center py-3">
           <p class="text-sm text-gray-500 mb-3">หากวิดีโอไม่แสดงผล สามารถเปิดลิงก์โดยตรง</p>
-          <a href="${_rvEsc(sourceUrl)}" target="_blank" rel="noopener noreferrer"
+          <a href="${safeUrl(sourceUrl)}" target="_blank" rel="noopener noreferrer"
             class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-primary-700 transition-colors shadow-lg">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
             เปิดลิงก์
@@ -223,7 +223,7 @@ function _rvRenderContent(resource) {
     var imgSrc = _rvIsGoogleDrive(sourceUrl) ? driveImageUrl(sourceUrl) : sourceUrl;
     return `
       <div class="max-w-5xl mx-auto rv-content-padding text-center">
-        <img src="${_rvEsc(imgSrc)}" alt="${_rvEsc(resource.title || '')}" class="max-w-full mx-auto rounded-xl shadow-lg" style="max-height:80vh;object-fit:contain" />
+        <img src="${safeUrl(imgSrc)}" alt="${_rvEsc(resource.title || '')}" class="max-w-full mx-auto rounded-xl shadow-lg" style="max-height:80vh;object-fit:contain" />
         ${_rvDescriptionBlock(resource)}
       </div>`;
   }
@@ -233,13 +233,13 @@ function _rvRenderContent(resource) {
     return `
       <div class="max-w-5xl mx-auto rv-content-padding space-y-4">
         <div class="text-center py-6">
-          <a href="${_rvEsc(sourceUrl)}" target="_blank" rel="noopener noreferrer"
+          <a href="${safeUrl(sourceUrl)}" target="_blank" rel="noopener noreferrer"
             class="inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
             เปิดลิงก์
           </a>
         </div>
-        <iframe src="${_rvEsc(sourceUrl)}" class="w-full rounded-xl shadow-lg border" style="height:70vh"
+        <iframe src="${safeUrl(sourceUrl)}" class="w-full rounded-xl shadow-lg border" style="height:70vh"
           frameborder="0" loading="lazy"></iframe>
         ${_rvDescriptionBlock(resource)}
       </div>`;

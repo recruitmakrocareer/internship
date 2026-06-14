@@ -454,12 +454,20 @@ function cmsRenameSection(oldName) {
   var newName = prompt('เปลี่ยนชื่อ Section:', oldName);
   if (!newName || !newName.trim() || newName.trim() === oldName) return;
   var toUpdate = _adminResources.filter(function(r) { return r.sectionName === oldName; });
+  var promises = [];
   toUpdate.forEach(function(r) {
     r.sectionName = newName.trim();
-    callApiPost('updateResource', { id: r.id, sectionName: newName.trim() });
+    promises.push(callApiPost('updateResource', { id: r.id, sectionName: newName.trim() }).catch(function(){ return { failed: true }; }));
   });
   cmsRenderTree();
-  showToast('เปลี่ยนชื่อ Section สำเร็จ', 'success');
+  Promise.all(promises).then(function(results) {
+    var anyFailed = results.some(function(r) { return r && r.failed; });
+    if (anyFailed) {
+      showToast('บันทึกบางรายการล้มเหลว', 'error');
+    } else {
+      showToast('เปลี่ยนชื่อ Section สำเร็จ', 'success');
+    }
+  });
 }
 
 // ==================== Create New Resource ====================
