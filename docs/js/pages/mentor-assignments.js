@@ -125,7 +125,7 @@ function openReviewModal(submissionId, title, maxScore) {
         <label class="block text-sm font-medium text-gray-700 mb-1">ความคิดเห็น</label>
         <textarea id="review-feedback" class="w-full border rounded-lg p-3 text-sm" rows="4" placeholder="ให้ฟีดแบค...">${escAttr(sub.feedback || '')}</textarea>
       </div>
-      <button onclick="submitReview('${submissionId}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700">บันทึกการตรวจ</button>
+      <button onclick="submitReview('${escJs(submissionId)}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700">บันทึกการตรวจ</button>
     </div>
   `;
   document.getElementById('review-modal').classList.remove('hidden');

@@ -54,7 +54,7 @@ async function loadAdminNotifications() {
           </div>
           <span class="text-xs text-gray-400 whitespace-nowrap ml-4">${formatDate(n.createdAt)}</span>
         </div>
-        ${n.isRead !== 'true' && n.isRead !== true ? `<button onclick="markNotifRead('${n.id}')" class="text-xs text-blue-600 hover:underline mt-2">ทำเครื่องหมายว่าอ่านแล้ว</button>` : ''}
+        ${n.isRead !== 'true' && n.isRead !== true ? `<button onclick="markNotifRead('${escJs(n.id)}')" class="text-xs text-blue-600 hover:underline mt-2">ทำเครื่องหมายว่าอ่านแล้ว</button>` : ''}
       </div>
     `).join('');
   } catch (e) {
