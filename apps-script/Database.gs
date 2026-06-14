@@ -34,18 +34,55 @@ function getSheet(sheetName) {
       sheet.setFrozenRows(1);
     }
   } else if (expectedHeaders && expectedHeaders.length > 0) {
-    var lastCol = sheet.getLastColumn();
-    var currentHeaders = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
-    var nonEmpty = 0;
-    for (var h = 0; h < currentHeaders.length; h++) {
-      if (currentHeaders[h] !== '') nonEmpty++;
-    }
-    if (nonEmpty < expectedHeaders.length) {
-      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
-    }
+    reconcileHeaders(sheet, expectedHeaders);
   }
 
   return sheet;
+}
+
+/**
+ * Safely reconciles a sheet's header row against the expected headers.
+ *
+ * The project convention is that new columns are ALWAYS appended to the end of
+ * the CONFIG.HEADERS arrays. This helper enforces that: it only ever extends the
+ * header row with genuinely-missing trailing columns and never overwrites an
+ * existing header cell. If an existing header differs from the expected header at
+ * the same position (a rename/reorder), it refuses to rewrite — overwriting would
+ * silently remap every data row to the wrong column — and reports the mismatch
+ * instead, leaving the data intact.
+ *
+ * @param {Sheet} sheet - The sheet to reconcile
+ * @param {string[]} expected - The expected header array from CONFIG.HEADERS
+ * @return {string} A status string: 'ok', 'extended ...', or 'MISMATCH ...'
+ */
+function reconcileHeaders(sheet, expected) {
+  var lastCol = sheet.getLastColumn();
+  var current = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+
+  // Trim trailing empty cells from the current header row.
+  var currentLen = current.length;
+  while (currentLen > 0 && current[currentLen - 1] === '') currentLen--;
+
+  // Detect a true reorder/rename: any populated existing header that does not
+  // match the expected header at the same position.
+  for (var i = 0; i < currentLen; i++) {
+    if (current[i] !== '' && current[i] !== expected[i]) {
+      var msg = 'MISMATCH at col ' + (i + 1) + ': sheet has "' + current[i] +
+        '" but CONFIG expects "' + expected[i] + '" — NOT rewriting to avoid data corruption';
+      Logger.log('reconcileHeaders(' + sheet.getName() + '): ' + msg);
+      return msg;
+    }
+  }
+
+  // Existing headers are a valid prefix of expected. Append any missing columns.
+  if (currentLen < expected.length) {
+    sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
+    sheet.getRange(1, 1, 1, expected.length).setFontWeight('bold');
+    if (sheet.getFrozenRows() < 1) sheet.setFrozenRows(1);
+    return 'extended ' + currentLen + ' -> ' + expected.length + ' cols';
+  }
+
+  return 'ok (' + currentLen + ' cols)';
 }
 
 /**
@@ -345,18 +382,7 @@ function syncAllHeaders() {
         sheet.setFrozenRows(1);
         results.push(name + ': created (' + expected.length + ' cols)');
       } else {
-        var lastCol = sheet.getLastColumn();
-        var current = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
-        var nonEmpty = 0;
-        for (var h = 0; h < current.length; h++) {
-          if (current[h] !== '') nonEmpty++;
-        }
-        if (nonEmpty < expected.length) {
-          sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
-          results.push(name + ': synced ' + nonEmpty + ' -> ' + expected.length + ' cols');
-        } else {
-          results.push(name + ': ok (' + nonEmpty + ' cols)');
-        }
+        results.push(name + ': ' + reconcileHeaders(sheet, expected));
       }
     }
     return { success: true, data: results };

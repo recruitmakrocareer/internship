@@ -64,10 +64,18 @@ function getAdminStats(params) {
 
     // Mentor assignment stats
     var mentorAssignments = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, { isActive: 'true' });
+    // Build the set of active student IDs so we never count assignments that
+    // belong to deactivated students (which would make studentsWithoutMentor
+    // go negative).
+    var activeStudentIds = {};
+    for (var a = 0; a < activeStudents.length; a++) {
+      activeStudentIds[String(activeStudents[a].id)] = true;
+    }
     var studentsWithMentor = [];
     for (var i = 0; i < mentorAssignments.length; i++) {
-      if (studentsWithMentor.indexOf(mentorAssignments[i].studentId) === -1) {
-        studentsWithMentor.push(mentorAssignments[i].studentId);
+      var sid = String(mentorAssignments[i].studentId);
+      if (activeStudentIds[sid] && studentsWithMentor.indexOf(sid) === -1) {
+        studentsWithMentor.push(sid);
       }
     }
 
@@ -85,7 +93,7 @@ function getAdminStats(params) {
         totalMentors: totalMentors,
         activeMentors: activeMentors.length,
         studentsWithMentor: studentsWithMentor.length,
-        studentsWithoutMentor: activeStudents.length - studentsWithMentor.length
+        studentsWithoutMentor: Math.max(0, activeStudents.length - studentsWithMentor.length)
       },
       assignments: {
         totalAssignments: assignments.length,

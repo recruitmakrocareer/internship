@@ -274,7 +274,7 @@ function getMentors() {
         }
       }
       copy.name = copy.name || ((copy.firstName || '') + ' ' + (copy.lastName || '')).trim();
-      copy.assignedStudents = mentorStudents.filter(function(ms) { return ms.mentorId === u.id; }).length;
+      copy.assignedStudents = mentorStudents.filter(function(ms) { return String(ms.mentorId) === String(u.id); }).length;
       return copy;
     });
 
@@ -399,7 +399,7 @@ function assignMentor(mentorId, studentId) {
       isActive: 'true'
     });
     var currentCount = mentorActiveAssignments.filter(function(ms) {
-      return ms.studentId !== studentId;
+      return String(ms.studentId) !== String(studentId);
     }).length;
 
     if (currentCount >= maxStudents) {

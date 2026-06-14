@@ -103,7 +103,9 @@ var CONFIG = {
       'presentationScore', 'presentationScoreDetail', 'evaluatorId',
       'createdAt', 'updatedAt',
       'fileUrl', 'fileName'
-    ]
+    ],
+    StoreList: ['storeNo', 'storeName'],
+    DepartmentList: ['division', 'department']
   },
 
   // User roles

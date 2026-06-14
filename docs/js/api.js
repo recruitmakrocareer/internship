@@ -74,7 +74,14 @@ function setToken(userData) {
  */
 function getToken() {
   const data = localStorage.getItem('internship_user');
-  return data ? JSON.parse(data) : null;
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    // Corrupt localStorage would otherwise throw and break all routing.
+    localStorage.removeItem('internship_user');
+    return null;
+  }
 }
 
 /**

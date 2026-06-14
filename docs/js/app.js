@@ -137,6 +137,7 @@ function navigateTo(page) {
  */
 function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const colors = {
     success: 'bg-green-500',
     error: 'bg-red-500',
@@ -152,7 +153,7 @@ function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 mb-2 transform transition-all duration-300 translate-x-0 opacity-100`;
-  toast.innerHTML = `${icons[type] || ''}<span>${message}</span>`;
+  toast.innerHTML = `${icons[type] || ''}<span>${escAttr(message)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -165,14 +166,16 @@ function showToast(message, type = 'success') {
  * แสดง Loading overlay
  */
 function showLoading() {
-  document.getElementById('loading-overlay').classList.remove('hidden');
+  const el = document.getElementById('loading-overlay');
+  if (el) el.classList.remove('hidden');
 }
 
 /**
  * ซ่อน Loading overlay
  */
 function hideLoading() {
-  document.getElementById('loading-overlay').classList.add('hidden');
+  const el = document.getElementById('loading-overlay');
+  if (el) el.classList.add('hidden');
 }
 
 /**
@@ -378,23 +381,40 @@ function initLayout(user) {
       sidebar.classList.toggle('-translate-x-full');
     });
 
+    // Remove listeners registered by a previous render to avoid stacking
+    // duplicate handlers (and leaking the old sidebar DOM nodes) on every
+    // SPA navigation.
+    if (window._layoutOutsideClick) {
+      document.removeEventListener('click', window._layoutOutsideClick);
+    }
+    if (window._layoutResize) {
+      window.removeEventListener('resize', window._layoutResize);
+    }
+
     // Close sidebar on mobile when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-        if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
-          sidebar.classList.add('-translate-x-full');
+    window._layoutOutsideClick = function (e) {
+      const sb = document.getElementById('sidebar');
+      const tb = document.getElementById('sidebar-toggle');
+      if (!sb || !tb) return;
+      if (!sb.contains(e.target) && !tb.contains(e.target)) {
+        if (window.innerWidth < 1024 && !sb.classList.contains('-translate-x-full')) {
+          sb.classList.add('-translate-x-full');
         }
       }
-    });
+    };
+    document.addEventListener('click', window._layoutOutsideClick);
 
     // Handle window resize - properly collapse/expand sidebar
-    window.addEventListener('resize', () => {
+    window._layoutResize = function () {
+      const sb = document.getElementById('sidebar');
+      if (!sb) return;
       if (window.innerWidth >= 1024) {
-        sidebar.classList.remove('-translate-x-full');
+        sb.classList.remove('-translate-x-full');
       } else {
-        sidebar.classList.add('-translate-x-full');
+        sb.classList.add('-translate-x-full');
       }
-    });
+    };
+    window.addEventListener('resize', window._layoutResize);
   }
 
   return document.getElementById('content');
@@ -455,6 +475,32 @@ function closeModal(id) {
  */
 function escAttr(v) {
   return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/**
+ * Escapes a value for safe embedding inside a SINGLE-quoted JavaScript string
+ * that itself lives inside a DOUBLE-quoted HTML attribute, e.g.
+ *   onclick="doThing('${escJs(name)}')"
+ * It first neutralises the JS-string context (backslash, single quote, newlines)
+ * then HTML-escapes the result so it cannot break out of the attribute either.
+ * @param {*} v
+ * @returns {string}
+ */
+function escJs(v) {
+  return escAttr(String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' '));
+}
+
+/**
+ * Returns a URL safe to place in an href/src attribute. Blocks dangerous
+ * schemes (javascript:, data:, vbscript:) that would allow clickable XSS, and
+ * HTML-escapes the result so it cannot break out of the attribute.
+ * @param {*} v
+ * @returns {string}
+ */
+function safeUrl(v) {
+  var s = String(v == null ? '' : v).trim();
+  if (/^\s*(javascript|data|vbscript):/i.test(s)) return '#';
+  return escAttr(s);
 }
 
 function inputField(id, label, type = 'text', value = '', placeholder = '', required = true) {
