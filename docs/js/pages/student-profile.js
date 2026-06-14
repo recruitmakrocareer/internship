@@ -388,7 +388,7 @@ async function renderStudentProfile() {
               </div>
               <div class="mb-4">
                 <label for="profile-current-road" class="block text-sm font-medium text-gray-700 mb-1">ถนน</label>
-                <input type="text" id="profile-current-road" value="${profile.currentRoad || ''}" placeholder="ถนน"
+                <input type="text" id="profile-current-road" value="${escAttr(profile.currentRoad || '')}" placeholder="ถนน"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
             </div>
@@ -418,7 +418,7 @@ async function renderStudentProfile() {
               </div>
               <div class="mb-4">
                 <label for="profile-current-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                <input type="text" id="profile-current-postcode" value="${profile.currentPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
+                <input type="text" id="profile-current-postcode" value="${escAttr(profile.currentPostcode || '')}" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm">
               </div>
             </div>
@@ -433,24 +433,24 @@ async function renderStudentProfile() {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="mb-4">
                   <label for="profile-idcard-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่</label>
-                  <input type="text" id="profile-idcard-house-no" value="${profile.idCardHouseNo || ''}" placeholder="เช่น 123/4"
+                  <input type="text" id="profile-idcard-house-no" value="${escAttr(profile.idCardHouseNo || '')}" placeholder="เช่น 123/4"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
                 </div>
                 <div class="mb-4">
                   <label for="profile-idcard-village" class="block text-sm font-medium text-gray-700 mb-1">หมู่บ้าน/อาคาร</label>
-                  <input type="text" id="profile-idcard-village" value="${profile.idCardVillage || ''}" placeholder="หมู่บ้าน/อาคาร"
+                  <input type="text" id="profile-idcard-village" value="${escAttr(profile.idCardVillage || '')}" placeholder="หมู่บ้าน/อาคาร"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
                 </div>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="mb-4">
                   <label for="profile-idcard-soi" class="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
-                  <input type="text" id="profile-idcard-soi" value="${profile.idCardSoi || ''}" placeholder="ซอย"
+                  <input type="text" id="profile-idcard-soi" value="${escAttr(profile.idCardSoi || '')}" placeholder="ซอย"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
                 </div>
                 <div class="mb-4">
                   <label for="profile-idcard-road" class="block text-sm font-medium text-gray-700 mb-1">ถนน</label>
-                  <input type="text" id="profile-idcard-road" value="${profile.idCardRoad || ''}" placeholder="ถนน"
+                  <input type="text" id="profile-idcard-road" value="${escAttr(profile.idCardRoad || '')}" placeholder="ถนน"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm profile-idcard-field">
                 </div>
               </div>
@@ -480,7 +480,7 @@ async function renderStudentProfile() {
                 </div>
                 <div class="mb-4">
                   <label for="profile-idcard-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                  <input type="text" id="profile-idcard-postcode" value="${profile.idCardPostcode || ''}" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
+                  <input type="text" id="profile-idcard-postcode" value="${escAttr(profile.idCardPostcode || '')}" placeholder="รหัสไปรษณีย์" maxlength="5" readonly
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm profile-idcard-field">
                 </div>
               </div>
@@ -509,7 +509,7 @@ async function renderStudentProfile() {
               ], profile.year || '')}
               <div class="mb-4">
                 <label for="profile-gpa" class="block text-sm font-medium text-gray-700 mb-1">GPA</label>
-                <input type="number" id="profile-gpa" value="${profile.gpa || ''}" placeholder="0.00 - 4.00" min="0" max="4" step="0.01"
+                <input type="number" id="profile-gpa" value="${profile.gpa != null ? profile.gpa : ''}" placeholder="0.00 - 4.00" min="0" max="4" step="0.01"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
             </div>
