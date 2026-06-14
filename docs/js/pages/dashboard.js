@@ -89,7 +89,7 @@ function _adminBarChartHtml(rows, topN) {
     return '<div class="flex items-center gap-2">' +
       '<div class="flex-1 min-w-0">' +
         '<div class="flex items-center justify-between mb-1">' +
-          '<span class="text-xs text-gray-600 truncate" title="' + r.label + '">' + r.label + '</span>' +
+          '<span class="text-xs text-gray-600 truncate" title="' + escAttr(r.label) + '">' + escAttr(r.label) + '</span>' +
           '<span class="text-xs font-semibold text-gray-700 ml-2 flex-shrink-0">' + r.value + '</span>' +
         '</div>' +
         '<div class="w-full bg-gray-100 rounded-full h-2">' +
@@ -148,7 +148,7 @@ function renderAdminStatsCharts() {
             return '<div class="flex items-center justify-between">' +
               '<div class="flex items-center gap-2 min-w-0">' +
                 '<span class="w-3 h-3 rounded-full flex-shrink-0" style="background:' + seg.color + '"></span>' +
-                '<span class="text-xs text-gray-600 truncate" title="' + seg.label + '">' + seg.label + '</span>' +
+                '<span class="text-xs text-gray-600 truncate" title="' + escAttr(seg.label) + '">' + escAttr(seg.label) + '</span>' +
               '</div>' +
               '<span class="text-xs font-semibold ml-2 flex-shrink-0" style="color:' + seg.color + '">' + seg.value + '</span>' +
             '</div>';
@@ -218,11 +218,11 @@ function renderAdminUpcomingInterns() {
           var uni = (s.university || '').toString().trim() || 'ไม่ระบุ';
           return '<div class="flex items-center gap-3">' +
             '<div class="w-8 h-8 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">' +
-              '<span class="text-primary-600 font-semibold text-xs">' + initial + '</span>' +
+              '<span class="text-primary-600 font-semibold text-xs">' + escAttr(initial) + '</span>' +
             '</div>' +
             '<div class="min-w-0 flex-1">' +
-              '<p class="text-sm font-medium text-gray-800 truncate">' + (s.name || '-') + '</p>' +
-              '<p class="text-xs text-gray-400 truncate">' + uni + '</p>' +
+              '<p class="text-sm font-medium text-gray-800 truncate">' + escAttr(s.name || '-') + '</p>' +
+              '<p class="text-xs text-gray-400 truncate">' + escAttr(uni) + '</p>' +
             '</div>' +
             '<span class="text-xs text-gray-400 flex-shrink-0">' + formatDate(s.startDate) + '</span>' +
           '</div>';
@@ -526,7 +526,7 @@ function studentDashDeptBadge(dept) {
     if (dept.toLowerCase().indexOf(key.toLowerCase()) !== -1) found = colors[key];
   });
   if (!found) found = 'bg-gray-100 text-gray-700';
-  return '<span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ' + found + '">' + dept + '</span>';
+  return '<span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ' + found + '">' + escAttr(dept) + '</span>';
 }
 
 async function renderStudentDashboard(content) {
@@ -536,11 +536,11 @@ async function renderStudentDashboard(content) {
       <div class="bg-gradient-to-r from-primary-600 to-blue-500 rounded-2xl p-6 mb-6 text-white shadow-lg">
         <div class="flex items-center gap-4">
           <div class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-2xl font-bold text-white">${(user.name || 'S').charAt(0)}</span>
+            <span class="text-2xl font-bold text-white">${escAttr((user.name || 'S').charAt(0))}</span>
           </div>
           <div>
-            <h2 class="text-xl font-bold">สวัสดี, ${user.name || 'นักศึกษา'}</h2>
-            <p class="text-sm text-blue-100">${user.email || ''}</p>
+            <h2 class="text-xl font-bold">สวัสดี, ${escAttr(user.name || 'นักศึกษา')}</h2>
+            <p class="text-sm text-blue-100">${escAttr(user.email || '')}</p>
           </div>
         </div>
       </div>
@@ -691,7 +691,7 @@ async function renderStudentDashboard(content) {
     document.getElementById('dash-roadmap-context').textContent = completedCount + ' / ' + totalCount + ' ขั้นตอน';
     document.getElementById('dash-submitted-assignments').textContent = submissions.length;
     document.getElementById('dash-assignments-context').textContent = '/ ' + assignments.length + ' งานทั้งหมด';
-    var unread = notifications.filter(function(n) { return !n.isRead && n.isRead !== 'true'; }).length;
+    var unread = notifications.filter(function(n) { return String(n.isRead) !== 'true'; }).length;
     document.getElementById('dash-unread-notifs').textContent = unread;
     document.getElementById('dash-notifs-context').textContent = notifications.length + ' รายการทั้งหมด';
 
@@ -713,7 +713,7 @@ async function renderStudentDashboard(content) {
           </span>
         </div>
         ${inProgressSteps.slice(0, 3).map(function(p) {
-          return '<div class="flex items-center gap-2 p-2.5 bg-blue-50 rounded-lg"><div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div><span class="text-sm text-blue-700">' + (p.stepTitle || p.stepId || 'ขั้นตอน') + '</span></div>';
+          return '<div class="flex items-center gap-2 p-2.5 bg-blue-50 rounded-lg"><div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div><span class="text-sm text-blue-700">' + escAttr(p.stepTitle || p.stepId || 'ขั้นตอน') + '</span></div>';
         }).join('')}
       ` : '<p class="text-sm text-gray-400">ไม่มีขั้นตอนที่กำลังดำเนินการ</p>'}
     `;
@@ -722,7 +722,7 @@ async function renderStudentDashboard(content) {
     var notifContainer = document.getElementById('dash-notifications');
     if (notifications.length > 0) {
       notifContainer.innerHTML = notifications.slice(0, 8).map(function(n) {
-        var isUnread = !n.isRead && n.isRead !== 'true';
+        var isUnread = String(n.isRead) !== 'true';
         var typeIcon = '';
         var actionLink = '';
         var title = n.title || n.message || '';
@@ -744,7 +744,7 @@ async function renderStudentDashboard(content) {
         return '<div class="flex items-start gap-3 p-3 rounded-lg transition-colors hover:bg-gray-100 ' + (isUnread ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50') + '">' +
           '<div class="flex-shrink-0 mt-0.5">' + typeIcon + '</div>' +
           '<div class="flex-1 min-w-0">' +
-            '<p class="text-sm ' + (isUnread ? 'font-semibold text-gray-800' : 'font-medium text-gray-600') + ' truncate">' + title + '</p>' +
+            '<p class="text-sm ' + (isUnread ? 'font-semibold text-gray-800' : 'font-medium text-gray-600') + ' truncate">' + escAttr(title) + '</p>' +
             '<p class="text-xs text-gray-400 mt-0.5">' + formatDate(n.createdAt || n.date) + '</p>' +
             actionLink +
           '</div>' +
@@ -767,7 +767,7 @@ async function renderMentorDashboard(content) {
   var user = getCurrentUser();
   content.innerHTML = `
     <div class="fade-in">
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">สวัสดี, ${user.name || 'พี่เลี้ยง'}</h2>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">สวัสดี, ${escAttr(user.name || 'พี่เลี้ยง')}</h2>
       <p class="text-gray-500 mb-6">ภาพรวมการดูแลนักศึกษาฝึกงาน</p>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -805,13 +805,13 @@ async function renderMentorDashboard(content) {
   try {
     var [studentsRes, submissionsRes] = await Promise.all([
       callApi('getStudentsByMentor', { mentorId: user.id }),
-      callApi('getSubmissions', { status: 'SUBMITTED' })
+      callApi('getSubmissions')
     ]);
 
     var students = Array.isArray(studentsRes.data || studentsRes) ? (studentsRes.data || studentsRes) : [];
     var allSubmissions = Array.isArray(submissionsRes.data || submissionsRes) ? (submissionsRes.data || submissionsRes) : [];
-    var pendingSubmissions = allSubmissions.filter(function(s) { return s.status === 'SUBMITTED'; });
-    var reviewedSubmissions = allSubmissions.filter(function(s) { return s.status === 'REVIEWED' || s.status === 'GRADED'; });
+    var pendingSubmissions = allSubmissions.filter(function(s) { return String(s.status).toUpperCase() === 'SUBMITTED'; });
+    var reviewedSubmissions = allSubmissions.filter(function(s) { var st = String(s.status).toUpperCase(); return st === 'REVIEWED' || st === 'GRADED'; });
 
     document.getElementById('dash-mentor-students').textContent = students.length;
     document.getElementById('dash-mentor-pending').textContent = pendingSubmissions.length;
@@ -820,7 +820,7 @@ async function renderMentorDashboard(content) {
     var submissionsEl = document.getElementById('dash-mentor-submissions');
     if (pendingSubmissions.length > 0) {
       submissionsEl.innerHTML = pendingSubmissions.slice(0, 5).map(function(s) {
-        return '<a href="#mentor-assignments" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"><p class="text-sm font-medium text-gray-700">' + (s.assignmentTitle || s.assignmentId || 'งาน') + '</p><p class="text-xs text-gray-400 mt-1">ส่งเมื่อ: ' + formatDate(s.submittedAt || s.createdAt) + '</p></a>';
+        return '<a href="#mentor-assignments" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"><p class="text-sm font-medium text-gray-700">' + escAttr(s.assignmentTitle || s.assignmentId || 'งาน') + '</p><p class="text-xs text-gray-400 mt-1">ส่งเมื่อ: ' + formatDate(s.submittedAt || s.createdAt) + '</p></a>';
       }).join('');
     } else {
       submissionsEl.innerHTML = '<p class="text-sm text-gray-400">ไม่มีงานที่รอตรวจ</p>';
@@ -829,7 +829,7 @@ async function renderMentorDashboard(content) {
     var studentList = document.getElementById('dash-mentor-student-list');
     if (students.length > 0) {
       studentList.innerHTML = students.slice(0, 5).map(function(s) {
-        return '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center"><span class="text-primary-700 font-semibold text-xs">' + (s.name || s.firstName || '?').charAt(0) + '</span></div><div><p class="text-sm font-medium text-gray-700">' + (s.name || (s.firstName + ' ' + s.lastName) || s.email || '-') + '</p><p class="text-xs text-gray-400">' + (s.university || '') + '</p></div></div>';
+        return '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center"><span class="text-primary-700 font-semibold text-xs">' + escAttr((s.name || s.firstName || '?').charAt(0)) + '</span></div><div><p class="text-sm font-medium text-gray-700">' + escAttr(s.name || (s.firstName + ' ' + s.lastName) || s.email || '-') + '</p><p class="text-xs text-gray-400">' + escAttr(s.university || '') + '</p></div></div>';
       }).join('');
     } else {
       studentList.innerHTML = '<p class="text-sm text-gray-400">ยังไม่มีนักศึกษาในความดูแล</p>';

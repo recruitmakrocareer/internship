@@ -336,7 +336,7 @@ async function loadStudents() {
       var deptKeys = Object.keys(depts).sort();
       if (deptKeys.length > 0) {
         var deptHtml = '<option value="">แผนกทั้งหมด</option>';
-        deptKeys.forEach(function(d) { deptHtml += '<option value="' + d + '">' + d + '</option>'; });
+        deptKeys.forEach(function(d) { deptHtml += '<option value="' + escAttr(d) + '">' + escAttr(d) + '</option>'; });
         deptFilterEl.innerHTML = deptHtml;
         deptFilterEl._populated = true;
       }
@@ -349,7 +349,7 @@ async function loadStudents() {
       _studentsCache.forEach(function(s) { if (s.branch) branches[s.branch] = true; });
       var branchKeys = Object.keys(branches).sort();
       if (branchKeys.length > 0) {
-        branchListEl.innerHTML = branchKeys.map(function(b) { return '<option value="' + b + '">'; }).join('');
+        branchListEl.innerHTML = branchKeys.map(function(b) { return '<option value="' + escAttr(b) + '">'; }).join('');
         branchListEl._populated = true;
       }
     }
@@ -411,7 +411,7 @@ function renderStudentsTable() {
       const docCount = [s.cvFileUrl, s.transcriptFileUrl, s.idCardFileUrl, s.photoFileUrl].filter(Boolean).length;
       const displayName = s.name || ((s.firstName || '') + ' ' + (s.lastName || '')) || s.email;
       const safeId = escAttr(s.id);
-      const safeName = escAttr(displayName);
+      const safeName = escJs(displayName);
 
       return `
         <tr class="hover:bg-gray-50 transition-colors">
@@ -419,26 +419,26 @@ function renderStudentsTable() {
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${s.photoFileUrl ? '' : 'bg-primary-100'}">
                 ${s.photoFileUrl
-                  ? '<img src="' + driveImageUrl(s.photoFileUrl) + '" class="w-full h-full object-cover">'
-                  : '<span class="text-primary-700 font-semibold text-xs">' + (displayName).charAt(0) + '</span>'}
+                  ? '<img src="' + safeUrl(driveImageUrl(s.photoFileUrl)) + '" class="w-full h-full object-cover" onerror="this.style.display=\'none\'">'
+                  : '<span class="text-primary-700 font-semibold text-xs">' + escAttr((displayName).charAt(0)) + '</span>'}
               </div>
               <div>
-                <span class="font-medium text-gray-800 text-sm">${displayName}</span>
-                <p class="text-xs text-gray-400">${s.email || ''}</p>
+                <span class="font-medium text-gray-800 text-sm">${escAttr(displayName)}</span>
+                <p class="text-xs text-gray-400">${escAttr(s.email || '')}</p>
               </div>
             </div>
           </td>
-          <td class="scol-studentId px-4 py-3 text-xs">${s.studentId || '<span class="text-gray-300">ไม่ระบุ</span>'}</td>
+          <td class="scol-studentId px-4 py-3 text-xs">${s.studentId ? escAttr(s.studentId) : '<span class="text-gray-300">ไม่ระบุ</span>'}</td>
           <td class="scol-university px-4 py-3 text-xs">
-            <div class="text-gray-800">${s.university || '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
-            <div class="text-gray-400">${s.major || s.faculty || ''}</div>
+            <div class="text-gray-800">${s.university ? escAttr(s.university) : '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
+            <div class="text-gray-400">${escAttr(s.major || s.faculty || '')}</div>
           </td>
           <td class="scol-department px-4 py-3 text-xs">
-            <div class="text-gray-800">${s.department || '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
-            <div class="text-gray-400">${s.branch || ''}</div>
+            <div class="text-gray-800">${s.department ? escAttr(s.department) : '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
+            <div class="text-gray-400">${escAttr(s.branch || '')}</div>
           </td>
           <td class="scol-type px-4 py-3">
-            ${s.internshipType ? '<span class="text-xs px-2 py-0.5 rounded-full ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') + '">' + s.internshipType + '</span>' : '<span class="text-xs text-gray-400">ไม่ระบุ</span>'}
+            ${s.internshipType ? '<span class="text-xs px-2 py-0.5 rounded-full ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') + '">' + escAttr(s.internshipType) + '</span>' : '<span class="text-xs text-gray-400">ไม่ระบุ</span>'}
           </td>
           <td class="scol-period px-4 py-3 text-xs text-gray-600">
             ${s.startDate ? formatDate(s.startDate) : '<span class="text-gray-300">ไม่ระบุ</span>'}
@@ -448,7 +448,7 @@ function renderStudentsTable() {
             <select class="text-xs border-0 bg-transparent text-gray-600 cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -ml-1 focus:ring-1 focus:ring-primary-300"
               onchange="inlineAssignMentor('${safeId}', this.value)" title="เลือกพี่เลี้ยง">
               <option value="">ไม่ระบุ</option>
-              ${_mentorsCache.map(m => '<option value="' + m.id + '"' + (s.mentor && s.mentor.id === m.id ? ' selected' : '') + '>' + escAttr((m.firstName || '') + ' ' + (m.lastName || '')) + '</option>').join('')}
+              ${_mentorsCache.map(m => '<option value="' + escAttr(m.id) + '"' + (s.mentor && s.mentor.id === m.id ? ' selected' : '') + '>' + escAttr((m.firstName || '') + ' ' + (m.lastName || '')) + '</option>').join('')}
             </select>
           </td>
           <td class="scol-documents px-4 py-3">
@@ -512,7 +512,7 @@ async function viewStudentDetail(studentId) {
     <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between p-6 border-b">
-          <h3 class="text-lg font-semibold text-gray-800">ข้อมูลนักศึกษา: ${displayName}</h3>
+          <h3 class="text-lg font-semibold text-gray-800">ข้อมูลนักศึกษา: ${escAttr(displayName)}</h3>
           <button onclick="document.getElementById('detail-modal').remove()" class="text-gray-400 hover:text-gray-600">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -522,14 +522,14 @@ async function viewStudentDetail(studentId) {
           <div>
             <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">ข้อมูลส่วนตัว</h4>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              <div><span class="text-gray-500">คำนำหน้า:</span> <span class="font-medium">${student.prefix || '-'}</span></div>
-              <div><span class="text-gray-500">ชื่อเล่น:</span> <span class="font-medium">${student.nickname || '-'}</span></div>
-              <div><span class="text-gray-500">โทรศัพท์:</span> <span class="font-medium">${student.phone || '-'}</span></div>
-              <div><span class="text-gray-500">อีเมล:</span> <span class="font-medium">${student.email || '-'}</span></div>
+              <div><span class="text-gray-500">คำนำหน้า:</span> <span class="font-medium">${escAttr(student.prefix || '-')}</span></div>
+              <div><span class="text-gray-500">ชื่อเล่น:</span> <span class="font-medium">${escAttr(student.nickname || '-')}</span></div>
+              <div><span class="text-gray-500">โทรศัพท์:</span> <span class="font-medium">${escAttr(student.phone || '-')}</span></div>
+              <div><span class="text-gray-500">อีเมล:</span> <span class="font-medium">${escAttr(student.email || '-')}</span></div>
               <div><span class="text-gray-500">วันเกิด:</span> <span class="font-medium">${student.birthDate ? formatDate(student.birthDate) : '-'}</span></div>
-              <div><span class="text-gray-500">บัตร ปชช:</span> <span class="font-medium">${student.idCardNumber || '-'}</span></div>
-              <div><span class="text-gray-500">สถานะทางทหาร:</span> <span class="font-medium">${student.militaryStatus || '-'}</span></div>
-              <div><span class="text-gray-500">โรคประจำตัว:</span> <span class="font-medium">${student.medicalCondition || '-'}</span></div>
+              <div><span class="text-gray-500">บัตร ปชช:</span> <span class="font-medium">${escAttr(student.idCardNumber || '-')}</span></div>
+              <div><span class="text-gray-500">สถานะทางทหาร:</span> <span class="font-medium">${escAttr(student.militaryStatus || '-')}</span></div>
+              <div><span class="text-gray-500">โรคประจำตัว:</span> <span class="font-medium">${escAttr(student.medicalCondition || '-')}</span></div>
             </div>
           </div>
           <hr>
@@ -539,13 +539,13 @@ async function viewStudentDetail(studentId) {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div class="bg-gray-50 rounded-lg p-3">
                 <p class="text-xs font-semibold text-gray-500 mb-1">ที่อยู่ปัจจุบัน</p>
-                <p class="font-medium">${student.currentAddress || student.address || '-'}</p>
-                <p class="text-gray-500 text-xs mt-1">${[student.currentProvince, student.currentPostcode].filter(Boolean).join(' ') || ''}</p>
+                <p class="font-medium">${escAttr(student.currentAddress || student.address || '-')}</p>
+                <p class="text-gray-500 text-xs mt-1">${escAttr([student.currentProvince, student.currentPostcode].filter(Boolean).join(' ') || '')}</p>
               </div>
               <div class="bg-gray-50 rounded-lg p-3">
                 <p class="text-xs font-semibold text-gray-500 mb-1">ที่อยู่ตามบัตรประชาชน</p>
-                <p class="font-medium">${student.idCardAddress || '-'}</p>
-                <p class="text-gray-500 text-xs mt-1">${[student.idCardProvince, student.idCardPostcode].filter(Boolean).join(' ') || ''}</p>
+                <p class="font-medium">${escAttr(student.idCardAddress || '-')}</p>
+                <p class="text-gray-500 text-xs mt-1">${escAttr([student.idCardProvince, student.idCardPostcode].filter(Boolean).join(' ') || '')}</p>
               </div>
             </div>
           </div>
@@ -554,13 +554,13 @@ async function viewStudentDetail(studentId) {
           <div>
             <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">การศึกษา</h4>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              <div><span class="text-gray-500">รหัส:</span> <span class="font-medium">${student.studentId || '-'}</span></div>
-              <div><span class="text-gray-500">มหาวิทยาลัย:</span> <span class="font-medium">${student.university || '-'}</span></div>
-              <div><span class="text-gray-500">คณะ:</span> <span class="font-medium">${student.faculty || '-'}</span></div>
-              <div><span class="text-gray-500">สาขา:</span> <span class="font-medium">${student.major || '-'}</span></div>
-              <div><span class="text-gray-500">ชั้นปี:</span> <span class="font-medium">${student.year || '-'}</span></div>
-              <div><span class="text-gray-500">GPA:</span> <span class="font-medium">${student.gpa || '-'}</span></div>
-              <div><span class="text-gray-500">อาจารย์ที่ปรึกษา:</span> <span class="font-medium">${student.advisorName || '-'}</span></div>
+              <div><span class="text-gray-500">รหัส:</span> <span class="font-medium">${escAttr(student.studentId || '-')}</span></div>
+              <div><span class="text-gray-500">มหาวิทยาลัย:</span> <span class="font-medium">${escAttr(student.university || '-')}</span></div>
+              <div><span class="text-gray-500">คณะ:</span> <span class="font-medium">${escAttr(student.faculty || '-')}</span></div>
+              <div><span class="text-gray-500">สาขา:</span> <span class="font-medium">${escAttr(student.major || '-')}</span></div>
+              <div><span class="text-gray-500">ชั้นปี:</span> <span class="font-medium">${escAttr(student.year || '-')}</span></div>
+              <div><span class="text-gray-500">GPA:</span> <span class="font-medium">${escAttr(student.gpa || '-')}</span></div>
+              <div><span class="text-gray-500">อาจารย์ที่ปรึกษา:</span> <span class="font-medium">${escAttr(student.advisorName || '-')}</span></div>
             </div>
           </div>
           <hr>
@@ -568,13 +568,13 @@ async function viewStudentDetail(studentId) {
           <div>
             <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">การฝึกงาน</h4>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              <div><span class="text-gray-500">ประเภท:</span> <span class="font-medium">${student.internshipType || '-'}</span></div>
+              <div><span class="text-gray-500">ประเภท:</span> <span class="font-medium">${escAttr(student.internshipType || '-')}</span></div>
               <div><span class="text-gray-500">เริ่ม:</span> <span class="font-medium">${student.startDate ? formatDate(student.startDate) : '-'}</span></div>
               <div><span class="text-gray-500">สิ้นสุด:</span> <span class="font-medium">${student.endDate ? formatDate(student.endDate) : '-'}</span></div>
-              <div><span class="text-gray-500">แผนกที่ฝึก:</span> <span class="font-medium">${student.department || '-'}</span></div>
-              <div><span class="text-gray-500">สาขาที่ฝึก:</span> <span class="font-medium">${student.branch || '-'}</span></div>
-              <div><span class="text-gray-500">รหัสพนักงาน:</span> <span class="font-medium">${student.employeeId || '-'}</span></div>
-              <div><span class="text-gray-500">พี่เลี้ยง:</span> <span class="font-medium">${student.mentor ? (student.mentor.firstName + ' ' + student.mentor.lastName) : '-'}</span></div>
+              <div><span class="text-gray-500">แผนกที่ฝึก:</span> <span class="font-medium">${escAttr(student.department || '-')}</span></div>
+              <div><span class="text-gray-500">สาขาที่ฝึก:</span> <span class="font-medium">${escAttr(student.branch || '-')}</span></div>
+              <div><span class="text-gray-500">รหัสพนักงาน:</span> <span class="font-medium">${escAttr(student.employeeId || '-')}</span></div>
+              <div><span class="text-gray-500">พี่เลี้ยง:</span> <span class="font-medium">${student.mentor ? escAttr(student.mentor.firstName + ' ' + student.mentor.lastName) : '-'}</span></div>
             </div>
           </div>
           <hr>
@@ -584,18 +584,18 @@ async function viewStudentDetail(studentId) {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
               <div class="bg-gray-50 rounded-lg p-3">
                 <p class="text-xs font-semibold text-gray-500 mb-1">ลำดับ 1</p>
-                <p class="font-medium">${student.preferredBranch1 || '-'}</p>
-                <p class="text-xs text-gray-500">${student.preferredDept1 || '-'}</p>
+                <p class="font-medium">${escAttr(student.preferredBranch1 || '-')}</p>
+                <p class="text-xs text-gray-500">${escAttr(student.preferredDept1 || '-')}</p>
               </div>
               <div class="bg-gray-50 rounded-lg p-3">
                 <p class="text-xs font-semibold text-gray-500 mb-1">ลำดับ 2</p>
-                <p class="font-medium">${student.preferredBranch2 || '-'}</p>
-                <p class="text-xs text-gray-500">${student.preferredDept2 || '-'}</p>
+                <p class="font-medium">${escAttr(student.preferredBranch2 || '-')}</p>
+                <p class="text-xs text-gray-500">${escAttr(student.preferredDept2 || '-')}</p>
               </div>
               <div class="bg-gray-50 rounded-lg p-3">
                 <p class="text-xs font-semibold text-gray-500 mb-1">ลำดับ 3</p>
-                <p class="font-medium">${student.preferredBranch3 || '-'}</p>
-                <p class="text-xs text-gray-500">${student.preferredDept3 || '-'}</p>
+                <p class="font-medium">${escAttr(student.preferredBranch3 || '-')}</p>
+                <p class="text-xs text-gray-500">${escAttr(student.preferredDept3 || '-')}</p>
               </div>
             </div>
           </div>
@@ -606,19 +606,19 @@ async function viewStudentDetail(studentId) {
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div class="flex items-center gap-2 text-sm">
                 <span class="${student.cvFileUrl ? 'text-green-500' : 'text-gray-300'}">${student.cvFileUrl ? '✓' : '○'}</span>
-                ${student.cvFileUrl ? '<a href="' + student.cvFileUrl + '" target="_blank" class="text-blue-600 hover:underline">CV/Resume</a>' : '<span class="text-gray-500">CV/Resume</span>'}
+                ${student.cvFileUrl ? '<a href="' + safeUrl(student.cvFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">CV/Resume</a>' : '<span class="text-gray-500">CV/Resume</span>'}
               </div>
               <div class="flex items-center gap-2 text-sm">
                 <span class="${student.transcriptFileUrl ? 'text-green-500' : 'text-gray-300'}">${student.transcriptFileUrl ? '✓' : '○'}</span>
-                ${student.transcriptFileUrl ? '<a href="' + student.transcriptFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ใบรับรองผลการเรียน</a>' : '<span class="text-gray-500">ใบรับรองผลการเรียน</span>'}
+                ${student.transcriptFileUrl ? '<a href="' + safeUrl(student.transcriptFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">ใบรับรองผลการเรียน</a>' : '<span class="text-gray-500">ใบรับรองผลการเรียน</span>'}
               </div>
               <div class="flex items-center gap-2 text-sm">
                 <span class="${student.idCardFileUrl ? 'text-green-500' : 'text-gray-300'}">${student.idCardFileUrl ? '✓' : '○'}</span>
-                ${student.idCardFileUrl ? '<a href="' + student.idCardFileUrl + '" target="_blank" class="text-blue-600 hover:underline">สำเนาบัตร</a>' : '<span class="text-gray-500">สำเนาบัตร</span>'}
+                ${student.idCardFileUrl ? '<a href="' + safeUrl(student.idCardFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">สำเนาบัตร</a>' : '<span class="text-gray-500">สำเนาบัตร</span>'}
               </div>
               <div class="flex items-center gap-2 text-sm">
                 <span class="${student.photoFileUrl ? 'text-green-500' : 'text-gray-300'}">${student.photoFileUrl ? '✓' : '○'}</span>
-                ${student.photoFileUrl ? '<a href="' + student.photoFileUrl + '" target="_blank" class="text-blue-600 hover:underline">รูปถ่าย</a>' : '<span class="text-gray-500">รูปถ่าย</span>'}
+                ${student.photoFileUrl ? '<a href="' + safeUrl(student.photoFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">รูปถ่าย</a>' : '<span class="text-gray-500">รูปถ่าย</span>'}
               </div>
             </div>
           </div>
@@ -627,8 +627,8 @@ async function viewStudentDetail(studentId) {
           <div>
             <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">ทักษะ/ความสนใจ</h4>
             <div class="text-sm space-y-1">
-              <div><span class="text-gray-500">ทักษะ:</span> <span class="font-medium">${student.skills || '-'}</span></div>
-              <div><span class="text-gray-500">ความสนใจ:</span> <span class="font-medium">${student.interests || '-'}</span></div>
+              <div><span class="text-gray-500">ทักษะ:</span> <span class="font-medium">${escAttr(student.skills || '-')}</span></div>
+              <div><span class="text-gray-500">ความสนใจ:</span> <span class="font-medium">${escAttr(student.interests || '-')}</span></div>
             </div>
           </div>
           <!-- Training Progress -->
@@ -653,8 +653,8 @@ async function viewStudentDetail(studentId) {
           </div>
           <!-- Actions -->
           <div class="flex gap-3 pt-2">
-            <button onclick="document.getElementById('detail-modal').remove(); openEditStudentModal('${studentId}')" class="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-700">แก้ไขข้อมูล</button>
-            <button onclick="document.getElementById('detail-modal').remove(); openAssignRoadmapModal('${studentId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700">Assign แผนฝึกงาน</button>
+            <button onclick="document.getElementById('detail-modal').remove(); openEditStudentModal('${escJs(studentId)}')" class="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-700">แก้ไขข้อมูล</button>
+            <button onclick="document.getElementById('detail-modal').remove(); openAssignRoadmapModal('${escJs(studentId)}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700">Assign แผนฝึกงาน</button>
           </div>
         </div>
       </div>
@@ -663,7 +663,7 @@ async function viewStudentDetail(studentId) {
 
 function openAddStudentModal() {
   const mentorOptions = _mentorsCache.map(m =>
-    `<option value="${m.id}">${m.firstName} ${m.lastName}</option>`
+    `<option value="${escAttr(m.id)}">${escAttr((m.firstName || '') + ' ' + (m.lastName || ''))}</option>`
   ).join('');
 
   const mc = document.getElementById('student-modal');
@@ -810,7 +810,7 @@ async function openEditStudentModal(studentId) {
     _editDeptOptions = deptUnique;
 
     var mentorOptions = _mentorsCache.map(function(m) {
-      return '<option value="' + m.id + '"' + (student.mentor && student.mentor.id === m.id ? ' selected' : '') + '>' + m.firstName + ' ' + m.lastName + '</option>';
+      return '<option value="' + escAttr(m.id) + '"' + (student.mentor && student.mentor.id === m.id ? ' selected' : '') + '>' + escAttr((m.firstName || '') + ' ' + (m.lastName || '')) + '</option>';
     }).join('');
 
     var mc = document.getElementById('student-modal');
@@ -825,7 +825,7 @@ async function openEditStudentModal(studentId) {
           </div>
           <div class="p-6 overflow-y-auto flex-1">
             <form id="edit-student-form" class="space-y-5">
-              <input type="hidden" id="edit-student-id" value="${student.id}">
+              <input type="hidden" id="edit-student-id" value="${escAttr(student.id)}">
 
               <div class="border-b pb-3 mb-3"><h4 class="text-sm font-semibold text-gray-600 uppercase">ข้อมูลพื้นฐาน</h4></div>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1017,23 +1017,23 @@ function openAssignRoadmapModal(studentId) {
 
   const roadmapOptions = _roadmapsCache.map(r =>
     `<label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50">
-      <input type="checkbox" name="assign-roadmap" value="${r.id}" class="w-4 h-4 text-primary-600 rounded">
+      <input type="checkbox" name="assign-roadmap" value="${escAttr(r.id)}" class="w-4 h-4 text-primary-600 rounded">
       <div>
-        <span class="font-medium text-gray-800">${r.title || 'Roadmap'}</span>
+        <span class="font-medium text-gray-800">${escAttr(r.title || 'Roadmap')}</span>
         <span class="text-xs text-gray-400 ml-2">${(r.steps || []).length} ขั้นตอน</span>
       </div>
     </label>`
   ).join('');
 
   const mc = document.getElementById('student-modal');
-  mc.innerHTML = buildModal('assign-roadmap-modal', 'Assign แผนฝึกงาน - ' + displayName, `
+  mc.innerHTML = buildModal('assign-roadmap-modal', 'Assign แผนฝึกงาน - ' + escAttr(displayName), `
     <p class="text-sm text-gray-500 mb-4">เลือก Roadmap ที่ต้องการ Assign ให้นักศึกษา (ระบบจะสร้าง progress เริ่มต้นให้)</p>
     <div class="space-y-2" id="roadmap-checkboxes">
       ${roadmapOptions || '<p class="text-gray-400 text-sm">ยังไม่มี Roadmap</p>'}
     </div>
   `, `
     <button onclick="closeModal('assign-roadmap-modal')" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">ยกเลิก</button>
-    <button onclick="submitAssignRoadmap('${studentId}')" class="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg">Assign</button>
+    <button onclick="submitAssignRoadmap('${escJs(studentId)}')" class="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg">Assign</button>
   `);
   openModal('assign-roadmap-modal');
 }
@@ -1098,7 +1098,7 @@ var STUDENT_STATUS_STYLES = {
 function studentStatusBadge(s) {
   var label = deriveStudentStatusLabel(s);
   var style = STUDENT_STATUS_STYLES[label] || STUDENT_STATUS_STYLES['Active'];
-  return '<button type="button" onclick="openStudentStatusMenu(event, \'' + s.id + '\')" ' +
+  return '<button type="button" onclick="openStudentStatusMenu(event, \'' + escJs(s.id) + '\')" ' +
     'class="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full ' + style.css + ' font-medium hover:ring-2 hover:ring-offset-1 hover:ring-gray-300 transition cursor-pointer" title="คลิกเพื่อเปลี่ยนสถานะ">' +
     '<span class="w-1.5 h-1.5 rounded-full ' + style.dot + '"></span>' + label +
     '<svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>' +
@@ -1121,7 +1121,7 @@ function openStudentStatusMenu(event, studentId) {
   menu.innerHTML = STUDENT_STATUS_VALUES.map(function(v) {
     var st = STUDENT_STATUS_STYLES[v];
     var active = v === current;
-    return '<button type="button" onclick="changeStudentStatus(\'' + studentId + '\', \'' + v + '\')" ' +
+    return '<button type="button" onclick="changeStudentStatus(\'' + escJs(studentId) + '\', \'' + v + '\')" ' +
       'class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 ' + (active ? 'bg-gray-50 font-semibold' : '') + '">' +
       '<span class="w-2 h-2 rounded-full ' + st.dot + '"></span>' + v +
       (active ? '<svg class="w-3.5 h-3.5 ml-auto text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : '') +
