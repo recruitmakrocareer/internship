@@ -219,7 +219,7 @@ function cmsDrop(e) {
   cmsRenderTree();
 
   // Save to backend
-  callApiPost('updateResource', { id: dragItem.id, sectionName: dragItem.sectionName, sortOrder: dragItem.sortOrder });
+  callApiPost('updateResource', { id: dragItem.id, sectionName: dragItem.sectionName, sortOrder: dragItem.sortOrder }).catch(function(){ showToast('บันทึกลำดับล้มเหลว','error'); });
 }
 
 // ==================== Select & Edit Item ====================
@@ -475,9 +475,9 @@ function buildResourceForm(r) {
   return `
     <div class="space-y-4">
       <div><label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
-        <input type="text" id="res-title" class="w-full border rounded-lg p-2" value="${r.title||''}" /></div>
+        <input type="text" id="res-title" class="w-full border rounded-lg p-2" value="${_cmsEsc(r.title||'')}" /></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
-        <textarea id="res-desc" class="w-full border rounded-lg p-3 text-sm" rows="3">${r.description||''}</textarea></div>
+        <textarea id="res-desc" class="w-full border rounded-lg p-3 text-sm" rows="3">${_cmsEsc(r.description||'')}</textarea></div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
           <select id="res-category" class="w-full border rounded-lg p-2">
@@ -494,12 +494,12 @@ function buildResourceForm(r) {
           </select></div>
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">Section</label>
-        <input type="text" id="res-section" class="w-full border rounded-lg p-2" value="${r.sectionName||''}" list="res-section-list" placeholder="กำหนด Section (ไม่บังคับ)" />
+        <input type="text" id="res-section" class="w-full border rounded-lg p-2" value="${_cmsEsc(r.sectionName||'')}" list="res-section-list" placeholder="กำหนด Section (ไม่บังคับ)" />
         <datalist id="res-section-list">
           ${cmsGetSectionNames().map(function(s) { return '<option value="' + _cmsEsc(s) + '">'; }).join('')}
         </datalist></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">URL / ลิงก์</label>
-        <input type="text" id="res-url" class="w-full border rounded-lg p-2" value="${r.url||''}" placeholder="วาง URL ของวิดีโอ, Google Drive, YouTube หรือลิงก์อื่น" /></div>
+        <input type="text" id="res-url" class="w-full border rounded-lg p-2" value="${_cmsEsc(r.url||'')}" placeholder="วาง URL ของวิดีโอ, Google Drive, YouTube หรือลิงก์อื่น" /></div>
       <div id="res-video-hint" class="${r.type === 'video' ? '' : 'hidden'} bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
         <b>สำหรับวิดีโอขนาดใหญ่:</b> อัปโหลดไปยัง Google Drive โดยตรง แล้ววาง URL ที่ช่องด้านบน
       </div>
@@ -509,8 +509,8 @@ function buildResourceForm(r) {
         <div id="res-file-size-warn" class="hidden mt-1 text-xs text-red-500"></div>
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">แท็ก</label>
-        <input type="text" id="res-tags" class="w-full border rounded-lg p-2" value="${r.tags||''}" placeholder="คั่นด้วยจุลภาค" /></div>
-      <button onclick="saveResource('${r.id||''}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
+        <input type="text" id="res-tags" class="w-full border rounded-lg p-2" value="${_cmsEsc(r.tags||'')}" placeholder="คั่นด้วยจุลภาค" /></div>
+      <button onclick="saveResource('${escJs(r.id||'')}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
     </div>`;
 }
 
