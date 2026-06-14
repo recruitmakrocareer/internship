@@ -155,7 +155,7 @@ function renderTimeline(steps, progressMap) {
     const weekLabel = i === 0 ? 'ก่อนลงสาขา' : 'สัปดาห์ที่ ' + i;
 
     html += `
-      <div class="relative flex items-start mb-6 cursor-pointer group" onclick="openWeekDetail(${i}, '${step.id}')">
+      <div class="relative flex items-start mb-6 cursor-pointer group" onclick="openWeekDetail(${i}, '${escJs(step.id)}')">
         <!-- Dot -->
         <div class="relative z-10 flex-shrink-0 w-16 flex justify-center">
           <div class="w-6 h-6 rounded-full ${dotColor} border-4 border-white shadow-md flex items-center justify-center">
@@ -175,18 +175,18 @@ function renderTimeline(steps, progressMap) {
                 ${evalResult === 'FAIL' ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">✗ ไม่ผ่าน (ฝึกซ้ำ)</span>' : ''}
                 ${status !== 'COMPLETED' && status !== 'NOT_STARTED' && !p.trainerName ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">! ยังไม่ระบุผู้สอน</span>' : ''}
               </div>
-              <h3 class="font-semibold text-gray-800">${step.title || weekData.subject}</h3>
-              <p class="text-sm text-gray-500 mt-1">${step.description || weekData.objectives || ''}</p>
+              <h3 class="font-semibold text-gray-800">${escAttr(step.title || weekData.subject)}</h3>
+              <p class="text-sm text-gray-500 mt-1">${escAttr(step.description || weekData.objectives || '')}</p>
             </div>
             <div class="text-gray-300 group-hover:text-blue-400 ml-4">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </div>
           </div>
           <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-400">
-            <span>📍 ${weekData.place || step.resources || 'Store'}</span>
-            <span>🛠 ${weekData.tool || 'OJT'}</span>
-            ${step.durationDays ? '<span>📅 ' + step.durationDays + ' วัน</span>' : ''}
-            ${p.trainerName ? '<span class="text-gray-500">👤 ผู้สอน: ' + p.trainerName + (p.trainerPosition ? ' (' + p.trainerPosition + ')' : '') + '</span>' : ''}
+            <span>📍 ${escAttr(weekData.place || step.resources || 'Store')}</span>
+            <span>🛠 ${escAttr(weekData.tool || 'OJT')}</span>
+            ${step.durationDays ? '<span>📅 ' + escAttr(step.durationDays) + ' วัน</span>' : ''}
+            ${p.trainerName ? '<span class="text-gray-500">👤 ผู้สอน: ' + escAttr(p.trainerName) + (p.trainerPosition ? ' (' + escAttr(p.trainerPosition) + ')' : '') + '</span>' : ''}
             ${p.startDate ? '<span>🗓 ' + formatDate(p.startDate) + (p.endDate && p.endDate !== p.startDate ? ' – ' + formatDate(p.endDate) : '') + '</span>' : ''}
           </div>
         </div>
@@ -201,8 +201,9 @@ function renderTimeline(steps, progressMap) {
 }
 
 function openWeekDetail(weekIndex, stepId) {
-  const step = window._passportSteps[weekIndex];
-  const p = window._passportProgress[stepId] || {};
+  const step = (window._passportSteps || [])[weekIndex];
+  if (!step) return;
+  const p = (window._passportProgress || {})[stepId] || {};
   const weekData = WEEKS_DATA[weekIndex] || {};
   const user = getCurrentUser();
   const status = p.status || 'NOT_STARTED';
@@ -221,10 +222,10 @@ function openWeekDetail(weekIndex, stepId) {
       <!-- Details -->
       <div class="bg-gray-50 rounded-lg p-4">
         <h4 class="font-medium text-gray-700 mb-2">วัตถุประสงค์การฝึกอบรม</h4>
-        <p class="text-sm text-gray-600">${step.description || weekData.objectives}</p>
+        <p class="text-sm text-gray-600">${escAttr(step.description || weekData.objectives)}</p>
         <div class="flex gap-4 mt-3 text-sm text-gray-500">
-          <span>📍 สถานที่: ${weekData.place || 'Store'}</span>
-          <span>🛠 เครื่องมือ: ${weekData.tool || 'OJT'}</span>
+          <span>📍 สถานที่: ${escAttr(weekData.place || 'Store')}</span>
+          <span>🛠 เครื่องมือ: ${escAttr(weekData.tool || 'OJT')}</span>
         </div>
       </div>
 
@@ -236,12 +237,12 @@ function openWeekDetail(weekIndex, stepId) {
         </div>
         ${p.trainerName || p.startDate ? `
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
-            <div><span class="text-gray-400">ผู้สอน:</span> ${p.trainerName || '<span class="text-amber-600">ยังไม่ระบุ</span>'}${p.trainerPosition ? ' (' + p.trainerPosition + ')' : ''}</div>
-            ${p.trainerContact ? '<div><span class="text-gray-400">ติดต่อ:</span> ' + p.trainerContact + '</div>' : ''}
+            <div><span class="text-gray-400">ผู้สอน:</span> ${p.trainerName ? escAttr(p.trainerName) : '<span class="text-amber-600">ยังไม่ระบุ</span>'}${p.trainerPosition ? ' (' + escAttr(p.trainerPosition) + ')' : ''}</div>
+            ${p.trainerContact ? '<div><span class="text-gray-400">ติดต่อ:</span> ' + escAttr(p.trainerContact) + '</div>' : ''}
             ${p.startDate ? '<div><span class="text-gray-400">ช่วงฝึก:</span> ' + formatDate(p.startDate) + (p.endDate && p.endDate !== p.startDate ? ' – ' + formatDate(p.endDate) : '') + '</div>' : ''}
             ${formatTimeRange(getPlanDayTime(p, p.startDate || '')) ? '<div><span class="text-gray-400">เวลา:</span> ' + formatTimeRange(getPlanDayTime(p, p.startDate || '')) + '</div>' : ''}
-            ${String(p.evalResult || '').toUpperCase() === 'PASS' ? '<div class="text-green-700">ผลประเมิน: ✓ ผ่าน' + (p.evalBy ? ' โดย ' + p.evalBy : '') + (p.evalAt ? ' (' + formatDate(p.evalAt) + ')' : '') + '</div>' : ''}
-            ${String(p.evalResult || '').toUpperCase() === 'FAIL' ? '<div class="text-red-600">ผลประเมิน: ✗ ไม่ผ่าน (ฝึกซ้ำ)' + (p.evalBy ? ' โดย ' + p.evalBy : '') + '</div>' : ''}
+            ${String(p.evalResult || '').toUpperCase() === 'PASS' ? '<div class="text-green-700">ผลประเมิน: ✓ ผ่าน' + (p.evalBy ? ' โดย ' + escAttr(p.evalBy) : '') + (p.evalAt ? ' (' + formatDate(p.evalAt) + ')' : '') + '</div>' : ''}
+            ${String(p.evalResult || '').toUpperCase() === 'FAIL' ? '<div class="text-red-600">ผลประเมิน: ✗ ไม่ผ่าน (ฝึกซ้ำ)' + (p.evalBy ? ' โดย ' + escAttr(p.evalBy) : '') + '</div>' : ''}
           </div>`
         : '<p class="text-sm text-amber-600">ยังไม่ได้วางแผนการฝึกสำหรับหัวข้อนี้ — ไปที่หน้า Roadmap เพื่อกำหนดผู้สอนและวันฝึก</p>'}
       </div>
@@ -250,9 +251,9 @@ function openWeekDetail(weekIndex, stepId) {
       <div>
         <h4 class="font-medium text-gray-700 mb-3">สถานะการเรียนรู้</h4>
         <div class="flex gap-3">
-          <button onclick="updateWeekStatus('${stepId}', 'NOT_STARTED', ${weekIndex})" class="px-4 py-2 rounded-lg text-sm ${status==='NOT_STARTED' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">ยังไม่เริ่ม</button>
-          <button onclick="updateWeekStatus('${stepId}', 'IN_PROGRESS', ${weekIndex})" class="px-4 py-2 rounded-lg text-sm ${status==='IN_PROGRESS' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}">กำลังเรียนรู้</button>
-          <button onclick="updateWeekStatus('${stepId}', 'COMPLETED', ${weekIndex})" class="px-4 py-2 rounded-lg text-sm ${status==='COMPLETED' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}">เสร็จสิ้น</button>
+          <button onclick="updateWeekStatus('${escJs(stepId)}', 'NOT_STARTED', ${weekIndex})" class="px-4 py-2 rounded-lg text-sm ${status==='NOT_STARTED' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">ยังไม่เริ่ม</button>
+          <button onclick="updateWeekStatus('${escJs(stepId)}', 'IN_PROGRESS', ${weekIndex})" class="px-4 py-2 rounded-lg text-sm ${status==='IN_PROGRESS' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}">กำลังเรียนรู้</button>
+          <button onclick="updateWeekStatus('${escJs(stepId)}', 'COMPLETED', ${weekIndex})" class="px-4 py-2 rounded-lg text-sm ${status==='COMPLETED' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}">เสร็จสิ้น</button>
         </div>
       </div>
 
@@ -261,15 +262,15 @@ function openWeekDetail(weekIndex, stepId) {
         <div class="border rounded-lg p-4 ${trainerSigned ? 'border-green-300 bg-green-50' : 'border-gray-200'}">
           <h4 class="font-medium text-gray-700 mb-2">ผู้ฝึกสอนลงชื่อ</h4>
           ${trainerSigned
-            ? '<p class="text-green-600 font-medium">✓ ลงชื่อแล้ว</p><p class="text-xs text-gray-500 mt-1">' + (noteData.trainerDate || '') + '</p>'
+            ? '<p class="text-green-600 font-medium">✓ ลงชื่อแล้ว</p><p class="text-xs text-gray-500 mt-1">' + escAttr(noteData.trainerDate || '') + '</p>'
             : (user.role === 'MENTOR' || user.role === 'ADMIN'
-              ? '<button onclick="signOff(\'' + stepId + '\', \'trainer\', ' + weekIndex + ')" class="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600">ลงชื่อผู้ฝึกสอน</button>'
+              ? '<button onclick="signOff(\'' + escJs(stepId) + '\', \'trainer\', ' + weekIndex + ')" class="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600">ลงชื่อผู้ฝึกสอน</button>'
               : '<p class="text-gray-400 text-sm">รอผู้ฝึกสอนลงชื่อ</p>')
           }
         </div>
         <div class="border rounded-lg p-4 border-green-300 bg-green-50">
           <h4 class="font-medium text-gray-700 mb-2">นักศึกษา</h4>
-          <p class="text-green-600 font-medium">✓ ${user.name || user.email || 'นักศึกษา'}</p>
+          <p class="text-green-600 font-medium">✓ ${escAttr(user.name || user.email || 'นักศึกษา')}</p>
           <p class="text-xs text-gray-400 mt-1">ลงชื่ออัตโนมัติ (Sync กับผู้ใช้)</p>
         </div>
       </div>
@@ -277,8 +278,8 @@ function openWeekDetail(weekIndex, stepId) {
       <!-- Notes -->
       <div>
         <h4 class="font-medium text-gray-700 mb-2">บันทึก / หมายเหตุ</h4>
-        <textarea id="week-notes" class="w-full border rounded-lg p-3 text-sm" rows="3" placeholder="เพิ่มบันทึก...">${noteData.text || noteData.trainerNotes || noteData.studentNotes || ''}</textarea>
-        <button onclick="saveWeekNotes('${stepId}', ${weekIndex})" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">บันทึก</button>
+        <textarea id="week-notes" class="w-full border rounded-lg p-3 text-sm" rows="3" placeholder="เพิ่มบันทึก...">${escAttr(noteData.text || noteData.trainerNotes || noteData.studentNotes || '')}</textarea>
+        <button onclick="saveWeekNotes('${escJs(stepId)}', ${weekIndex})" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">บันทึก</button>
       </div>
     </div>
   `;
@@ -308,7 +309,9 @@ async function signOff(stepId, role, weekIndex) {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApiPost('signOffWeek', { userId: user.id, weekNumber: String(weekIndex), role, notes: '' });
+    // Sign-off state is read per stepId (progressMap keyed by step.id, see renderTimeline/openWeekDetail),
+    // so the write must identify the row by stepId too — weekIndex alone can desync from the actual step.
+    await callApiPost('signOffWeek', { userId: user.id, stepId: stepId, weekNumber: String(weekIndex), role, notes: '' });
     showToast('ลงชื่อสำเร็จ', 'success');
     closePassportModal();
     await loadTrainingPassport();

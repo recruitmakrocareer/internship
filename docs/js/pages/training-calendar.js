@@ -68,7 +68,7 @@ async function loadCalendarEvents() {
 
     (Array.isArray(progressList) ? progressList : []).forEach(p => {
       const step = stepMap[p.stepId];
-      const title = (step && step.title) || p.stepTitle || 'หัวข้อการฝึก';
+      const title = escAttr((step && step.title) || p.stepTitle || 'หัวข้อการฝึก');
 
       const status = deriveTrainingStatus(p);
       let color = 'bg-gray-200 text-gray-600';
@@ -83,7 +83,7 @@ async function loadCalendarEvents() {
         window._calEvents[day].push({
           title: title,
           color: color,
-          trainer: p.trainerName || '',
+          trainer: escAttr(p.trainerName || ''),
           timeLabel: timeLabel
         });
       });
@@ -130,7 +130,7 @@ function renderCalGrid() {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const today = todayStr();
 
   let html = '<div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">';
   THAI_DAYS.forEach(d => {
@@ -144,7 +144,7 @@ function renderCalGrid() {
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
     const dayEvents = events[dateStr] || [];
-    const isToday = dateStr === todayStr;
+    const isToday = dateStr === today;
 
     html += `
       <div class="bg-white min-h-[90px] p-1.5 ${isToday ? 'ring-2 ring-inset ring-primary-400' : ''}">

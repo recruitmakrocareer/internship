@@ -142,8 +142,8 @@ function renderRoadmapCards(roadmaps, progressMap) {
         <div class="p-6 border-b border-gray-100">
           <div class="flex items-start justify-between mb-3">
             <div class="flex-1">
-              <h3 class="text-lg font-bold text-gray-800">${roadmap.title || 'แผนฝึกงาน'}</h3>
-              ${roadmap.description ? `<p class="text-sm text-gray-500 mt-1">${roadmap.description}</p>` : ''}
+              <h3 class="text-lg font-bold text-gray-800">${escAttr(roadmap.title || 'แผนฝึกงาน')}</h3>
+              ${roadmap.description ? `<p class="text-sm text-gray-500 mt-1">${escAttr(roadmap.description)}</p>` : ''}
             </div>
             <div class="text-right ml-4">
               <span class="text-2xl font-bold text-primary-600">${progressPct}%</span>
@@ -225,7 +225,7 @@ function renderRoadmapCards(roadmaps, progressMap) {
             }
 
             return `
-              <div class="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer ${statusClass}" draggable="true" data-roadmap="${rIndex}" data-step="${sIndex}" data-step-id="${step.id}" onclick="openStepModal('${step.id}', ${rIndex}, ${sIndex})" ondragstart="handleStepDragStart(event)" ondragover="handleStepDragOver(event)" ondrop="handleStepDrop(event)" ondragend="handleStepDragEnd(event)">
+              <div class="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer ${statusClass}" draggable="true" data-roadmap="${rIndex}" data-step="${sIndex}" data-roadmap-id="${escAttr(roadmap.id)}" data-step-id="${escAttr(step.id)}" onclick="openStepModal('${escJs(step.id)}', ${rIndex}, ${sIndex})" ondragstart="handleStepDragStart(event)" ondragover="handleStepDragOver(event)" ondrop="handleStepDrop(event)" ondragend="handleStepDragEnd(event)">
                 <div class="flex-shrink-0 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing" onmousedown="event.stopPropagation()">
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm8-16a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>
                 </div>
@@ -234,9 +234,9 @@ function renderRoadmapCards(roadmaps, progressMap) {
                 </div>
                 <div class="flex-shrink-0">${statusIcon}</div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-800 truncate">${step.title || 'ขั้นตอนที่ ' + (sIndex + 1)}</p>
-                  ${step.description ? `<p class="text-xs text-gray-500 mt-0.5 truncate">${step.description}</p>` : ''}
-                  ${p.trainerName || p.startDate ? `<p class="text-xs text-gray-400 mt-0.5 truncate">${p.trainerName ? '👤 ' + p.trainerName : ''}${p.startDate ? (p.trainerName ? ' • ' : '') + '📅 ' + formatDate(p.startDate) + (p.endDate ? ' – ' + formatDate(p.endDate) : '') : ''}${(p.startTime || p.endTime) ? ' (' + formatTimeRange({start: p.startTime, end: p.endTime}) + ')' : ''}</p>` : ''}
+                  <p class="text-sm font-medium text-gray-800 truncate">${escAttr(step.title || 'ขั้นตอนที่ ' + (sIndex + 1))}</p>
+                  ${step.description ? `<p class="text-xs text-gray-500 mt-0.5 truncate">${escAttr(step.description)}</p>` : ''}
+                  ${p.trainerName || p.startDate ? `<p class="text-xs text-gray-400 mt-0.5 truncate">${p.trainerName ? '👤 ' + escAttr(p.trainerName) : ''}${p.startDate ? (p.trainerName ? ' • ' : '') + '📅 ' + formatDate(p.startDate) + (p.endDate ? ' – ' + formatDate(p.endDate) : '') : ''}${(p.startTime || p.endTime) ? ' (' + formatTimeRange({start: p.startTime, end: p.endTime}) + ')' : ''}</p>` : ''}
                   ${warnBadges.length > 0 ? '<div class="flex flex-wrap gap-1 mt-1">' + warnBadges.join('') + '</div>' : ''}
                 </div>
                 <div class="flex-shrink-0 flex items-center gap-2">
@@ -256,9 +256,14 @@ function renderRoadmapCards(roadmaps, progressMap) {
 }
 
 function openStepModal(stepId, roadmapIndex, stepIndex) {
-  const roadmap = window._studentRoadmaps[roadmapIndex];
-  const step = roadmap.steps[stepIndex];
-  const p = window._studentProgressMap[stepId] || {};
+  const roadmaps = window._studentRoadmaps || [];
+  const roadmap = roadmaps[roadmapIndex];
+  if (!roadmap || !roadmap.steps) return;
+  // Prefer a stable stepId lookup; fall back to positional index for legacy callers.
+  let step = roadmap.steps.find(s => String(s.id) === String(stepId));
+  if (!step) step = roadmap.steps[stepIndex];
+  if (!step) return;
+  const p = (window._studentProgressMap || {})[stepId] || {};
 
   // วันฝึกแบบระบุวัน (ไม่ต่อเนื่อง)
   window._planDays = p.trainingDays ? String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -294,8 +299,8 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
         <div class="flex items-center gap-2 mb-1">
           <span class="text-sm font-semibold text-green-700">✓ ผ่านการประเมิน</span>
         </div>
-        ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${p.evalComment}</p>` : ''}
-        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'}${p.evalByPosition ? ' (' + p.evalByPosition + ')' : ''} เมื่อ ${formatDate(p.evalAt)}</p>
+        ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${escAttr(p.evalComment)}</p>` : ''}
+        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${escAttr(p.evalBy || '-')}${p.evalByPosition ? ' (' + escAttr(p.evalByPosition) + ')' : ''} เมื่อ ${formatDate(p.evalAt)}</p>
       </div>`;
   } else if (evalResult === 'FAIL') {
     evalHtml = `
@@ -303,9 +308,9 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
         <div class="flex items-center gap-2 mb-1">
           <span class="text-sm font-semibold text-red-700">✗ ไม่ผ่านการประเมิน — ต้องฝึกเพิ่มเติมและประเมินใหม่</span>
         </div>
-        ${Number(p.attemptCount) > 0 ? `<p class="text-xs text-red-500">ไม่ผ่านมาแล้ว ${p.attemptCount} ครั้ง</p>` : ''}
-        ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${p.evalComment}</p>` : ''}
-        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${p.evalBy || '-'}${p.evalByPosition ? ' (' + p.evalByPosition + ')' : ''} เมื่อ ${formatDate(p.evalAt)}</p>
+        ${Number(p.attemptCount) > 0 ? `<p class="text-xs text-red-500">ไม่ผ่านมาแล้ว ${escAttr(p.attemptCount)} ครั้ง</p>` : ''}
+        ${p.evalComment ? `<p class="text-sm text-gray-600 mt-1">💬 ${escAttr(p.evalComment)}</p>` : ''}
+        <p class="text-xs text-gray-400 mt-1">ประเมินโดย ${escAttr(p.evalBy || '-')}${p.evalByPosition ? ' (' + escAttr(p.evalByPosition) + ')' : ''} เมื่อ ${formatDate(p.evalAt)}</p>
       </div>`;
   } else {
     evalHtml = `
@@ -320,7 +325,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
       ${step.description ? `
         <div class="bg-gray-50 rounded-lg p-4">
           <h4 class="text-sm font-medium text-gray-700 mb-1">รายละเอียด</h4>
-          <p class="text-sm text-gray-600">${step.description}</p>
+          <p class="text-sm text-gray-600">${escAttr(step.description)}</p>
         </div>
       ` : ''}
 
@@ -334,7 +339,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
       ${step.resources ? `
         <div class="flex items-center gap-2 text-sm text-gray-500">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-          แหล่งข้อมูล: ${step.resources}
+          แหล่งข้อมูล: ${escAttr(step.resources)}
         </div>
       ` : ''}
 
@@ -356,17 +361,17 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">ชื่อผู้สอน</label>
-            <input type="text" id="plan-trainer-name" value="${p.trainerName || ''}" placeholder="ชื่อ-นามสกุล"
+            <input type="text" id="plan-trainer-name" value="${escAttr(p.trainerName || '')}" placeholder="ชื่อ-นามสกุล"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">ตำแหน่ง</label>
-            <input type="text" id="plan-trainer-position" value="${p.trainerPosition || ''}" placeholder="เช่น หัวหน้าแผนก"
+            <input type="text" id="plan-trainer-position" value="${escAttr(p.trainerPosition || '')}" placeholder="เช่น หัวหน้าแผนก"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">ช่องทางติดต่อ</label>
-            <input type="text" id="plan-trainer-contact" value="${p.trainerContact || ''}" placeholder="เบอร์โทร / Line"
+            <input type="text" id="plan-trainer-contact" value="${escAttr(p.trainerContact || '')}" placeholder="เบอร์โทร / Line"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
@@ -422,7 +427,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">บันทึก / หมายเหตุ</label>
         <textarea id="step-note-input" rows="3" placeholder="เพิ่มบันทึกเกี่ยวกับขั้นตอนนี้..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">${p.note || ''}</textarea>
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">${escAttr(p.note || '')}</textarea>
       </div>
 
       <!-- ปุ่ม -->
@@ -469,12 +474,12 @@ function renderMiniCal() {
   let html = `
     <div class="flex items-center justify-between mb-1">
       <button onclick="changeMiniCalMonth(-1)" class="p-1 hover:bg-gray-100 rounded text-gray-500 text-sm px-2">&lsaquo;</button>
-      <span class="text-sm font-medium text-gray-700">${THAI_MONTHS[month]} ${year + 543}</span>
+      <span class="text-sm font-medium text-gray-700">${typeof THAI_MONTHS !== 'undefined' ? THAI_MONTHS[month] : (month + 1)} ${year + 543}</span>
       <button onclick="changeMiniCalMonth(1)" class="p-1 hover:bg-gray-100 rounded text-gray-500 text-sm px-2">&rsaquo;</button>
     </div>
     <div class="grid grid-cols-7 gap-0.5 text-center">`;
 
-  THAI_DAYS.forEach(d => {
+  (typeof THAI_DAYS !== 'undefined' ? THAI_DAYS : ['อา','จ','อ','พ','พฤ','ศ','ส']).forEach(d => {
     html += `<div class="text-[10px] text-gray-400 py-1">${d}</div>`;
   });
 
@@ -687,7 +692,8 @@ function handleStepDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   const target = e.currentTarget;
-  if (target !== window._draggedStep && target.dataset.roadmap === window._draggedStep.dataset.roadmap) {
+  if (!window._draggedStep) return;
+  if (target !== window._draggedStep && target.dataset.roadmapId === window._draggedStep.dataset.roadmapId) {
     target.style.borderTop = '2px solid #3b82f6';
   }
 }
@@ -698,20 +704,36 @@ function handleStepDrop(e) {
   target.style.borderTop = '';
 
   if (!window._draggedStep || target === window._draggedStep) return;
-  if (target.dataset.roadmap !== window._draggedStep.dataset.roadmap) return;
 
-  const rIndex = parseInt(window._draggedStep.dataset.roadmap);
-  const fromIndex = parseInt(window._draggedStep.dataset.step);
-  const toIndex = parseInt(target.dataset.step);
+  // Resolve roadmap/step by STABLE IDs, not positional indices: the cards are
+  // rendered from a filtered subset whose indices don't line up with
+  // window._studentRoadmaps, so positional reordering moved the wrong step.
+  const roadmapId = window._draggedStep.dataset.roadmapId;
+  if (!roadmapId || target.dataset.roadmapId !== roadmapId) return;
 
-  // Reorder the steps array
-  const roadmap = window._studentRoadmaps[rIndex];
-  if (roadmap && roadmap.steps) {
-    const [movedStep] = roadmap.steps.splice(fromIndex, 1);
-    roadmap.steps.splice(toIndex, 0, movedStep);
-    renderRoadmapCards(window._studentRoadmaps.filter(r => r.steps && r.steps.length > 0), window._studentProgressMap);
-    showToast('เรียงลำดับใหม่สำเร็จ', 'success');
-  }
+  const fromStepId = window._draggedStep.dataset.stepId;
+  const toStepId = target.dataset.stepId;
+  if (fromStepId == null || toStepId == null) return;
+
+  const roadmaps = window._studentRoadmaps || [];
+  const roadmap = roadmaps.find(r => String(r.id) === String(roadmapId));
+  if (!roadmap || !roadmap.steps) return;
+
+  const fromIndex = roadmap.steps.findIndex(s => String(s.id) === String(fromStepId));
+  const toIndex = roadmap.steps.findIndex(s => String(s.id) === String(toStepId));
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+  const [movedStep] = roadmap.steps.splice(fromIndex, 1);
+  roadmap.steps.splice(toIndex, 0, movedStep);
+
+  // Re-render from the SAME filtered view used originally so indices stay coherent.
+  const assignedRoadmaps = roadmaps.filter(r => {
+    if (!r.steps || r.steps.length === 0) return false;
+    return r.steps.some(step => (window._studentProgressMap || {})[step.id]);
+  });
+  const displayRoadmaps = assignedRoadmaps.length > 0 ? assignedRoadmaps : roadmaps;
+  renderRoadmapCards(displayRoadmaps, window._studentProgressMap);
+  showToast('เรียงลำดับใหม่สำเร็จ', 'success');
 }
 
 function handleStepDragEnd(e) {
@@ -742,7 +764,7 @@ function renderOverviewCalendar() {
   Object.keys(progressMap).forEach(sid => {
     const p = progressMap[sid];
     const lookup = stepLookup[sid];
-    const title = (lookup && lookup.step.title) || p.stepTitle || 'หัวข้อการฝึก';
+    const title = escAttr((lookup && lookup.step.title) || p.stepTitle || 'หัวข้อการฝึก');
     const status = deriveTrainingStatus(p);
     let color = 'bg-gray-200 text-gray-600';
     if (String(p.evalResult || '').toUpperCase() === 'FAIL') color = 'bg-red-100 text-red-700 border-l-2 border-red-400';
@@ -799,14 +821,14 @@ function renderOverviewCalGrid() {
         <button onclick="changeOverviewCalMonth(-1)" class="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <h3 class="text-sm font-semibold text-gray-700">${THAI_MONTHS[month]} ${year + 543}</h3>
+        <h3 class="text-sm font-semibold text-gray-700">${typeof THAI_MONTHS !== 'undefined' ? THAI_MONTHS[month] : (month + 1)} ${year + 543}</h3>
         <button onclick="changeOverviewCalMonth(1)" class="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
       <div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">`;
 
-  THAI_DAYS.forEach(d => {
+  (typeof THAI_DAYS !== 'undefined' ? THAI_DAYS : ['อา','จ','อ','พ','พฤ','ศ','ส']).forEach(d => {
     html += '<div class="bg-gray-50 py-1.5 text-center text-[10px] font-medium text-gray-500">' + d + '</div>';
   });
 
