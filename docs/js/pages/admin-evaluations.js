@@ -69,10 +69,10 @@ async function loadAdminEvaluations() {
               const evaluatorName = evaluatorMatch ? ((evaluatorMatch.firstName || '') + ' ' + (evaluatorMatch.lastName || '')).trim() : '';
               return `
               <tr class="hover:bg-gray-50">
-                <td class="p-3 font-medium text-gray-800">${ev.type || '-'}</td>
-                <td class="p-3 text-gray-600">${studentName || '-'}</td>
-                <td class="p-3 text-gray-600">${ev.period || '-'}</td>
-                <td class="p-3"><span class="font-bold text-blue-600">${ev.totalScore || 0}</span>/${ev.maxScore || 0}</td>
+                <td class="p-3 font-medium text-gray-800">${escAttr(ev.type || '-')}</td>
+                <td class="p-3 text-gray-600">${escAttr(studentName || '-')}</td>
+                <td class="p-3 text-gray-600">${escAttr(ev.period || '-')}</td>
+                <td class="p-3"><span class="font-bold text-blue-600">${escAttr(ev.totalScore || 0)}</span>/${escAttr(ev.maxScore || 0)}</td>
                 <td class="p-3 text-gray-500">${formatDate(ev.createdAt)}</td>
               </tr>`;
             }).join('')}
@@ -87,7 +87,7 @@ async function loadAdminEvaluations() {
 function openAdminEvalForm() {
   const students = window._adminAllStudents;
   const opts = Array.isArray(students) ? students.map(s =>
-    `<option value="${s.id}">${s.firstName || ''} ${s.lastName || ''} (${s.studentId || s.email || ''})</option>`
+    `<option value="${escAttr(s.id)}">${escAttr(s.firstName || '')} ${escAttr(s.lastName || '')} (${escAttr(s.studentId || s.email || '')})</option>`
   ).join('') : '';
 
   document.getElementById('admin-eval-form').innerHTML = `

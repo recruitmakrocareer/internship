@@ -49,8 +49,8 @@ async function loadAdminNotifications() {
       <div class="bg-white rounded-lg border p-4 ${n.isRead === 'true' || n.isRead === true ? 'opacity-60' : 'border-l-4 border-l-blue-500'}">
         <div class="flex justify-between items-start">
           <div>
-            <h4 class="font-medium text-gray-800">${n.title || ''}</h4>
-            <p class="text-sm text-gray-600 mt-1">${n.message || ''}</p>
+            <h4 class="font-medium text-gray-800">${escAttr(n.title || '')}</h4>
+            <p class="text-sm text-gray-600 mt-1">${escAttr(n.message || '')}</p>
           </div>
           <span class="text-xs text-gray-400 whitespace-nowrap ml-4">${formatDate(n.createdAt)}</span>
         </div>
@@ -86,8 +86,8 @@ async function openBroadcastForm() {
     const [sRes, mRes] = await Promise.all([callApi('getStudents'), callApi('getMentors')]);
     const students = sRes.data || sRes || [];
     const mentors = mRes.data || mRes || [];
-    if (Array.isArray(students)) studentsHtml = students.map(s => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="broadcast-user" value="${s.id}" />${s.firstName||''} ${s.lastName||''} (${s.studentId||s.email||''})</label>`).join('');
-    if (Array.isArray(mentors)) mentorsHtml = mentors.map(m => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="broadcast-user" value="${m.id}" />${m.firstName||''} ${m.lastName||''}</label>`).join('');
+    if (Array.isArray(students)) studentsHtml = students.map(s => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="broadcast-user" value="${escAttr(s.id)}" />${escAttr(s.firstName||'')} ${escAttr(s.lastName||'')} (${escAttr(s.studentId||s.email||'')})</label>`).join('');
+    if (Array.isArray(mentors)) mentorsHtml = mentors.map(m => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="broadcast-user" value="${escAttr(m.id)}" />${escAttr(m.firstName||'')} ${escAttr(m.lastName||'')}</label>`).join('');
   } catch (e) {}
 
   document.getElementById('broadcast-form').innerHTML = `

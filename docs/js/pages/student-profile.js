@@ -201,7 +201,7 @@ async function renderStudentProfile() {
     var storeOpts = '<option value="">-- เลือกสาขา --</option>';
     for (var si = 0; si < _profileStoreList.length; si++) {
       var sv = _profileStoreList[si].storeNo + ' - ' + _profileStoreList[si].storeName;
-      storeOpts += '<option value="' + sv + '">' + sv + '</option>';
+      storeOpts += '<option value="' + escAttr(sv) + '">' + escAttr(sv) + '</option>';
     }
 
     var deptOpts = '<option value="">-- เลือกแผนก --</option>';
@@ -210,10 +210,10 @@ async function renderStudentProfile() {
       var dd = _profileDeptList[di];
       if (dd.division !== lastDiv) {
         if (lastDiv !== '') deptOpts += '</optgroup>';
-        deptOpts += '<optgroup label="' + dd.division + '">';
+        deptOpts += '<optgroup label="' + escAttr(dd.division) + '">';
         lastDiv = dd.division;
       }
-      deptOpts += '<option value="' + dd.department + '">' + dd.department + '</option>';
+      deptOpts += '<option value="' + escAttr(dd.department) + '">' + escAttr(dd.department) + '</option>';
     }
     if (lastDiv !== '') deptOpts += '</optgroup>';
 
@@ -235,8 +235,8 @@ async function renderStudentProfile() {
               <input type="file" id="profile-avatar-input" accept=".jpg,.jpeg,.png" class="hidden" onchange="handleAvatarDrop(event)">
             </div>
             <div class="text-white">
-              <h3 class="text-xl font-bold">${profile.prefix ? profile.prefix + ' ' : ''}${firstName} ${lastName}</h3>
-              <p class="text-primary-100 text-sm">${profile.email || '-'}</p>
+              <h3 class="text-xl font-bold">${profile.prefix ? escAttr(profile.prefix) + ' ' : ''}${escAttr(firstName)} ${escAttr(lastName)}</h3>
+              <p class="text-primary-100 text-sm">${escAttr(profile.email || '-')}</p>
               <p class="text-primary-200 text-xs mt-0.5">ลากรูปมาวาง หรือคลิกที่รูปเพื่อเปลี่ยน</p>
             </div>
           </div>
@@ -295,36 +295,36 @@ async function renderStudentProfile() {
               </div>
               <div>
                 <label for="profile-first-name" class="block text-sm font-medium text-gray-700 mb-1">ชื่อจริง <span class="text-red-500">*</span></label>
-                <input type="text" id="profile-first-name" value="${firstName}" required
+                <input type="text" id="profile-first-name" value="${escAttr(firstName)}" required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div>
                 <label for="profile-last-name" class="block text-sm font-medium text-gray-700 mb-1">นามสกุล <span class="text-red-500">*</span></label>
-                <input type="text" id="profile-last-name" value="${lastName}" required
+                <input type="text" id="profile-last-name" value="${escAttr(lastName)}" required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <div>
                 <label for="profile-nickname" class="block text-sm font-medium text-gray-700 mb-1">ชื่อเล่น</label>
-                <input type="text" id="profile-nickname" value="${profile.nickname || ''}"
+                <input type="text" id="profile-nickname" value="${escAttr(profile.nickname || '')}"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div>
                 <label for="profile-phone" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
-                <input type="tel" id="profile-phone" value="${profile.phone || ''}" placeholder="0xx-xxx-xxxx"
+                <input type="tel" id="profile-phone" value="${escAttr(profile.phone || '')}" placeholder="0xx-xxx-xxxx"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">รหัสพนักงาน <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
-                <input type="text" value="${profile.employeeId || '-'}" disabled
+                <input type="text" value="${escAttr(profile.employeeId || '-')}" disabled
                   class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
                 <label for="profile-id-card" class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน</label>
-                <input type="text" id="profile-id-card" value="${profile.idCardNumber || ''}" maxlength="13"
+                <input type="text" id="profile-id-card" value="${escAttr(profile.idCardNumber || '')}" maxlength="13"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div>
@@ -339,24 +339,24 @@ async function renderStudentProfile() {
             </div>
             <div class="mt-4">
               <label for="profile-medical" class="block text-sm font-medium text-gray-700 mb-1">โรคประจำตัว</label>
-              <input type="text" id="profile-medical" value="${profile.medicalCondition || ''}" placeholder="ระบุโรคประจำตัว (ถ้ามี)"
+              <input type="text" id="profile-medical" value="${escAttr(profile.medicalCondition || '')}" placeholder="ระบุโรคประจำตัว (ถ้ามี)"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">แผนกที่ฝึก <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
-                <input type="text" value="${profile.department || '-'}" disabled
+                <input type="text" value="${escAttr(profile.department || '-')}" disabled
                   class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ฝึก <span class="text-xs text-gray-400">(แอดมินกำหนด)</span></label>
-                <input type="text" value="${profile.branch || '-'}" disabled
+                <input type="text" value="${escAttr(profile.branch || '-')}" disabled
                   class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
               </div>
             </div>
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล <span class="text-xs text-gray-400">(ติดต่อแอดมินเพื่อเปลี่ยน)</span></label>
-              <input type="email" value="${profile.email || ''}" disabled
+              <input type="email" value="${escAttr(profile.email || '')}" disabled
                 class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
             </div>
           </div>
@@ -371,19 +371,19 @@ async function renderStudentProfile() {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="mb-4">
                 <label for="profile-current-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่</label>
-                <input type="text" id="profile-current-house-no" value="${profile.currentHouseNo || ''}" placeholder="เช่น 123/4"
+                <input type="text" id="profile-current-house-no" value="${escAttr(profile.currentHouseNo || '')}" placeholder="เช่น 123/4"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div class="mb-4">
                 <label for="profile-current-village" class="block text-sm font-medium text-gray-700 mb-1">หมู่บ้าน/อาคาร</label>
-                <input type="text" id="profile-current-village" value="${profile.currentVillage || ''}" placeholder="หมู่บ้าน/อาคาร"
+                <input type="text" id="profile-current-village" value="${escAttr(profile.currentVillage || '')}" placeholder="หมู่บ้าน/อาคาร"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="mb-4">
                 <label for="profile-current-soi" class="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
-                <input type="text" id="profile-current-soi" value="${profile.currentSoi || ''}" placeholder="ซอย"
+                <input type="text" id="profile-current-soi" value="${escAttr(profile.currentSoi || '')}" placeholder="ซอย"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
               <div class="mb-4">

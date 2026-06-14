@@ -77,8 +77,8 @@ function filterMentorSubs(tab) {
     html += `
       <div class="bg-white rounded-xl border">
         <div class="p-4 border-b bg-gray-50">
-          <h3 class="font-bold text-gray-800">${a.title || ''}</h3>
-          <p class="text-sm text-gray-500">${a.description || ''} | คะแนนเต็ม: ${a.maxScore || '-'}</p>
+          <h3 class="font-bold text-gray-800">${escAttr(a.title || '')}</h3>
+          <p class="text-sm text-gray-500">${escAttr(a.description || '')} | คะแนนเต็ม: ${escAttr(a.maxScore || '-')}</p>
         </div>
         <div class="divide-y">
           ${assignmentSubs.length === 0 ? '<div class="p-4 text-center text-gray-400 text-sm">ไม่มีงานที่ส่ง</div>' :
@@ -88,13 +88,13 @@ function filterMentorSubs(tab) {
               return `
                 <div class="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div>
-                    <span class="font-medium text-gray-700">${window._mentorStudentMap[s.userId] || s.userId || 'นักศึกษา'}</span>
+                    <span class="font-medium text-gray-700">${escAttr(window._mentorStudentMap[s.userId] || s.userId || 'นักศึกษา')}</span>
                     <span class="text-sm text-gray-500 ml-2">${formatDate(s.submittedAt)}</span>
-                    ${s.score ? `<span class="text-sm text-green-600 ml-2">คะแนน: ${s.score}/${a.maxScore}</span>` : ''}
+                    ${s.score ? `<span class="text-sm text-green-600 ml-2">คะแนน: ${escAttr(s.score)}/${escAttr(a.maxScore)}</span>` : ''}
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="px-2 py-1 text-xs rounded-full ${statusColor}">${statusLabel}</span>
-                    <button onclick="openReviewModal('${s.id}','${(a.title||'').replace(/'/g,"\\'")}','${a.maxScore || 100}')" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">ตรวจ</button>
+                    <button onclick="openReviewModal('${escJs(s.id)}','${escJs(a.title||'')}','${escJs(a.maxScore || 100)}')" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">ตรวจ</button>
                   </div>
                 </div>`;
             }).join('')}
@@ -114,16 +114,16 @@ function openReviewModal(submissionId, title, maxScore) {
     <div class="space-y-4">
       <div class="bg-gray-50 rounded-lg p-4">
         <h4 class="text-sm font-medium text-gray-700 mb-2">เนื้อหาที่ส่ง:</h4>
-        <p class="text-sm text-gray-600">${sub.content || 'ไม่มีเนื้อหา'}</p>
-        ${sub.fileUrl ? `<a href="${sub.fileUrl}" target="_blank" class="text-sm text-blue-600 hover:underline mt-2 inline-block">ดูไฟล์: ${sub.fileName || 'ไฟล์แนบ'}</a>` : ''}
+        <p class="text-sm text-gray-600">${escAttr(sub.content || 'ไม่มีเนื้อหา')}</p>
+        ${sub.fileUrl ? `<a href="${safeUrl(sub.fileUrl)}" target="_blank" class="text-sm text-blue-600 hover:underline mt-2 inline-block">ดูไฟล์: ${escAttr(sub.fileName || 'ไฟล์แนบ')}</a>` : ''}
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">คะแนน (เต็ม ${maxScore})</label>
-        <input type="number" id="review-score" min="0" max="${maxScore}" class="w-full border rounded-lg p-2" value="${sub.score || ''}" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">คะแนน (เต็ม ${escAttr(maxScore)})</label>
+        <input type="number" id="review-score" min="0" max="${escAttr(maxScore)}" class="w-full border rounded-lg p-2" value="${escAttr(sub.score || '')}" />
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">ความคิดเห็น</label>
-        <textarea id="review-feedback" class="w-full border rounded-lg p-3 text-sm" rows="4" placeholder="ให้ฟีดแบค...">${sub.feedback || ''}</textarea>
+        <textarea id="review-feedback" class="w-full border rounded-lg p-3 text-sm" rows="4" placeholder="ให้ฟีดแบค...">${escAttr(sub.feedback || '')}</textarea>
       </div>
       <button onclick="submitReview('${submissionId}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700">บันทึกการตรวจ</button>
     </div>

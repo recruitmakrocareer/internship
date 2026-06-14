@@ -45,11 +45,11 @@ async function loadStudentEvals() {
         <div class="bg-white rounded-xl border p-5">
           <div class="flex justify-between items-start mb-3">
             <div>
-              <h3 class="font-bold text-gray-800">${ev.type || 'การประเมิน'}</h3>
-              <p class="text-sm text-gray-500">${ev.period || ''} | ${formatDate(ev.createdAt)}</p>
+              <h3 class="font-bold text-gray-800">${escAttr(ev.type || 'การประเมิน')}</h3>
+              <p class="text-sm text-gray-500">${escAttr(ev.period || '')} | ${formatDate(ev.createdAt)}</p>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-bold text-blue-600">${ev.totalScore || 0}<span class="text-sm text-gray-400">/${ev.maxScore || 0}</span></div>
+              <div class="text-2xl font-bold text-blue-600">${escAttr(ev.totalScore || 0)}<span class="text-sm text-gray-400">/${escAttr(ev.maxScore || 0)}</span></div>
               <div class="text-xs text-gray-500">${pct}%</div>
             </div>
           </div>
@@ -60,13 +60,13 @@ async function loadStudentEvals() {
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
               ${Object.entries(scores).map(([k, v]) => `
                 <div class="bg-gray-50 rounded-lg p-2 text-center">
-                  <div class="text-lg font-semibold text-gray-700">${v}</div>
-                  <div class="text-xs text-gray-500">${scoreLabels[k] || k}</div>
+                  <div class="text-lg font-semibold text-gray-700">${escAttr(v)}</div>
+                  <div class="text-xs text-gray-500">${escAttr(scoreLabels[k] || k)}</div>
                 </div>
               `).join('')}
             </div>
           ` : ''}
-          ${ev.comment ? `<div class="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">${ev.comment}</div>` : ''}
+          ${ev.comment ? `<div class="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">${escAttr(ev.comment)}</div>` : ''}
         </div>`;
     }).join('');
   } catch (e) {

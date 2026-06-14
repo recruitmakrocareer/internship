@@ -100,9 +100,9 @@ async function loadStudentAssignments() {
         <div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow">
           <div class="flex justify-between items-start mb-3">
             <div>
-              <h3 class="font-bold text-gray-800">${a.title || ''}</h3>
-              ${a.source === 'มหาวิทยาลัย' && a.professorName ? `<p class="text-sm text-purple-600 mt-1">อาจารย์ที่ปรึกษา: ${a.professorName}</p>` : ''}
-              <p class="text-sm text-gray-500 mt-1">${a.description || ''}</p>
+              <h3 class="font-bold text-gray-800">${escAttr(a.title || '')}</h3>
+              ${a.source === 'มหาวิทยาลัย' && a.professorName ? `<p class="text-sm text-purple-600 mt-1">อาจารย์ที่ปรึกษา: ${escAttr(a.professorName)}</p>` : ''}
+              <p class="text-sm text-gray-500 mt-1">${escAttr(a.description || '')}</p>
             </div>
             <div class="flex items-center gap-2">
               ${a.source === 'มหาวิทยาลัย' ? '<span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">มหาวิทยาลัย</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Makro</span>'}
@@ -111,19 +111,19 @@ async function loadStudentAssignments() {
           </div>
           <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
             ${a.dueDate ? `<span>กำหนดส่ง: ${formatDate(a.dueDate)}</span>` : ''}
-            <span>คะแนนเต็ม: ${a.maxScore || '-'}</span>
+            <span>คะแนนเต็ม: ${escAttr(a.maxScore || '-')}</span>
           </div>
           ${sub && status === 'reviewed' ? `
             <div class="bg-green-50 rounded-lg p-3 mb-3">
               <div class="flex items-center gap-4 mb-1">
-                <span class="text-sm font-medium text-green-800">คะแนน: ${sub.score || '-'}/${a.maxScore || '-'}</span>
+                <span class="text-sm font-medium text-green-800">คะแนน: ${escAttr(sub.score || '-')}/${escAttr(a.maxScore || '-')}</span>
               </div>
-              ${sub.feedback ? `<p class="text-sm text-green-700">${sub.feedback}</p>` : ''}
+              ${sub.feedback ? `<p class="text-sm text-green-700">${escAttr(sub.feedback)}</p>` : ''}
             </div>
           ` : ''}
-          ${sub && sub.content ? `<div class="bg-gray-50 rounded-lg p-3 mb-3 text-sm text-gray-600">${sub.content}</div>` : ''}
-          ${sub && sub.fileUrl ? `<a href="${sub.fileUrl}" target="_blank" class="text-sm text-blue-600 hover:underline mb-3 inline-block">ดูไฟล์ที่ส่ง: ${sub.fileName || 'ไฟล์แนบ'}</a>` : ''}
-          ${status === 'pending' ? `<button onclick="openSubmitModal('${a.id}','${(a.title||'').replace(/'/g,"\\'")}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">ส่งงาน</button>` : ''}
+          ${sub && sub.content ? `<div class="bg-gray-50 rounded-lg p-3 mb-3 text-sm text-gray-600">${escAttr(sub.content)}</div>` : ''}
+          ${sub && sub.fileUrl ? `<a href="${safeUrl(sub.fileUrl)}" target="_blank" class="text-sm text-blue-600 hover:underline mb-3 inline-block">ดูไฟล์ที่ส่ง: ${escAttr(sub.fileName || 'ไฟล์แนบ')}</a>` : ''}
+          ${status === 'pending' ? `<button onclick="openSubmitModal('${escJs(a.id)}','${escJs(a.title||'')}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">ส่งงาน</button>` : ''}
         </div>`;
     }).join('');
   } catch (e) {

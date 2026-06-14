@@ -34,7 +34,7 @@ async function renderEvaluate() {
     if (res.success === false || !res.data) {
       document.getElementById('eval-card').innerHTML = `
         <div class="text-center py-8">
-          <p class="text-red-500 font-medium">${res.message || 'ลิงก์ประเมินไม่ถูกต้อง'}</p>
+          <p class="text-red-500 font-medium">${escAttr(res.message || 'ลิงก์ประเมินไม่ถูกต้อง')}</p>
         </div>`;
       return;
     }
@@ -45,16 +45,16 @@ async function renderEvaluate() {
     document.getElementById('eval-card').innerHTML = `
       <div class="space-y-4">
         <div class="bg-gray-50 rounded-lg p-4 space-y-1">
-          <p class="text-sm"><span class="text-gray-500">นักศึกษา:</span> <span class="font-medium text-gray-800">${d.studentName}</span>${d.studentCode ? ` <span class="text-gray-400">(${d.studentCode})</span>` : ''}</p>
-          <p class="text-sm"><span class="text-gray-500">หัวข้อการฝึก:</span> <span class="font-medium text-gray-800">${d.stepTitle}</span></p>
-          ${d.roadmapTitle ? `<p class="text-sm"><span class="text-gray-500">แผนการฝึก:</span> ${d.roadmapTitle}</p>` : ''}
-          ${d.attemptCount > 0 ? `<p class="text-xs text-orange-500">เคยไม่ผ่านการประเมิน ${d.attemptCount} ครั้ง</p>` : ''}
+          <p class="text-sm"><span class="text-gray-500">นักศึกษา:</span> <span class="font-medium text-gray-800">${escAttr(d.studentName)}</span>${d.studentCode ? ` <span class="text-gray-400">(${escAttr(d.studentCode)})</span>` : ''}</p>
+          <p class="text-sm"><span class="text-gray-500">หัวข้อการฝึก:</span> <span class="font-medium text-gray-800">${escAttr(d.stepTitle)}</span></p>
+          ${d.roadmapTitle ? `<p class="text-sm"><span class="text-gray-500">แผนการฝึก:</span> ${escAttr(d.roadmapTitle)}</p>` : ''}
+          ${d.attemptCount > 0 ? `<p class="text-xs text-orange-500">เคยไม่ผ่านการประเมิน ${escAttr(d.attemptCount)} ครั้ง</p>` : ''}
         </div>
 
         ${alreadyPassed ? `
           <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
             <p class="text-green-700 font-medium">✓ หัวข้อนี้ผ่านการประเมินแล้ว</p>
-            <p class="text-xs text-gray-400 mt-1">โดย ${d.evalBy}${d.evalByPosition ? ' (' + d.evalByPosition + ')' : ''} เมื่อ ${formatDate(d.evalAt)}</p>
+            <p class="text-xs text-gray-400 mt-1">โดย ${escAttr(d.evalBy)}${d.evalByPosition ? ' (' + escAttr(d.evalByPosition) + ')' : ''} เมื่อ ${formatDate(d.evalAt)}</p>
           </div>
         ` : `
           <div>
@@ -80,7 +80,7 @@ async function renderEvaluate() {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ประเมิน <span class="text-red-500">*</span></label>
-              <input type="text" id="eval-name" value="${d.trainerName || ''}" placeholder="ชื่อ-นามสกุล"
+              <input type="text" id="eval-name" value="${escAttr(d.trainerName || '')}" placeholder="ชื่อ-นามสกุล"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
@@ -90,7 +90,7 @@ async function renderEvaluate() {
             </div>
           </div>
 
-          <button onclick="submitExternalEval('${token}')"
+          <button onclick="submitExternalEval('${escJs(token)}')"
             class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-lg text-sm transition-colors">
             ส่งผลการประเมิน
           </button>

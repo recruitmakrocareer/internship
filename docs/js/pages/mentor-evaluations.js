@@ -58,15 +58,15 @@ async function loadMentorEvaluations() {
         <div class="bg-white rounded-xl border p-5">
           <div class="flex justify-between items-start">
             <div>
-              <h3 class="font-bold text-gray-800">${ev.type || 'การประเมิน'}</h3>
-              <p class="text-sm text-gray-500">นักศึกษา: ${studentName} | ${ev.period || ''}</p>
+              <h3 class="font-bold text-gray-800">${escAttr(ev.type || 'การประเมิน')}</h3>
+              <p class="text-sm text-gray-500">นักศึกษา: ${escAttr(studentName)} | ${escAttr(ev.period || '')}</p>
               <p class="text-xs text-gray-400">${formatDate(ev.createdAt)}</p>
             </div>
             <div class="text-right">
-              <div class="text-xl font-bold text-blue-600">${ev.totalScore || 0}<span class="text-sm text-gray-400">/${ev.maxScore || 50}</span></div>
+              <div class="text-xl font-bold text-blue-600">${escAttr(ev.totalScore || 0)}<span class="text-sm text-gray-400">/${escAttr(ev.maxScore || 50)}</span></div>
             </div>
           </div>
-          ${ev.comment ? `<p class="mt-2 text-sm text-gray-600 bg-gray-50 rounded p-2">${ev.comment}</p>` : ''}
+          ${ev.comment ? `<p class="mt-2 text-sm text-gray-600 bg-gray-50 rounded p-2">${escAttr(ev.comment)}</p>` : ''}
         </div>`;
     }).join('');
   } catch (e) {
@@ -77,7 +77,7 @@ async function loadMentorEvaluations() {
 function openEvalForm() {
   const students = window._mentorStudentsList;
   const studentOptions = Array.isArray(students) ? students.map(s =>
-    `<option value="${s.id}">${s.firstName || ''} ${s.lastName || ''} (${s.studentId || ''})</option>`
+    `<option value="${escAttr(s.id)}">${escAttr(s.firstName || '')} ${escAttr(s.lastName || '')} (${escAttr(s.studentId || '')})</option>`
   ).join('') : '';
 
   document.getElementById('eval-form-content').innerHTML = `
