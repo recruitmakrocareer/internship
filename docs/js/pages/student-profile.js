@@ -632,7 +632,7 @@ async function renderStudentProfile() {
                 <input type="file" id="profile-doc-cv" accept=".pdf,.doc,.docx" class="hidden" onchange="handleProfileDocSelect(this, 'cv')">
               </label>
               <div id="profile-doc-cv-status" class="mt-2 text-xs">
-                ${profile.cvFileUrl ? '<a href="' + profile.cvFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+                ${profile.cvFileUrl ? '<a href="' + safeUrl(profile.cvFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
               </div>
             </div>
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
@@ -643,7 +643,7 @@ async function renderStudentProfile() {
                 <input type="file" id="profile-doc-transcript" accept=".pdf" class="hidden" onchange="handleProfileDocSelect(this, 'transcript')">
               </label>
               <div id="profile-doc-transcript-status" class="mt-2 text-xs">
-                ${profile.transcriptFileUrl ? '<a href="' + profile.transcriptFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+                ${profile.transcriptFileUrl ? '<a href="' + safeUrl(profile.transcriptFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
               </div>
             </div>
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
@@ -654,7 +654,7 @@ async function renderStudentProfile() {
                 <input type="file" id="profile-doc-idcard" accept=".pdf,.jpg,.jpeg,.png" class="hidden" onchange="handleProfileDocSelect(this, 'idcard')">
               </label>
               <div id="profile-doc-idcard-status" class="mt-2 text-xs">
-                ${profile.idCardFileUrl ? '<a href="' + profile.idCardFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+                ${profile.idCardFileUrl ? '<a href="' + safeUrl(profile.idCardFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
               </div>
             </div>
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 transition-colors">
@@ -665,7 +665,7 @@ async function renderStudentProfile() {
                 <input type="file" id="profile-doc-photo" accept=".jpg,.jpeg,.png" class="hidden" onchange="handleProfileDocSelect(this, 'photo')">
               </label>
               <div id="profile-doc-photo-status" class="mt-2 text-xs">
-                ${profile.photoFileUrl ? '<a href="' + profile.photoFileUrl + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
+                ${profile.photoFileUrl ? '<a href="' + safeUrl(profile.photoFileUrl) + '" target="_blank" class="text-blue-600 hover:underline">ดูไฟล์ปัจจุบัน</a>' : '<span class="text-gray-400">ยังไม่ได้อัปโหลด</span>'}
               </div>
             </div>
           </div>
@@ -715,11 +715,11 @@ async function renderStudentProfile() {
             <div class="bg-gray-50 rounded-lg p-4 space-y-2">
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-500">อีเมล</span>
-                <span class="text-gray-700 font-medium">${profile.email || '-'}</span>
+                <span class="text-gray-700 font-medium">${escAttr(profile.email || '-')}</span>
               </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-500">บทบาท</span>
-                <span class="text-gray-700 font-medium">${profile.role === 'student' ? 'นักศึกษา' : profile.role || '-'}</span>
+                <span class="text-gray-700 font-medium">${profile.role === 'student' ? 'นักศึกษา' : escAttr(profile.role || '-')}</span>
               </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-500">สถานะ</span>
