@@ -81,6 +81,19 @@ function parsePlanDayTimes(p) {
 }
 
 /**
+ * แปลง Sheets date-serial time (1899-12-30T...) หรือ ISO datetime เป็น HH:MM
+ */
+function sanitizeTime(v) {
+  if (!v) return '';
+  var s = String(v).trim();
+  var m = s.match(/^1899-12-\d{2}T(\d{2}):(\d{2})/);
+  if (m) return m[1] + ':' + m[2];
+  m = s.match(/^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/);
+  if (m) return m[1] + ':' + m[2];
+  return s;
+}
+
+/**
  * คืนช่วงเวลาฝึกของวันที่กำหนด: ใช้เวลารายวัน (dayTimes) ก่อน
  * ไม่มีก็ใช้เวลาเริ่ม–สิ้นสุดมาตรฐานของแผน (startTime/endTime)
  * @returns {{start: string, end: string}} เช่น {start:'09:00', end:'18:00'} หรือค่าว่างถ้าไม่ระบุ
@@ -88,9 +101,9 @@ function parsePlanDayTimes(p) {
 function getPlanDayTime(p, day) {
   const dt = parsePlanDayTimes(p);
   if (dt[day] && (dt[day].start || dt[day].end)) {
-    return { start: dt[day].start || '', end: dt[day].end || '' };
+    return { start: sanitizeTime(dt[day].start), end: sanitizeTime(dt[day].end) };
   }
-  return { start: (p && p.startTime) || '', end: (p && p.endTime) || '' };
+  return { start: sanitizeTime((p && p.startTime) || ''), end: sanitizeTime((p && p.endTime) || '') };
 }
 
 /**
