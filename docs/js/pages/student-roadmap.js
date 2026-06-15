@@ -393,12 +393,12 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">เวลาเริ่ม</label>
-            <input type="time" id="plan-start-time" value="${p.startTime || '09:00'}"
+            <input type="time" id="plan-start-time" value="${sanitizeTime(p.startTime) || '09:00'}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">เวลาสิ้นสุด</label>
-            <input type="time" id="plan-end-time" value="${p.endTime || '17:00'}"
+            <input type="time" id="plan-end-time" value="${sanitizeTime(p.endTime) || '17:00'}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
@@ -583,8 +583,8 @@ function editDayTime(dateStr) {
   const cur = dt[dateStr] || {};
   const globalS = document.getElementById('plan-start-time') ? document.getElementById('plan-start-time').value : '09:00';
   const globalE = document.getElementById('plan-end-time') ? document.getElementById('plan-end-time').value : '17:00';
-  const s = cur.start || globalS;
-  const e = cur.end || globalE;
+  const s = sanitizeTime(cur.start) || globalS;
+  const e = sanitizeTime(cur.end) || globalE;
   const html = `<div class="flex items-center gap-2 text-xs"><span>${formatDate(dateStr)}</span>` +
     `<input type="time" id="dt-s-${dateStr}" value="${s}" class="border rounded px-1 py-0.5 text-xs w-24">` +
     `<span>–</span><input type="time" id="dt-e-${dateStr}" value="${e}" class="border rounded px-1 py-0.5 text-xs w-24">` +
