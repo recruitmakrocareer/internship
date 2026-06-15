@@ -2,12 +2,8 @@ function renderTrainingPassport() {
   const user = getCurrentUser();
   if (!user) return navigateTo('login');
 
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    ${buildSidebar(user.role)}
-    <div class="lg:ml-64 mt-16">
-      ${buildNavbar(user)}
-      <div class="p-6">
+  const content = initLayout(user);
+  content.innerHTML = `
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-2xl font-bold text-gray-800">Training Passport</h1>
@@ -28,8 +24,6 @@ function renderTrainingPassport() {
         <div id="timeline-container" class="space-y-4">
           <div class="text-center py-12 text-gray-400">กำลังโหลดข้อมูล...</div>
         </div>
-      </div>
-    </div>
 
     <!-- Sign-off Modal -->
     <div id="signoff-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -279,7 +273,7 @@ function openWeekDetail(weekIndex, stepId) {
       <div>
         <h4 class="font-medium text-gray-700 mb-2">บันทึก / หมายเหตุ</h4>
         <textarea id="week-notes" class="w-full border rounded-lg p-3 text-sm" rows="3" placeholder="เพิ่มบันทึก...">${escAttr(noteData.text || noteData.trainerNotes || noteData.studentNotes || '')}</textarea>
-        <button onclick="saveWeekNotes('${escJs(stepId)}', ${weekIndex})" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">บันทึก</button>
+        <button onclick="saveWeekNotes('${escJs(stepId)}', ${weekIndex})" class="mt-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-700 transition-colors">บันทึก</button>
       </div>
     </div>
   `;

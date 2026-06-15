@@ -2,20 +2,14 @@ function renderAdminAssignments() {
   const user = getCurrentUser();
   if (!user || user.role !== 'ADMIN') return navigateTo('login');
 
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    ${buildSidebar(user.role)}
-    <div class="lg:ml-64 mt-16">
-      ${buildNavbar(user)}
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h1 class="text-2xl font-bold text-gray-800">จัดการงานมอบหมาย</h1>
-          <button onclick="openCreateAssignment()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ สร้างงาน</button>
-        </div>
-        <div id="admin-assign-list" class="space-y-4">
-          <div class="text-center py-8 text-gray-400">กำลังโหลด...</div>
-        </div>
-      </div>
+  const content = initLayout(user);
+  content.innerHTML = `
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">จัดการงานมอบหมาย</h1>
+      <button onclick="openCreateAssignment()" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">+ สร้างงาน</button>
+    </div>
+    <div id="admin-assign-list" class="space-y-4">
+      <div class="text-center py-8 text-gray-400">กำลังโหลด...</div>
     </div>
     <div id="assign-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
@@ -102,7 +96,7 @@ function openCreateAssignment() {
         <div><label class="block text-sm font-medium text-gray-700 mb-1">คะแนนเต็ม</label>
           <input type="number" id="aa-score" class="w-full border rounded-lg p-2" value="100" /></div>
       </div>
-      <button onclick="saveNewAssignment()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
+      <button onclick="saveNewAssignment()" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">บันทึก</button>
     </div>`;
   document.getElementById('assign-modal').classList.remove('hidden');
 }
@@ -139,9 +133,9 @@ async function editAssignment(id) {
     document.getElementById('assign-modal-content').innerHTML = `
       <div class="space-y-4">
         <div><label class="block text-sm font-medium text-gray-700 mb-1">ชื่องาน</label>
-          <input type="text" id="aa-title" class="w-full border rounded-lg p-2" value="${a.title||''}" /></div>
+          <input type="text" id="aa-title" class="w-full border rounded-lg p-2" value="${escAttr(a.title||'')}" /></div>
         <div><label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
-          <textarea id="aa-desc" class="w-full border rounded-lg p-3 text-sm" rows="4">${a.description||''}</textarea></div>
+          <textarea id="aa-desc" class="w-full border rounded-lg p-3 text-sm" rows="4">${escAttr(a.description||'')}</textarea></div>
         <div class="grid grid-cols-2 gap-4">
           <div><label class="block text-sm font-medium text-gray-700 mb-1">ที่มา</label>
             <select id="aa-source" class="w-full border rounded-lg p-2">
@@ -149,7 +143,7 @@ async function editAssignment(id) {
               <option value="มหาวิทยาลัย" ${a.source==='มหาวิทยาลัย'?'selected':''}>มหาวิทยาลัย</option>
             </select></div>
           <div><label class="block text-sm font-medium text-gray-700 mb-1">อาจารย์ที่ปรึกษา</label>
-            <input type="text" id="aa-professor" class="w-full border rounded-lg p-2" placeholder="ชื่ออาจารย์ที่ปรึกษา" value="${a.professorName||''}" /></div>
+            <input type="text" id="aa-professor" class="w-full border rounded-lg p-2" placeholder="ชื่ออาจารย์ที่ปรึกษา" value="${escAttr(a.professorName||'')}" /></div>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div><label class="block text-sm font-medium text-gray-700 mb-1">กำหนดส่ง</label>
@@ -157,7 +151,7 @@ async function editAssignment(id) {
           <div><label class="block text-sm font-medium text-gray-700 mb-1">คะแนนเต็ม</label>
             <input type="number" id="aa-score" class="w-full border rounded-lg p-2" value="${a.maxScore||100}" /></div>
         </div>
-        <button onclick="updateAssignmentById('${id}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">อัปเดต</button>
+        <button onclick="updateAssignmentById('${escJs(id)}')" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">อัปเดต</button>
       </div>`;
     document.getElementById('assign-modal').classList.remove('hidden');
   } catch (e) { hideLoading(); showToast('เกิดข้อผิดพลาด', 'error'); }

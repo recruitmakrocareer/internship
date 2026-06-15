@@ -11,12 +11,8 @@ function renderKnowledgeManagement() {
   const user = getCurrentUser();
   if (!user) return navigateTo('login');
 
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    ${buildSidebar(user.role)}
-    <div class="lg:ml-64 mt-16">
-      ${buildNavbar(user)}
-      <div class="p-6">
+  const content = initLayout(user);
+  content.innerHTML = `
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-2xl font-bold text-gray-800">Knowledge Management</h1>
@@ -64,8 +60,6 @@ function renderKnowledgeManagement() {
           <h3 class="text-lg font-bold text-purple-800 mb-3">🎯 คะแนนการนำเสนอ</h3>
           <div id="score-content"></div>
         </div>
-      </div>
-    </div>
 
     <!-- KM Entry Modal -->
     <div id="km-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -316,7 +310,7 @@ function openKmEntry(topicNumber) {
 
       <!-- Actions -->
       <div class="flex gap-3 pt-2">
-        <button onclick="saveKmEntry(${topicNumber})" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+        <button onclick="saveKmEntry(${topicNumber})" class="flex-1 bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">
           บันทึก
         </button>
         <button onclick="closeKmModal()" class="px-6 py-3 rounded-lg border text-gray-600 hover:bg-gray-50">
