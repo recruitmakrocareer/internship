@@ -255,7 +255,7 @@ function renderRoadmapCards(roadmaps, progressMap) {
   container.innerHTML = html;
 }
 
-function openStepModal(stepId, roadmapIndex, stepIndex) {
+function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
   const roadmaps = window._studentRoadmaps || [];
   const roadmap = roadmaps[roadmapIndex];
   if (!roadmap || !roadmap.steps) return;
@@ -383,7 +383,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">วันที่เริ่ม</label>
-            <input type="date" id="plan-start-date" value="${dateInputValue(p.startDate)}"
+            <input type="date" id="plan-start-date" value="${dateInputValue(p.startDate) || clickedDate || ''}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
@@ -402,11 +402,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-2">จิ้มวันในปฏิทินเพื่อเลือกวันฝึกเป็นรายวัน (กรณีฝึกไม่ต่อเนื่อง เช่น วันเว้นวัน) — <span class="text-gray-400">จุดส้ม = เวลาซ้อนกัน, จุดเขียว = ไม่ซ้อน</span></label>
-          <div id="plan-mini-cal" class="border border-gray-200 rounded-lg p-2"></div>
-          <div id="plan-days-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
-        </div>
+        <p class="text-xs text-gray-400">💡 กดวันบนปฏิทินภาพรวมด้านนอก เพื่อเลือกวันฝึก</p>
       </div>
 
       <!-- สถานะ (คำนวณอัตโนมัติ) -->
@@ -444,8 +440,6 @@ function openStepModal(stepId, roadmapIndex, stepIndex) {
     </div>
   `;
 
-  renderMiniCal();
-  renderPlanDayChips();
   document.getElementById('roadmap-step-modal').classList.remove('hidden');
 }
 
@@ -890,7 +884,7 @@ function showDaySummary(dateStr, events, evt) {
   var eventsHtml = '';
   events.forEach(function(ev) {
     eventsHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors" ' +
-      'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ev.stepId + '\', ' + ev.rIndex + ', ' + ev.sIndex + ')">' +
+      'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ev.stepId + '\', ' + ev.rIndex + ', ' + ev.sIndex + ', \'' + dateStr + '\')">' +
       '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + (ev.color.indexOf('green') >= 0 ? 'bg-green-400' : ev.color.indexOf('blue') >= 0 ? 'bg-blue-400' : ev.color.indexOf('red') >= 0 ? 'bg-red-400' : 'bg-gray-400') + '"></span>' +
       '<span class="truncate flex-1">' + ev.title + '</span>' +
       (ev.timeLabel ? '<span class="text-[10px] text-gray-400 flex-shrink-0">' + ev.timeLabel + '</span>' : '') +
@@ -919,7 +913,7 @@ function showDaySummary(dateStr, events, evt) {
         ? '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-600 rounded-full ml-auto flex-shrink-0">กำลังฝึก</span>'
         : '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded-full ml-auto flex-shrink-0">ยังไม่วางแผน</span>';
       addHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors" ' +
-        'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ps.stepId + '\', ' + ps.rIndex + ', ' + ps.sIndex + ')">' +
+        'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ps.stepId + '\', ' + ps.rIndex + ', ' + ps.sIndex + ', \'' + dateStr + '\')">' +
         '<svg class="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>' +
         '<span class="truncate flex-1">' + ps.title + '</span>' + badge + '</button>';
     });
@@ -1001,7 +995,7 @@ function showDayStepPicker(dateStr, evt) {
       ? '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-600 rounded-full ml-auto flex-shrink-0">กำลังฝึก</span>'
       : '<span class="inline-block px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded-full ml-auto flex-shrink-0">ยังไม่วางแผน</span>';
     listHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors" ' +
-      'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ps.stepId + '\', ' + ps.rIndex + ', ' + ps.sIndex + ')">' +
+      'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ps.stepId + '\', ' + ps.rIndex + ', ' + ps.sIndex + ', \'' + dateStr + '\')">' +
       '<span class="truncate flex-1">' + ps.title + '</span>' + badge + '</button>';
   });
 
