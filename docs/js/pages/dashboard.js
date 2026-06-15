@@ -158,6 +158,42 @@ function renderAdminStatsCharts() {
   }
 }
 
+// Feature: แยกประเภทจำนวนนักศึกษาเป็น 4 กลุ่ม (ทั้งหมด / กำลังฝึก / สำเร็จ-ยกเลิก / รอเริ่มงาน)
+function renderAdminStudentBreakdown(students) {
+  var el = document.getElementById('admin-student-breakdown');
+  if (!el) return;
+  var t = todayStr();
+  var total = students.length, active = 0, inactive = 0, waiting = 0;
+  students.forEach(function(s) {
+    var status = String(s.status || '').toLowerCase();
+    var start = dateInputValue(s.startDate);
+    var end = dateInputValue(s.endDate);
+    var isDone = ['done', 'inactive', 'cancel', 'ยกเลิก', 'สำเร็จ', 'back'].some(function(k) { return status.indexOf(k) !== -1; });
+    if (start && t < start) waiting++;
+    else if (isDone || (end && t > end)) inactive++;
+    else active++;
+  });
+
+  var cards = [
+    { label: 'สมาชิกทั้งหมด', value: total, border: 'border-primary-500', text: 'text-primary-600', bg: 'text-primary-100',
+      icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' },
+    { label: 'กำลังฝึกอยู่', value: active, border: 'border-green-500', text: 'text-green-600', bg: 'text-green-100',
+      icon: 'M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z' },
+    { label: 'สำเร็จ / ยกเลิก', value: inactive, border: 'border-gray-400', text: 'text-gray-600', bg: 'text-gray-200',
+      icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { label: 'รอเริ่มงาน', value: waiting, border: 'border-yellow-500', text: 'text-yellow-600', bg: 'text-yellow-100',
+      icon: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z' }
+  ];
+
+  el.innerHTML = cards.map(function(c) {
+    return '<div class="bg-white rounded-xl p-5 shadow-sm border-l-4 ' + c.border + ' relative overflow-hidden">' +
+      '<div class="absolute top-2 right-2 ' + c.bg + '"><svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="' + c.icon + '"/></svg></div>' +
+      '<p class="text-xs text-gray-500 mb-1">' + escAttr(c.label) + '</p>' +
+      '<p class="text-3xl font-bold ' + c.text + '">' + c.value + '</p>' +
+    '</div>';
+  }).join('');
+}
+
 function renderAdminUpcomingInterns() {
   var el = document.getElementById('admin-upcoming-body');
   if (!el) return;
@@ -291,6 +327,7 @@ async function renderAdminDashboard(content) {
   content.innerHTML = `
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">แดชบอร์ดผู้ดูแลระบบ</h2>
+      <div id="admin-student-breakdown" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
       <div id="admin-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         ${[1,2,3,4].map(() => `
           <div class="bg-white rounded-xl p-6 shadow-sm animate-pulse">
@@ -500,6 +537,7 @@ async function renderAdminDashboard(content) {
     var students = Array.isArray(studentsRes && (studentsRes.data || studentsRes))
       ? (studentsRes.data || studentsRes) : [];
     _adminAllStudents = students;
+    renderAdminStudentBreakdown(students);
     renderAdminStatsPeriodControl();
     renderAdminStatsCharts();
     renderAdminUpcomingInterns();
@@ -535,13 +573,14 @@ async function renderStudentDashboard(content) {
     <div class="fade-in">
       <div class="bg-gradient-to-r from-primary-600 to-blue-500 rounded-2xl p-6 mb-6 text-white shadow-lg">
         <div class="flex items-center gap-4">
-          <div class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+          <div id="dash-avatar" class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             <span class="text-2xl font-bold text-white">${escAttr((user.name || 'S').charAt(0))}</span>
           </div>
-          <div>
-            <h2 class="text-xl font-bold">สวัสดี, ${escAttr(user.name || 'นักศึกษา')}</h2>
-            <p class="text-sm text-blue-100">${escAttr(user.email || '')}</p>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold truncate">สวัสดี, ${escAttr(user.name || 'นักศึกษา')}</h2>
+            <p class="text-sm text-blue-100 truncate">${escAttr(user.email || '')}</p>
           </div>
+          <div id="dash-countdown" class="hidden sm:block flex-shrink-0 text-right"></div>
         </div>
       </div>
 
@@ -631,6 +670,16 @@ async function renderStudentDashboard(content) {
         </div>
       </div>
 
+      <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">ตารางเรียนวันนี้</h3>
+          <span class="text-xs text-gray-400">${escAttr(formatDate(todayStr()))}</span>
+        </div>
+        <div id="dash-today-schedule">
+          <p class="text-sm text-gray-500">กำลังโหลด...</p>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-xl shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">ความคืบหน้าแผนฝึกงาน</h3>
@@ -652,18 +701,20 @@ async function renderStudentDashboard(content) {
   `;
 
   try {
-    var [progressRes, submissionRes, notifRes, profileRes, assignmentRes] = await Promise.all([
+    var [progressRes, submissionRes, notifRes, profileRes, assignmentRes, roadmapRes] = await Promise.all([
       callApi('getRoadmapProgress', { userId: user.id }),
       callApi('getSubmissions', { userId: user.id }),
       callApi('getNotifications', { userId: user.id }),
       callApi('getUserProfile', { userId: user.id }),
-      callApi('getAssignments')
+      callApi('getAssignments'),
+      callApi('getRoadmaps')
     ]);
 
     var progressList = Array.isArray(progressRes.data || progressRes) ? (progressRes.data || progressRes) : [];
     var submissions = Array.isArray(submissionRes.data || submissionRes) ? (submissionRes.data || submissionRes) : [];
     var notifications = Array.isArray(notifRes.data || notifRes) ? (notifRes.data || notifRes) : [];
     var assignments = Array.isArray(assignmentRes.data || assignmentRes) ? (assignmentRes.data || assignmentRes) : [];
+    var roadmaps = Array.isArray(roadmapRes.data || roadmapRes) ? (roadmapRes.data || roadmapRes) : [];
 
     var profile = profileRes.success ? profileRes.data : {};
     if (profile) {
@@ -683,30 +734,144 @@ async function renderStudentDashboard(content) {
       setField('dash-university', profile.university);
       setField('dash-major', profile.major);
       setField('dash-internship-type', profile.internshipType);
+
+      // Feature: avatar image (fallback to initial on missing/broken image)
+      var avatarEl = document.getElementById('dash-avatar');
+      var photo = profile.profileImage || profile.photoUrl || user.profileImage;
+      if (avatarEl && photo) {
+        avatarEl.innerHTML = '<img src="' + safeUrl(driveImageUrl(photo)) + '" alt="โปรไฟล์" class="w-full h-full object-cover" ' +
+          'onerror="dashAvatarError(this, \'' + escJs((user.name || 'S').charAt(0)) + '\')">';
+      }
+
+      // Feature: internship duration + countdown badge
+      var cd = document.getElementById('dash-countdown');
+      if (cd) {
+        var sd = dateInputValue(profile.startDate);
+        var ed = dateInputValue(profile.endDate);
+        var t = todayStr();
+        var dayDiff = function(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); };
+        var label = '', big = '';
+        if (sd && t < sd) {
+          label = 'เริ่มฝึกในอีก'; big = dayDiff(t, sd) + ' วัน';
+        } else if (ed && t > ed) {
+          label = 'สถานะ'; big = 'ฝึกครบแล้ว';
+        } else if (ed) {
+          label = 'เหลือเวลาฝึกอีก'; big = Math.max(0, dayDiff(t, ed)) + ' วัน';
+        } else if (sd) {
+          label = 'เริ่มฝึกเมื่อ'; big = formatDate(sd);
+        }
+        if (big) {
+          cd.innerHTML = '<div class="text-xs text-blue-100">' + escAttr(label) + '</div>' +
+            '<div class="text-2xl font-bold leading-tight">' + escAttr(big) + '</div>' +
+            ((sd || ed) ? '<div class="text-[11px] text-blue-100 mt-0.5">' + escAttr((sd ? formatDate(sd) : '?') + ' – ' + (ed ? formatDate(ed) : '?')) + '</div>' : '');
+        }
+      }
     }
 
-    var completedCount = progressList.filter(function(p) { return p.status === 'COMPLETED'; }).length;
-    var totalCount = progressList.length;
+    // Subject (วิชา) stats derived from assigned roadmaps + progress, matching the
+    // roadmap page semantics (status computed from plan dates + eval result).
+    var progressMap = {};
+    progressList.forEach(function(p) { progressMap[p.stepId] = p; });
+    var assignedRoadmaps = roadmaps.filter(function(r) {
+      return (r.steps || []).some(function(s) { return progressMap[s.id]; });
+    });
+    var subjRoadmaps = assignedRoadmaps.length > 0 ? assignedRoadmaps : roadmaps;
+
+    var totalCount = 0, completedCount = 0, enrolledCount = 0;
+    var inProgressSteps = [];
+    subjRoadmaps.forEach(function(r) {
+      (r.steps || []).forEach(function(s) {
+        totalCount++;
+        var st = deriveTrainingStatus(progressMap[s.id]);
+        if (st === 'COMPLETED') { completedCount++; enrolledCount++; }
+        else if (st === 'IN_PROGRESS' || st === 'NOT_STARTED') {
+          enrolledCount++;
+          if (st === 'IN_PROGRESS') inProgressSteps.push({ stepTitle: s.title || 'ขั้นตอน' });
+        }
+      });
+    });
+    var remainingCount = Math.max(0, totalCount - enrolledCount);
     var progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-    var inProgressSteps = progressList.filter(function(p) { return p.status === 'IN_PROGRESS'; });
 
     document.getElementById('dash-roadmap-progress').textContent = progressPct + '%';
-    document.getElementById('dash-roadmap-context').textContent = completedCount + ' / ' + totalCount + ' ขั้นตอน';
+    document.getElementById('dash-roadmap-context').textContent = completedCount + ' / ' + totalCount + ' วิชา';
+
+    // Feature: Today's mini schedule (vertical timeline of today's classes)
+    var todaySched = document.getElementById('dash-today-schedule');
+    if (todaySched) {
+      var t = todayStr();
+      var toMin = function(x) { var m = String(x || '').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : 9999; };
+      var todayEvents = [];
+      subjRoadmaps.forEach(function(r) {
+        (r.steps || []).forEach(function(s) {
+          var p = progressMap[s.id];
+          if (!p || expandPlanDays(p).indexOf(t) === -1) return;
+          var tm = getPlanDayTime(p, t);
+          todayEvents.push({
+            title: sanitizeSheetTitle(s.title) || s.title || 'หัวข้อการฝึก',
+            time: tm,
+            startMin: toMin(tm.start),
+            pass: String(p.evalResult || '').toUpperCase() === 'PASS'
+          });
+        });
+      });
+      todayEvents.sort(function(a, b) { return a.startMin - b.startMin; });
+
+      if (todayEvents.length > 0) {
+        todaySched.innerHTML = '<div class="space-y-2">' + todayEvents.map(function(ev) {
+          var timeLabel = formatTimeRange(ev.time) || 'ทั้งวัน';
+          return '<div class="flex items-stretch gap-3">' +
+            '<div class="flex-shrink-0 w-20 text-xs font-medium text-gray-500 pt-2 text-right">' + escAttr(timeLabel) + '</div>' +
+            '<div class="flex-shrink-0 w-1.5 rounded-full ' + (ev.pass ? 'bg-green-400' : 'bg-primary-500') + '"></div>' +
+            '<div class="flex-1 min-w-0 bg-primary-50 rounded-lg px-3 py-2">' +
+              '<p class="text-sm font-medium text-gray-800 truncate">' + escAttr(ev.title) + '</p>' +
+              (ev.pass ? '<span class="text-[11px] text-green-600">✓ ผ่านการประเมินแล้ว</span>' : '') +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div>';
+      } else {
+        todaySched.innerHTML = '<div class="flex flex-col items-center justify-center py-8 text-gray-400">' +
+          '<svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>' +
+          '<p class="text-sm">วันนี้ไม่มีวิชาที่ต้องฝึก</p>' +
+          '<a href="#student-roadmap" class="text-xs text-primary-600 hover:underline mt-1">ไปวางแผนการฝึกงาน</a>' +
+        '</div>';
+      }
+    }
     document.getElementById('dash-submitted-assignments').textContent = submissions.length;
     document.getElementById('dash-assignments-context').textContent = '/ ' + assignments.length + ' งานทั้งหมด';
     var unread = notifications.filter(function(n) { return String(n.isRead) !== 'true'; }).length;
     document.getElementById('dash-unread-notifs').textContent = unread;
     document.getElementById('dash-notifs-context').textContent = notifications.length + ' รายการทั้งหมด';
 
-    // Progress detail
+    // Progress detail — segmented bar (completed / enrolled-pending / remaining) + metrics
+    var pendingCount = Math.max(0, enrolledCount - completedCount);
+    var compW = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    var pendW = totalCount > 0 ? (pendingCount / totalCount) * 100 : 0;
+    var remW = totalCount > 0 ? (remainingCount / totalCount) * 100 : 0;
     var progressDetail = document.getElementById('dash-progress-detail');
     progressDetail.innerHTML = `
-      <div class="flex justify-between text-sm mb-2">
-        <span class="text-gray-600">เสร็จแล้ว ${completedCount} / ${totalCount} ขั้นตอน</span>
-        <span class="font-bold ${progressPct >= 75 ? 'text-green-600' : progressPct >= 50 ? 'text-blue-600' : 'text-yellow-600'}">${progressPct}%</span>
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm text-gray-600">ความสำเร็จ</span>
+        <span class="text-xl font-bold ${progressPct >= 75 ? 'text-green-600' : progressPct >= 50 ? 'text-blue-600' : 'text-yellow-600'}">${progressPct}%</span>
       </div>
-      <div class="bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
-        <div class="h-4 rounded-full transition-all bg-gradient-to-r ${progressPct >= 75 ? 'from-green-400 to-green-500' : progressPct >= 50 ? 'from-blue-400 to-blue-500' : 'from-yellow-400 to-yellow-500'}" style="width:${progressPct}%"></div>
+      <div class="flex w-full h-4 rounded-full overflow-hidden bg-gray-200 mb-4">
+        <div class="h-4 bg-green-500 transition-all" style="width:${compW}%" title="ฝึกสำเร็จแล้ว"></div>
+        <div class="h-4 bg-blue-500 transition-all" style="width:${pendW}%" title="ลงฝึกแล้วแต่ยังไม่จบ"></div>
+        <div class="h-4 bg-gray-200 transition-all" style="width:${remW}%" title="ยังไม่ลงฝึก"></div>
+      </div>
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <div class="text-center bg-blue-50 rounded-lg p-3">
+          <p class="text-lg font-bold text-blue-600">${enrolledCount}<span class="text-xs font-normal text-gray-400">/${totalCount}</span></p>
+          <p class="text-[11px] text-gray-500 mt-0.5">ลงฝึกแล้ว</p>
+        </div>
+        <div class="text-center bg-gray-50 rounded-lg p-3">
+          <p class="text-lg font-bold text-gray-600">${remainingCount}</p>
+          <p class="text-[11px] text-gray-500 mt-0.5">ยังไม่ลงฝึก</p>
+        </div>
+        <div class="text-center bg-green-50 rounded-lg p-3">
+          <p class="text-lg font-bold text-green-600">${completedCount}</p>
+          <p class="text-[11px] text-gray-500 mt-0.5">ฝึกสำเร็จแล้ว</p>
+        </div>
       </div>
       ${inProgressSteps.length > 0 ? `
         <div class="flex items-center gap-2 mb-3">
@@ -772,6 +937,12 @@ async function renderStudentDashboard(content) {
     document.getElementById('dash-progress-detail').innerHTML = '<p class="text-sm text-red-500">ไม่สามารถโหลดข้อมูลได้</p>';
     document.getElementById('dash-notifications').innerHTML = '<p class="text-sm text-red-500">ไม่สามารถโหลดข้อมูลได้</p>';
   }
+}
+
+// รูปโปรไฟล์โหลดไม่ได้ → กลับไปแสดงตัวอักษรย่อ
+function dashAvatarError(img, initial) {
+  var p = img.parentNode;
+  if (p) p.innerHTML = '<span class="text-2xl font-bold text-white">' + escAttr(initial) + '</span>';
 }
 
 // คลิกการแจ้งเตือน: ทำเครื่องหมายว่าอ่านแล้ว (optimistic) + นำทางไปหน้าที่เกี่ยวข้อง
