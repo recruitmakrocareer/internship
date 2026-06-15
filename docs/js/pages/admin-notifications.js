@@ -12,7 +12,7 @@ function renderAdminNotifications() {
           <h1 class="text-2xl font-bold text-gray-800">การแจ้งเตือน</h1>
           <div class="flex gap-2">
             <button onclick="markAllNotifRead()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">อ่านทั้งหมด</button>
-            <button onclick="openBroadcastForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ ส่งการแจ้งเตือน</button>
+            <button onclick="openBroadcastForm()" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">+ ส่งการแจ้งเตือน</button>
           </div>
         </div>
         <div id="notif-list" class="space-y-3">
@@ -107,7 +107,7 @@ async function openBroadcastForm() {
           ${mentorsHtml ? '<div class="text-xs font-medium text-gray-500 mt-2 mb-1">พี่เลี้ยง</div>' + mentorsHtml : ''}
         </div>
       </div>
-      <button onclick="sendBroadcastNotif()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">ส่งการแจ้งเตือน</button>
+      <button onclick="sendBroadcastNotif()" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">ส่งการแจ้งเตือน</button>
     </div>`;
   document.getElementById('broadcast-modal').classList.remove('hidden');
 }

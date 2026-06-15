@@ -35,7 +35,7 @@ function renderStudentAssignments() {
             <label class="block text-sm font-medium text-gray-700 mb-1">แนบไฟล์ (ไม่เกิน 10MB)</label>
             <input type="file" id="submit-file" class="w-full border rounded-lg p-2 text-sm" />
           </div>
-          <button id="submit-btn" onclick="submitWork()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">ส่งงาน</button>
+          <button id="submit-btn" onclick="submitWork()" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">ส่งงาน</button>
         </div>
       </div>
     </div>
@@ -123,7 +123,7 @@ async function loadStudentAssignments() {
           ` : ''}
           ${sub && sub.content ? `<div class="bg-gray-50 rounded-lg p-3 mb-3 text-sm text-gray-600">${escAttr(sub.content)}</div>` : ''}
           ${sub && sub.fileUrl ? `<a href="${safeUrl(sub.fileUrl)}" target="_blank" class="text-sm text-blue-600 hover:underline mb-3 inline-block">ดูไฟล์ที่ส่ง: ${escAttr(sub.fileName || 'ไฟล์แนบ')}</a>` : ''}
-          ${status === 'pending' ? `<button onclick="openSubmitModal('${escJs(a.id)}','${escJs(a.title||'')}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">ส่งงาน</button>` : ''}
+          ${status === 'pending' ? `<button onclick="openSubmitModal('${escJs(a.id)}','${escJs(a.title||'')}')" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">ส่งงาน</button>` : ''}
         </div>`;
     }).join('');
   } catch (e) {

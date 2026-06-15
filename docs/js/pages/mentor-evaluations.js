@@ -10,7 +10,7 @@ function renderMentorEvaluations() {
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
           <h1 class="text-2xl font-bold text-gray-800">ประเมินผลนักศึกษา</h1>
-          <button onclick="openEvalForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ สร้างการประเมิน</button>
+          <button onclick="openEvalForm()" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">+ สร้างการประเมิน</button>
         </div>
         <div id="mentor-eval-list" class="space-y-4">
           <div class="text-center py-8 text-gray-400">กำลังโหลด...</div>
@@ -115,7 +115,7 @@ function openEvalForm() {
         <label class="block text-sm font-medium text-gray-700 mb-1">ความคิดเห็น</label>
         <textarea id="eval-comment" class="w-full border rounded-lg p-3 text-sm" rows="3" placeholder="ความคิดเห็นเพิ่มเติม..."></textarea>
       </div>
-      <button onclick="saveEvaluation()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึกการประเมิน</button>
+      <button onclick="saveEvaluation()" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">บันทึกการประเมิน</button>
     </div>
   `;
   document.getElementById('eval-form-modal').classList.remove('hidden');

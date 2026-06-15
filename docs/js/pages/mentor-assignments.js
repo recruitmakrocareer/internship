@@ -94,7 +94,7 @@ function filterMentorSubs(tab) {
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="px-2 py-1 text-xs rounded-full ${statusColor}">${statusLabel}</span>
-                    <button onclick="openReviewModal('${escJs(s.id)}','${escJs(a.title||'')}','${escJs(a.maxScore || 100)}')" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">ตรวจ</button>
+                    <button onclick="openReviewModal('${escJs(s.id)}','${escJs(a.title||'')}','${escJs(a.maxScore || 100)}')" class="px-3 py-1 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors">ตรวจ</button>
                   </div>
                 </div>`;
             }).join('')}

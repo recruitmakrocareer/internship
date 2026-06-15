@@ -63,17 +63,8 @@ function renderAdminMentors() {
 
 let _mentorsData = [];
 
-// Debounce helper เพื่อกันการ re-render ถี่เกินไปขณะพิมพ์
-function _mentorDebounce(fn, delay) {
-  let timer = null;
-  return function() {
-    const args = arguments;
-    const ctx = this;
-    clearTimeout(timer);
-    timer = setTimeout(function() { fn.apply(ctx, args); }, delay);
-  };
-}
-const _debouncedRenderMentors = _mentorDebounce(renderMentorsTable, 300);
+// Use shared debounce() from app.js
+const _debouncedRenderMentors = debounce(renderMentorsTable, 300);
 
 // ค่าโควตา default เมื่อไม่ได้ระบุ
 const _MENTOR_DEFAULT_QUOTA = 4;

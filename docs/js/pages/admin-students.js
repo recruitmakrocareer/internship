@@ -299,17 +299,8 @@ let _studentsCache = [];
 let _mentorsCache = [];
 let _roadmapsCache = [];
 
-// Debounce helper เพื่อกันการ re-render ถี่เกินไปขณะพิมพ์
-function _debounce(fn, delay) {
-  let timer = null;
-  return function() {
-    const args = arguments;
-    const ctx = this;
-    clearTimeout(timer);
-    timer = setTimeout(function() { fn.apply(ctx, args); }, delay);
-  };
-}
-const debouncedRenderStudents = _debounce(renderStudentsTable, 300);
+// Use shared debounce() from app.js
+const debouncedRenderStudents = debounce(renderStudentsTable, 300);
 
 // โหลดข้อมูลจาก API ครั้งเดียว แล้วเก็บไว้ใน cache จากนั้นค่อย render
 async function loadStudents() {

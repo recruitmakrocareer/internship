@@ -10,7 +10,7 @@ function renderAdminEvaluations() {
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
           <h1 class="text-2xl font-bold text-gray-800">ประเมินผล</h1>
-          <button onclick="openAdminEvalForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ สร้างการประเมิน</button>
+          <button onclick="openAdminEvalForm()" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">+ สร้างการประเมิน</button>
         </div>
         <div id="admin-eval-list" class="space-y-4">
           <div class="text-center py-8 text-gray-400">กำลังโหลด...</div>
@@ -112,7 +112,7 @@ function openAdminEvalForm() {
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">ความคิดเห็น</label>
         <textarea id="ae-comment" class="w-full border rounded-lg p-3 text-sm" rows="3"></textarea></div>
-      <button onclick="saveAdminEval()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
+      <button onclick="saveAdminEval()" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">บันทึก</button>
     </div>`;
   document.getElementById('admin-eval-modal').classList.remove('hidden');
 }

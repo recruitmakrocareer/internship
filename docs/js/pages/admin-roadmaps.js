@@ -10,7 +10,7 @@ function renderAdminRoadmaps() {
       <div class="p-6">
         <div class="flex justify-between items-center mb-6">
           <h1 class="text-2xl font-bold text-gray-800">จัดการแผนฝึกงาน</h1>
-          <button onclick="openCreateRoadmap()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ สร้าง Roadmap</button>
+          <button onclick="openCreateRoadmap()" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">+ สร้าง Roadmap</button>
         </div>
         <div id="admin-roadmaps-list" class="space-y-4">
           <div class="text-center py-8 text-gray-400">กำลังโหลด...</div>
@@ -76,7 +76,7 @@ function openCreateRoadmap() {
         <textarea id="rm-desc" class="w-full border rounded-lg p-3 text-sm" rows="3"></textarea></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
         <input type="text" id="rm-dept" class="w-full border rounded-lg p-2" /></div>
-      <button onclick="saveNewRoadmap()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
+      <button onclick="saveNewRoadmap()" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">บันทึก</button>
     </div>`;
   document.getElementById('roadmap-modal').classList.remove('hidden');
 }
@@ -149,7 +149,7 @@ async function viewRoadmapDetail(id) {
           </div>
         </div>
         <div class="flex gap-2">
-          <button onclick="saveNewStep()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 flex-1">บันทึกขั้นตอน</button>
+          <button onclick="saveNewStep()" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-700 transition-colors flex-1">บันทึกขั้นตอน</button>
           <button onclick="toggleStepForm()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-400">ยกเลิก</button>
         </div>
       </div>
@@ -338,7 +338,7 @@ async function openEditStep(stepId) {
           </div>
         </div>
         <div class="flex gap-2 pt-2">
-          <button onclick="submitEditStep('${stepId}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 flex-1">บันทึก</button>
+          <button onclick="submitEditStep('${stepId}')" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-700 transition-colors flex-1">บันทึก</button>
           <button onclick="viewRoadmapDetail('${_currentRoadmapId}')" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-400">ยกเลิก</button>
         </div>
       </div>`;
@@ -441,7 +441,7 @@ async function editRoadmapInfo(id) {
           <textarea id="rm-desc" class="w-full border rounded-lg p-3 text-sm" rows="3">${r.description||''}</textarea></div>
         <div><label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
           <input type="text" id="rm-dept" class="w-full border rounded-lg p-2" value="${r.department||''}" /></div>
-        <button onclick="updateRoadmapById('${id}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">อัปเดต</button>
+        <button onclick="updateRoadmapById('${id}')" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">อัปเดต</button>
       </div>`;
     document.getElementById('roadmap-modal').classList.remove('hidden');
   } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); }

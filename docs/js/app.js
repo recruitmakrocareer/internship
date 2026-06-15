@@ -477,6 +477,46 @@ function escAttr(v) {
   return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function debounce(fn, delay) {
+  let timer = null;
+  return function() {
+    const args = arguments;
+    const ctx = this;
+    clearTimeout(timer);
+    timer = setTimeout(function() { fn.apply(ctx, args); }, delay);
+  };
+}
+
+function displayName(obj, fallback) {
+  if (!obj) return fallback || '';
+  return (obj.name || ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()) || fallback || '';
+}
+
+async function withLoading(apiCall, successMsg, onSuccess) {
+  showLoading();
+  try {
+    const result = await apiCall();
+    hideLoading();
+    if (result.success !== false) {
+      if (successMsg) showToast(successMsg, 'success');
+      if (onSuccess) onSuccess(result);
+    } else {
+      showToast(result.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+    return result;
+  } catch (e) {
+    hideLoading();
+    showToast('เกิดข้อผิดพลาด', 'error');
+    return { success: false };
+  }
+}
+
+function progressBar(pct, height) {
+  const h = height || 'h-3';
+  const color = pct >= 75 ? 'from-green-400 to-green-500' : pct >= 50 ? 'from-blue-400 to-blue-500' : 'from-yellow-400 to-yellow-500';
+  return '<div class="bg-gray-200 rounded-full ' + h + '"><div class="bg-gradient-to-r ' + color + ' ' + h + ' rounded-full transition-all" style="width:' + Math.min(100, Math.max(0, pct)) + '%"></div></div>';
+}
+
 /**
  * Escapes a value for safe embedding inside a SINGLE-quoted JavaScript string
  * that itself lives inside a DOUBLE-quoted HTML attribute, e.g.

@@ -518,7 +518,7 @@ function buildResourceForm(r) {
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">แท็ก</label>
         <input type="text" id="res-tags" class="w-full border rounded-lg p-2" value="${_cmsEsc(r.tags||'')}" placeholder="คั่นด้วยจุลภาค" /></div>
-      <button onclick="saveResource('${escJs(r.id||'')}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">บันทึก</button>
+      <button onclick="saveResource('${escJs(r.id||'')}')" class="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">บันทึก</button>
     </div>`;
 }
 
