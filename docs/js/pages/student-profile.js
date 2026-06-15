@@ -337,10 +337,17 @@ async function renderStudentProfile() {
                 </select>
               </div>
             </div>
-            <div class="mt-4">
-              <label for="profile-medical" class="block text-sm font-medium text-gray-700 mb-1">โรคประจำตัว</label>
-              <input type="text" id="profile-medical" value="${escAttr(profile.medicalCondition || '')}" placeholder="ระบุโรคประจำตัว (ถ้ามี)"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label for="profile-birth-date" class="block text-sm font-medium text-gray-700 mb-1">วันเกิด</label>
+                <input type="date" id="profile-birth-date" value="${dateInputValue(profile.birthDate)}"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div>
+                <label for="profile-medical" class="block text-sm font-medium text-gray-700 mb-1">โรคประจำตัว</label>
+                <input type="text" id="profile-medical" value="${escAttr(profile.medicalCondition || '')}" placeholder="ระบุโรคประจำตัว (ถ้ามี)"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
@@ -510,6 +517,50 @@ async function renderStudentProfile() {
               <div class="mb-4">
                 <label for="profile-gpa" class="block text-sm font-medium text-gray-700 mb-1">GPA</label>
                 <input type="number" id="profile-gpa" value="${profile.gpa != null ? profile.gpa : ''}" placeholder="0.00 - 4.00" min="0" max="4" step="0.01"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-advisor" class="block text-sm font-medium text-gray-700 mb-1">อาจารย์ที่ปรึกษา</label>
+                <input type="text" id="profile-advisor" value="${escAttr(profile.advisorName || '')}" placeholder="ชื่ออาจารย์ที่ปรึกษา"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div class="mb-4">
+                <label for="profile-advisor-contact" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร/อีเมลอาจารย์</label>
+                <input type="text" id="profile-advisor-contact" value="${escAttr(profile.advisorContact || '')}" placeholder="เบอร์โทรหรืออีเมล"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+            </div>
+            <div class="mb-4">
+              <label for="profile-uni-address" class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่มหาวิทยาลัย</label>
+              <textarea id="profile-uni-address" rows="2" placeholder="ที่อยู่ของมหาวิทยาลัย"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">${escAttr(profile.universityAddress || '')}</textarea>
+            </div>
+          </div>
+
+          <hr class="border-gray-200">
+
+          <!-- Section: ข้อมูลการฝึกงาน -->
+          <div>
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลการฝึกงาน</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="mb-4">
+                <label for="profile-internship-type" class="block text-sm font-medium text-gray-700 mb-1">ประเภทการฝึกงาน</label>
+                <select id="profile-internship-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  <option value="">-- เลือกประเภท --</option>
+                  <option value="สหกิจศึกษา" ${profile.internshipType === 'สหกิจศึกษา' ? 'selected' : ''}>สหกิจศึกษา</option>
+                  <option value="ฝึกงานทั่วไป" ${profile.internshipType === 'ฝึกงานทั่วไป' ? 'selected' : ''}>ฝึกงานทั่วไป</option>
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="profile-start-date" class="block text-sm font-medium text-gray-700 mb-1">วันเริ่มฝึกงาน</label>
+                <input type="date" id="profile-start-date" value="${dateInputValue(profile.startDate)}"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+              </div>
+              <div class="mb-4">
+                <label for="profile-end-date" class="block text-sm font-medium text-gray-700 mb-1">วันสิ้นสุดฝึกงาน</label>
+                <input type="date" id="profile-end-date" value="${dateInputValue(profile.endDate)}"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
             </div>
@@ -899,6 +950,7 @@ async function renderStudentProfile() {
         firstName: fName,
         lastName: lName,
         nickname: document.getElementById('profile-nickname').value.trim(),
+        birthDate: document.getElementById('profile-birth-date').value,
         studentId: document.getElementById('profile-student-id').value.trim(),
         phone: document.getElementById('profile-phone').value.trim(),
         idCardNumber: document.getElementById('profile-id-card').value.trim(),
@@ -928,6 +980,12 @@ async function renderStudentProfile() {
         major: document.getElementById('profile-major').value.trim(),
         year: document.getElementById('profile-year').value,
         gpa: document.getElementById('profile-gpa').value,
+        advisorName: document.getElementById('profile-advisor').value.trim(),
+        advisorContact: document.getElementById('profile-advisor-contact').value.trim(),
+        universityAddress: document.getElementById('profile-uni-address').value.trim(),
+        internshipType: document.getElementById('profile-internship-type').value,
+        startDate: document.getElementById('profile-start-date').value,
+        endDate: document.getElementById('profile-end-date').value,
         preferredBranch1: document.getElementById('profile-branch1').value,
         preferredBranch2: document.getElementById('profile-branch2').value,
         preferredBranch3: document.getElementById('profile-branch3').value,
