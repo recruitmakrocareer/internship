@@ -13,20 +13,30 @@ async function renderTrainingCalendar() {
   const now = new Date();
   window._calYear = now.getFullYear();
   window._calMonth = now.getMonth();
+  window._calView = window._calView || 'month';
+  window._calWeekStart = calMondayOf(now);
 
   content.innerHTML = `
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">ปฏิทินแผนการฝึกงาน</h2>
       <div id="cal-unplanned-banner"></div>
       <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-        <div class="flex items-center justify-between mb-4">
-          <button onclick="changeCalMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <h3 id="cal-title" class="text-lg font-semibold text-gray-800"></h3>
-          <button onclick="changeCalMonth(1)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          </button>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2">
+            <button onclick="calToday()" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">วันนี้</button>
+            <button onclick="calNavigate(-1)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="calNavigate(1)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <h3 id="cal-title" class="text-lg font-semibold text-gray-800 flex-1 text-center min-w-[160px]"></h3>
+          <div class="inline-flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+            <button id="cal-view-month" onclick="calSetView('month')" class="px-3 py-1.5 transition-colors">เดือน</button>
+            <button id="cal-view-workweek" onclick="calSetView('workweek')" class="px-3 py-1.5 border-l border-gray-200 transition-colors">สัปดาห์ทำงาน</button>
+            <button id="cal-view-fullweek" onclick="calSetView('fullweek')" class="px-3 py-1.5 border-l border-gray-200 transition-colors">สัปดาห์เต็ม</button>
+          </div>
         </div>
         <div id="cal-grid">
           <div class="text-center py-12 text-gray-400">กำลังโหลด...</div>
@@ -43,6 +53,52 @@ async function renderTrainingCalendar() {
   `;
 
   await loadCalendarEvents();
+  renderCalGrid();
+}
+
+// แปลงเวลา "HH:MM" เป็นนาที (null ถ้าไม่ระบุ)
+function calToMin(s) {
+  const m = String(s || '').match(/^(\d{1,2}):(\d{2})/);
+  return m ? (+m[1]) * 60 + (+m[2]) : null;
+}
+
+// คืนวันจันทร์ของสัปดาห์ที่มีวันที่ d
+function calMondayOf(d) {
+  const x = new Date(d);
+  const day = x.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  x.setDate(x.getDate() + diff);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function calDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function calToday() {
+  const now = new Date();
+  window._calYear = now.getFullYear();
+  window._calMonth = now.getMonth();
+  window._calWeekStart = calMondayOf(now);
+  renderCalGrid();
+}
+
+function calSetView(view) {
+  window._calView = view;
+  renderCalGrid();
+}
+
+function calNavigate(delta) {
+  if (window._calView === 'month') {
+    window._calMonth += delta;
+    if (window._calMonth < 0) { window._calMonth = 11; window._calYear--; }
+    if (window._calMonth > 11) { window._calMonth = 0; window._calYear++; }
+  } else {
+    const ws = new Date(window._calWeekStart);
+    ws.setDate(ws.getDate() + delta * 7);
+    window._calWeekStart = ws;
+  }
   renderCalGrid();
 }
 
@@ -84,7 +140,9 @@ async function loadCalendarEvents() {
           title: title,
           color: color,
           trainer: escAttr(p.trainerName || ''),
-          timeLabel: timeLabel
+          timeLabel: timeLabel,
+          startMin: calToMin(t.start),
+          endMin: calToMin(t.end)
         });
       });
     });
@@ -114,14 +172,147 @@ async function loadCalendarEvents() {
   }
 }
 
-function changeCalMonth(delta) {
-  window._calMonth += delta;
-  if (window._calMonth < 0) { window._calMonth = 11; window._calYear--; }
-  if (window._calMonth > 11) { window._calMonth = 0; window._calYear++; }
-  renderCalGrid();
-}
+// Backward-compatible alias
+function changeCalMonth(delta) { calNavigate(delta); }
 
 function renderCalGrid() {
+  // Highlight the active view-switcher button
+  ['month', 'workweek', 'fullweek'].forEach(v => {
+    const btn = document.getElementById('cal-view-' + v);
+    if (btn) btn.className = 'px-3 py-1.5 transition-colors' +
+      (v !== 'month' ? ' border-l border-gray-200' : '') +
+      (window._calView === v ? ' bg-primary-600 text-white' : ' text-gray-600 hover:bg-gray-50');
+  });
+
+  if (window._calView === 'month') {
+    renderMonthGrid();
+  } else {
+    renderWeekGrid(window._calView === 'fullweek');
+  }
+}
+
+// ===== Time-grid week view =====
+const CAL_START_HOUR = 7;
+const CAL_END_HOUR = 18;
+const CAL_HOUR_PX = 48;
+
+// จัดคอลัมน์ event ที่เวลาทับซ้อนกันให้แสดงเคียงข้างกัน (Google-calendar style)
+function calPackEvents(evs) {
+  const list = evs.slice().sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  let group = [], columns = [], lastEnd = null;
+  function flush() {
+    const n = columns.length || 1;
+    group.forEach(e => { e._cols = n; });
+    group = []; columns = []; lastEnd = null;
+  }
+  list.forEach(ev => {
+    if (lastEnd !== null && ev.startMin >= lastEnd) flush();
+    let placed = false;
+    for (let i = 0; i < columns.length; i++) {
+      if (columns[i] <= ev.startMin) { columns[i] = ev.endMin; ev._col = i; placed = true; break; }
+    }
+    if (!placed) { columns.push(ev.endMin); ev._col = columns.length - 1; }
+    group.push(ev);
+    lastEnd = (lastEnd === null) ? ev.endMin : Math.max(lastEnd, ev.endMin);
+  });
+  flush();
+  return list;
+}
+
+function renderWeekGrid(fullWeek) {
+  const events = window._calEvents || {};
+  const today = todayStr();
+  const numDays = fullWeek ? 7 : 5;
+  const weekStart = new Date(window._calWeekStart);
+
+  const days = [];
+  for (let i = 0; i < numDays; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    days.push(d);
+  }
+
+  // Title: week range
+  const last = days[days.length - 1];
+  const titleEl = document.getElementById('cal-title');
+  if (titleEl) {
+    const sameMonth = days[0].getMonth() === last.getMonth();
+    titleEl.textContent = days[0].getDate() + (sameMonth ? '' : ' ' + THAI_MONTHS[days[0].getMonth()]) +
+      ' - ' + last.getDate() + ' ' + THAI_MONTHS[last.getMonth()] + ' ' + (last.getFullYear() + 543);
+  }
+
+  const totalHeight = (CAL_END_HOUR - CAL_START_HOUR) * CAL_HOUR_PX;
+
+  let html = '<div class="overflow-x-auto"><div class="min-w-[640px]">';
+
+  // Day header row
+  html += '<div class="flex border-b border-gray-200">';
+  html += '<div class="w-14 flex-shrink-0"></div>';
+  days.forEach(d => {
+    const isToday = calDateStr(d) === today;
+    html += `<div class="flex-1 text-center py-2 ${isToday ? 'bg-primary-50' : ''}">
+        <div class="text-xs text-gray-500">${THAI_DAYS[d.getDay()]}</div>
+        <div class="text-base font-semibold ${isToday ? 'text-primary-600' : 'text-gray-700'}">${d.getDate()}</div>
+      </div>`;
+  });
+  html += '</div>';
+
+  // All-day / untimed events row
+  let hasAllDay = false;
+  let allDayHtml = '<div class="flex border-b border-gray-200 bg-gray-50/50">';
+  allDayHtml += '<div class="w-14 flex-shrink-0 text-[10px] text-gray-400 text-right pr-1 py-1">ทั้งวัน</div>';
+  days.forEach(d => {
+    const dayEvents = (events[calDateStr(d)] || []).filter(e => e.startMin == null || e.endMin == null || e.endMin <= e.startMin);
+    if (dayEvents.length) hasAllDay = true;
+    allDayHtml += '<div class="flex-1 border-l border-gray-100 p-1 space-y-0.5">' +
+      dayEvents.map(ev => `<div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate" title="${ev.title}">${ev.title}</div>`).join('') +
+      '</div>';
+  });
+  allDayHtml += '</div>';
+  if (hasAllDay) html += allDayHtml;
+
+  // Time grid body
+  html += '<div class="flex">';
+  // Time axis
+  html += '<div class="w-14 flex-shrink-0">';
+  for (let h = CAL_START_HOUR; h < CAL_END_HOUR; h++) {
+    html += `<div style="height:${CAL_HOUR_PX}px" class="text-[10px] text-gray-400 text-right pr-1 -mt-1.5">${String(h).padStart(2, '0')}:00</div>`;
+  }
+  html += '</div>';
+
+  // Day columns
+  days.forEach(d => {
+    const isToday = calDateStr(d) === today;
+    const timed = (events[calDateStr(d)] || []).filter(e => e.startMin != null && e.endMin != null && e.endMin > e.startMin);
+    const packed = calPackEvents(timed);
+
+    html += `<div class="flex-1 relative border-l border-gray-100 ${isToday ? 'bg-primary-50/30' : ''}" style="height:${totalHeight}px">`;
+    // Hour gridlines
+    for (let h = CAL_START_HOUR; h < CAL_END_HOUR; h++) {
+      html += `<div class="border-b border-gray-100" style="height:${CAL_HOUR_PX}px"></div>`;
+    }
+    // Event blocks
+    packed.forEach(ev => {
+      const startMin = Math.max(ev.startMin, CAL_START_HOUR * 60);
+      const endMin = Math.min(ev.endMin, CAL_END_HOUR * 60);
+      const top = ((startMin - CAL_START_HOUR * 60) / 60) * CAL_HOUR_PX;
+      const height = Math.max(((endMin - startMin) / 60) * CAL_HOUR_PX, 18);
+      const widthPct = 100 / ev._cols;
+      const leftPct = ev._col * widthPct;
+      html += `<div class="absolute ${ev.color} rounded px-1 py-0.5 overflow-hidden shadow-sm" style="top:${top}px;height:${height}px;left:calc(${leftPct}% + 2px);width:calc(${widthPct}% - 4px)" title="${ev.title}${ev.timeLabel ? ' (' + ev.timeLabel + ')' : ''}${ev.trainer ? ' — ผู้สอน: ' + ev.trainer : ''}">
+          <div class="text-[9px] font-medium leading-none">${ev.timeLabel || ''}</div>
+          <div class="text-[10px] leading-tight truncate">${ev.title}</div>
+        </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>'; // body flex
+  html += '</div></div>'; // min-w + overflow
+
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function renderMonthGrid() {
   const year = window._calYear;
   const month = window._calMonth;
   const events = window._calEvents || {};
