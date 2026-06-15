@@ -16,10 +16,18 @@ function driveImageUrl(url) {
 function dateInputValue(value) {
   if (!value) return '';
   var s = String(value);
-  var m = s.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (m) return m[1];
+  // วันที่ล้วน (ไม่มีเวลา) — ใช้ตามเดิม ไม่ต้องคำนวณ timezone
+  var plain = s.match(/^(\d{4}-\d{2}-\d{2})$/);
+  if (plain) return plain[1];
+  // สตริงที่มีเวลา: Google Sheets เก็บเซลล์วันที่เป็น serial ซึ่งถูกแปลงเป็น
+  // เช่น '2026-06-11T17:00:00.000Z' (= เที่ยงคืนเวลาไทย) การตัดเอาวันที่ส่วน UTC
+  // ตรง ๆ จะทำให้วันเลื่อนถอยหลังไป 1 วัน จึง parse แล้วใช้ "วันตามเวลาท้องถิ่น"
+  // เพื่อคืนวันที่ที่ตั้งใจไว้จริง (แก้บั๊กปฏิทินบางวันไม่แสดง)
   var d = new Date(s);
-  if (isNaN(d.getTime())) return '';
+  if (isNaN(d.getTime())) {
+    var m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
+  }
   var mm = String(d.getMonth() + 1).padStart(2, '0');
   var dd = String(d.getDate()).padStart(2, '0');
   return d.getFullYear() + '-' + mm + '-' + dd;
@@ -40,7 +48,9 @@ function todayStr() {
 function expandPlanDays(p) {
   if (!p) return [];
   if (p.trainingDays) {
-    return String(p.trainingDays).split(',').map(s => s.trim()).filter(Boolean).sort();
+    // normalize ทุก token ผ่าน dateInputValue เพื่อกันกรณีที่ Sheets แปลง
+    // วันเดี่ยวเป็น date-serial (ISO datetime) ซึ่งจะทำให้ key วันคลาดเคลื่อน
+    return String(p.trainingDays).split(',').map(s => dateInputValue(s.trim())).filter(Boolean).sort();
   }
   const start = dateInputValue(p.startDate);
   if (!start) return [];

@@ -639,7 +639,10 @@ async function renderStudentDashboard(content) {
           </div>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">งานที่ต้องทำ / แจ้งเตือน</h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">งานที่ต้องทำ / แจ้งเตือน</h3>
+            <button id="dash-mark-all-read" onclick="dashMarkAllNotifRead()" class="hidden text-xs text-primary-600 hover:text-primary-700 hover:underline font-medium">อ่านทั้งหมด</button>
+          </div>
           <div id="dash-notifications" class="space-y-2 overflow-y-auto flex-1" style="max-height: 320px;">
             <p class="text-sm text-gray-500">กำลังโหลด...</p>
           </div>
@@ -718,37 +721,47 @@ async function renderStudentDashboard(content) {
       ` : '<p class="text-sm text-gray-400">ไม่มีขั้นตอนที่กำลังดำเนินการ</p>'}
     `;
 
-    // Notifications - actionable cards
+    // Notifications - actionable cards (คลิกเพื่อทำเครื่องหมายว่าอ่านแล้ว + ไปยังหน้าที่เกี่ยวข้อง)
     var notifContainer = document.getElementById('dash-notifications');
+    var markAllBtn = document.getElementById('dash-mark-all-read');
+    if (markAllBtn) markAllBtn.classList.toggle('hidden', unread === 0);
     if (notifications.length > 0) {
       notifContainer.innerHTML = notifications.slice(0, 8).map(function(n) {
         var isUnread = String(n.isRead) !== 'true';
         var typeIcon = '';
-        var actionLink = '';
+        var navHash = '';
+        var actionLabel = '';
         var title = n.title || n.message || '';
         var titleLower = title.toLowerCase();
 
         if (titleLower.indexOf('พี่เลี้ยง') !== -1 || titleLower.indexOf('mentor') !== -1) {
           typeIcon = '<svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"/></svg>';
-          actionLink = '<a href="#student-mentors" class="text-xs text-purple-600 hover:underline mt-1 inline-block">ดูโปรไฟล์พี่เลี้ยง</a>';
+          navHash = '#student-mentors';
+          actionLabel = 'ดูโปรไฟล์พี่เลี้ยง';
         } else if (titleLower.indexOf('งาน') !== -1 || titleLower.indexOf('assignment') !== -1 || titleLower.indexOf('ส่ง') !== -1) {
           typeIcon = '<svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>';
-          actionLink = '<a href="#student-assignments" class="text-xs text-yellow-600 hover:underline mt-1 inline-block">ดูงาน</a>';
-        } else if (titleLower.indexOf('roadmap') !== -1 || titleLower.indexOf('แผน') !== -1) {
+          navHash = '#student-assignments';
+          actionLabel = 'ดูงาน';
+        } else if (titleLower.indexOf('roadmap') !== -1 || titleLower.indexOf('แผน') !== -1 || titleLower.indexOf('ตาราง') !== -1 || titleLower.indexOf('วิชา') !== -1) {
           typeIcon = '<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>';
-          actionLink = '<a href="#student-roadmap" class="text-xs text-blue-600 hover:underline mt-1 inline-block">ดู Roadmap</a>';
+          navHash = '#student-roadmap';
+          actionLabel = 'ไปวางแผนการฝึกงาน';
         } else {
           typeIcon = '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>';
         }
 
-        return '<div class="flex items-start gap-3 p-3 rounded-lg transition-colors hover:bg-gray-100 ' + (isUnread ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50') + '">' +
+        var arrow = navHash ? '<svg class="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' : '';
+
+        return '<div data-notif-id="' + escAttr(n.id) + '" data-unread="' + (isUnread ? 'true' : 'false') + '" ' +
+          'onclick="dashGoToNotif(\'' + escJs(n.id) + '\', \'' + escJs(navHash) + '\', this)" ' +
+          'class="flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-gray-100 ' + (isUnread ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50') + '">' +
           '<div class="flex-shrink-0 mt-0.5">' + typeIcon + '</div>' +
           '<div class="flex-1 min-w-0">' +
             '<p class="text-sm ' + (isUnread ? 'font-semibold text-gray-800' : 'font-medium text-gray-600') + ' truncate">' + escAttr(title) + '</p>' +
             '<p class="text-xs text-gray-400 mt-0.5">' + formatDate(n.createdAt || n.date) + '</p>' +
-            actionLink +
+            (actionLabel ? '<span class="text-xs text-primary-600 mt-1 inline-block">' + escAttr(actionLabel) + ' &rsaquo;</span>' : '') +
           '</div>' +
-          (isUnread ? '<span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>' : '') +
+          (isUnread ? '<span data-unread-dot class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>' : arrow) +
         '</div>';
       }).join('');
     } else {
@@ -758,6 +771,52 @@ async function renderStudentDashboard(content) {
     console.error('Error loading student dashboard:', error);
     document.getElementById('dash-progress-detail').innerHTML = '<p class="text-sm text-red-500">ไม่สามารถโหลดข้อมูลได้</p>';
     document.getElementById('dash-notifications').innerHTML = '<p class="text-sm text-red-500">ไม่สามารถโหลดข้อมูลได้</p>';
+  }
+}
+
+// คลิกการแจ้งเตือน: ทำเครื่องหมายว่าอ่านแล้ว (optimistic) + นำทางไปหน้าที่เกี่ยวข้อง
+function dashGoToNotif(id, navHash, el) {
+  if (el && el.getAttribute('data-unread') === 'true') {
+    el.setAttribute('data-unread', 'false');
+    el.classList.remove('bg-blue-50', 'border', 'border-blue-100');
+    el.classList.add('bg-gray-50');
+    var dot = el.querySelector('[data-unread-dot]');
+    if (dot) dot.remove();
+    var cntEl = document.getElementById('dash-unread-notifs');
+    if (cntEl) {
+      var n = parseInt(cntEl.textContent, 10) || 0;
+      if (n > 0) cntEl.textContent = n - 1;
+      if (n - 1 <= 0) {
+        var allBtn = document.getElementById('dash-mark-all-read');
+        if (allBtn) allBtn.classList.add('hidden');
+      }
+    }
+    if (id) callApiPost('markAsRead', { notificationId: id }).catch(function() {});
+  }
+  if (navHash) window.location.hash = navHash;
+}
+
+async function dashMarkAllNotifRead() {
+  var user = getCurrentUser();
+  var container = document.getElementById('dash-notifications');
+  if (container) {
+    Array.prototype.forEach.call(container.querySelectorAll('[data-notif-id][data-unread="true"]'), function(el) {
+      el.setAttribute('data-unread', 'false');
+      el.classList.remove('bg-blue-50', 'border', 'border-blue-100');
+      el.classList.add('bg-gray-50');
+      var dot = el.querySelector('[data-unread-dot]');
+      if (dot) dot.remove();
+    });
+  }
+  var cntEl = document.getElementById('dash-unread-notifs');
+  if (cntEl) cntEl.textContent = '0';
+  var allBtn = document.getElementById('dash-mark-all-read');
+  if (allBtn) allBtn.classList.add('hidden');
+  try {
+    await callApiPost('markAllAsRead', { userId: user.id });
+    showToast('ทำเครื่องหมายว่าอ่านแล้วทั้งหมด', 'success');
+  } catch (e) {
+    showToast('เกิดข้อผิดพลาด', 'error');
   }
 }
 
