@@ -68,7 +68,7 @@ async function loadCalendarEvents() {
 
     (Array.isArray(progressList) ? progressList : []).forEach(p => {
       const step = stepMap[p.stepId];
-      const title = escAttr((step && step.title) || p.stepTitle || 'หัวข้อการฝึก');
+      const title = escAttr(sanitizeSheetTitle((step && step.title) || p.stepTitle) || 'หัวข้อการฝึก');
 
       const status = deriveTrainingStatus(p);
       let color = 'bg-gray-200 text-gray-600';
@@ -150,10 +150,9 @@ function renderCalGrid() {
       <div class="bg-white min-h-[90px] p-1.5 ${isToday ? 'ring-2 ring-inset ring-primary-400' : ''}">
         <div class="text-xs ${isToday ? 'font-bold text-primary-600' : 'text-gray-500'} mb-1">${day}</div>
         <div class="space-y-0.5">
-          ${dayEvents.slice(0, 3).map(ev => `
-            <div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate" title="${ev.title}${ev.timeLabel ? ' (' + ev.timeLabel + ')' : ''}${ev.trainer ? ' — ผู้สอน: ' + ev.trainer : ''}">${ev.timeLabel ? '<span class="text-gray-500">' + ev.timeLabel + '</span> ' : ''}${ev.title}</div>
+          ${dayEvents.sort((a,b) => (a.timeLabel||'').localeCompare(b.timeLabel||'')).map(ev => `
+            <div class="${ev.color} text-[10px] leading-tight px-1 py-0.5 rounded truncate cursor-default" title="${ev.title}${ev.timeLabel ? ' (' + ev.timeLabel + ')' : ''}${ev.trainer ? ' — ผู้สอน: ' + ev.trainer : ''}">${ev.timeLabel ? '<span class="font-medium">' + ev.timeLabel + '</span> ' : ''}${ev.title}</div>
           `).join('')}
-          ${dayEvents.length > 3 ? `<div class="text-[10px] text-gray-400 px-1">+${dayEvents.length - 3} เพิ่มเติม</div>` : ''}
         </div>
       </div>`;
   }

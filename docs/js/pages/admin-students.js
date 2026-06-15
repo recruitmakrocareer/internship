@@ -80,16 +80,16 @@ function renderAdminStudents() {
           <table class="w-full text-sm">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th class="scol-name text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[180px]">ชื่อ-นามสกุล</th>
-                <th class="scol-studentId text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">รหัส</th>
-                <th class="scol-university text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[180px]">มหาวิทยาลัย/สาขา</th>
-                <th class="scol-department text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">แผนก/สาขาที่ฝึก</th>
-                <th class="scol-type text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ประเภท</th>
-                <th class="scol-period text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ระยะเวลา</th>
-                <th class="scol-mentor text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">พี่เลี้ยง</th>
-                <th class="scol-documents text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">เอกสาร</th>
-                <th class="scol-status text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">สถานะ</th>
-                <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
+                <th class="scol-name text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px] whitespace-nowrap">ชื่อ-นามสกุล</th>
+                <th class="scol-studentId text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 whitespace-nowrap">รหัส</th>
+                <th class="scol-university text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px] whitespace-nowrap">มหาวิทยาลัย/สาขา</th>
+                <th class="scol-department text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[140px] whitespace-nowrap">แผนก/สาขาที่ฝึก</th>
+                <th class="scol-type text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[100px] whitespace-nowrap">ประเภท</th>
+                <th class="scol-period text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[130px] whitespace-nowrap">ระยะเวลา</th>
+                <th class="scol-mentor text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[140px] whitespace-nowrap">พี่เลี้ยง</th>
+                <th class="scol-documents text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 whitespace-nowrap">เอกสาร</th>
+                <th class="scol-status text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[100px] whitespace-nowrap">สถานะ</th>
+                <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">จัดการ</th>
               </tr>
             </thead>
             <tbody id="students-table-body" class="divide-y divide-gray-200">
@@ -428,10 +428,10 @@ function renderStudentsTable() {
             <div class="text-gray-800">${s.department ? escAttr(s.department) : '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${escAttr(s.branch || '')}</div>
           </td>
-          <td class="scol-type px-4 py-3">
+          <td class="scol-type px-4 py-3 whitespace-nowrap">
             ${s.internshipType ? '<span class="text-xs px-2 py-0.5 rounded-full ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') + '">' + escAttr(s.internshipType) + '</span>' : '<span class="text-xs text-gray-400">ไม่ระบุ</span>'}
           </td>
-          <td class="scol-period px-4 py-3 text-xs text-gray-600">
+          <td class="scol-period px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
             ${s.startDate ? formatDate(s.startDate) : '<span class="text-gray-300">ไม่ระบุ</span>'}
             ${s.endDate ? '<br>ถึง ' + formatDate(s.endDate) : ''}
           </td>

@@ -7,7 +7,7 @@ async function renderStudentRoadmap() {
 
   content.innerHTML = `
     <div class="fade-in">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">แผนการฝึกงาน</h2>
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">วางแผนการฝึกงาน</h2>
       <div id="roadmap-overview-cal" class="mb-6"></div>
       <div id="roadmap-container">
         <div class="grid grid-cols-1 gap-6">
@@ -764,7 +764,7 @@ function renderOverviewCalendar() {
   Object.keys(progressMap).forEach(sid => {
     const p = progressMap[sid];
     const lookup = stepLookup[sid];
-    const title = escAttr((lookup && lookup.step.title) || p.stepTitle || 'หัวข้อการฝึก');
+    const title = escAttr(sanitizeSheetTitle((lookup && lookup.step.title) || p.stepTitle) || 'หัวข้อการฝึก');
     const status = deriveTrainingStatus(p);
     let color = 'bg-gray-200 text-gray-600';
     if (String(p.evalResult || '').toUpperCase() === 'FAIL') color = 'bg-red-100 text-red-700 border-l-2 border-red-400';
