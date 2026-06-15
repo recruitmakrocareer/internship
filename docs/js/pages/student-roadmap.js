@@ -271,23 +271,6 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
   // Per-day time overrides (keyed by date string, value: {start, end})
   window._planDayTimes = parsePlanDayTimes(p);
 
-  // วันที่หัวข้ออื่นใช้อยู่ — เก็บช่วงเวลาจริงแทน AM/PM
-  window._busyDays = {};
-  Object.keys(window._studentProgressMap).forEach(sid => {
-    if (String(sid) === String(stepId)) return;
-    const pr = window._studentProgressMap[sid];
-    expandPlanDays(pr).forEach(day => {
-      if (!window._busyDays[day]) window._busyDays[day] = [];
-      const t = getPlanDayTime(pr, day);
-      window._busyDays[day].push({ title: pr.stepTitle || 'หัวข้ออื่น', time: t });
-    });
-  });
-
-  // เดือนเริ่มต้นของปฏิทินเลือกวัน
-  const initDay = (window._planDays.length > 0 ? [...window._planDays].sort()[0] : '') || dateInputValue(p.startDate) || todayStr();
-  window._miniCalYear = parseInt(initDay.substring(0, 4));
-  window._miniCalMonth = parseInt(initDay.substring(5, 7)) - 1;
-
   document.getElementById('step-modal-title').textContent = step.title || 'ขั้นตอนที่ ' + (stepIndex + 1);
 
   // ส่วนแสดงผลการประเมิน
@@ -383,7 +366,7 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">วันที่เริ่ม</label>
-            <input type="date" id="plan-start-date" value="${dateInputValue(p.startDate) || clickedDate || ''}"
+            <input type="date" id="plan-start-date" value="${dateInputValue(p.startDate)}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
@@ -402,7 +385,17 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
-        <p class="text-xs text-gray-400">💡 กดวันบนปฏิทินภาพรวมด้านนอก เพื่อเลือกวันฝึก</p>
+        <div class="border-t border-gray-100 pt-3">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-medium text-gray-600">วันฝึกแบบระบุเอง <span class="text-gray-400 font-normal">(กรณีหลายวัน เวลาต่างกัน)</span></label>
+            <button type="button" onclick="addPlanDayRow()" class="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              เพิ่มวัน
+            </button>
+          </div>
+          <div id="plan-day-rows" class="space-y-2"></div>
+          <p class="text-[11px] text-gray-400 mt-1.5">ถ้าระบุวันตรงนี้ ระบบจะใช้แทนช่วงวันที่เริ่ม–สิ้นสุดด้านบน • กดวันบนปฏิทินภาพรวมก็เพิ่มได้</p>
+        </div>
       </div>
 
       <!-- สถานะ (คำนวณอัตโนมัติ) -->
@@ -440,177 +433,72 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
     </div>
   `;
 
+  initPlanDayRows();
+  // ถ้าเปิดจากการกดวันในปฏิทินภาพรวม ให้เพิ่มวันนั้นเป็นแถวใหม่ (ถ้ายังไม่มี)
+  if (clickedDate && (window._planDays || []).indexOf(clickedDate) === -1) {
+    addPlanDayRow(clickedDate);
+  }
   document.getElementById('roadmap-step-modal').classList.remove('hidden');
 }
 
-// ==================== ปฏิทินเลือกวันฝึกใน Modal ====================
+// ==================== วันฝึกรายวัน (เวลาต่างกันได้) ====================
 
-function renderMiniCal() {
-  const container = document.getElementById('plan-mini-cal');
+/**
+ * เพิ่มแถววันฝึกหนึ่งแถว (วันที่ + เวลาเริ่ม + เวลาสิ้นสุด)
+ * ค่าเริ่มต้นของเวลาดึงจากช่องเวลามาตรฐานด้านบนของแผน
+ */
+function addPlanDayRow(date, start, end) {
+  const container = document.getElementById('plan-day-rows');
   if (!container) return;
+  const gs = document.getElementById('plan-start-time');
+  const ge = document.getElementById('plan-end-time');
+  const defStart = sanitizeTime(start) || (gs && gs.value) || '09:00';
+  const defEnd = sanitizeTime(end) || (ge && ge.value) || '17:00';
+  const row = document.createElement('div');
+  row.className = 'plan-day-row flex items-center gap-2';
+  row.innerHTML =
+    '<input type="date" class="plan-day-date flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" value="' + (dateInputValue(date) || '') + '">' +
+    '<input type="time" class="plan-day-start w-[88px] px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" value="' + defStart + '">' +
+    '<span class="text-gray-400 text-sm">–</span>' +
+    '<input type="time" class="plan-day-end w-[88px] px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" value="' + defEnd + '">' +
+    '<button type="button" onclick="this.closest(\'.plan-day-row\').remove()" class="text-gray-400 hover:text-red-500 p-1 flex-shrink-0" title="ลบวันนี้">' +
+      '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+    '</button>';
+  container.appendChild(row);
+}
 
-  const year = window._miniCalYear;
-  const month = window._miniCalMonth;
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = todayStr();
-  const busy = window._busyDays || {};
-  const selected = window._planDays || [];
-
-  // Current step's global time range (from the time inputs)
-  const startTimeEl = document.getElementById('plan-start-time');
-  const endTimeEl = document.getElementById('plan-end-time');
-  const currentTime = {
-    start: startTimeEl ? startTimeEl.value : '09:00',
-    end: endTimeEl ? endTimeEl.value : '17:00'
-  };
-
-  let html = `
-    <div class="flex items-center justify-between mb-1">
-      <button onclick="changeMiniCalMonth(-1)" class="p-1 hover:bg-gray-100 rounded text-gray-500 text-sm px-2">&lsaquo;</button>
-      <span class="text-sm font-medium text-gray-700">${typeof THAI_MONTHS !== 'undefined' ? THAI_MONTHS[month] : (month + 1)} ${year + 543}</span>
-      <button onclick="changeMiniCalMonth(1)" class="p-1 hover:bg-gray-100 rounded text-gray-500 text-sm px-2">&rsaquo;</button>
-    </div>
-    <div class="grid grid-cols-7 gap-0.5 text-center">`;
-
-  (typeof THAI_DAYS !== 'undefined' ? THAI_DAYS : ['อา','จ','อ','พ','พฤ','ศ','ส']).forEach(d => {
-    html += `<div class="text-[10px] text-gray-400 py-1">${d}</div>`;
+/**
+ * สร้างแถววันฝึกจากข้อมูลแผนที่มีอยู่ (window._planDays + window._planDayTimes)
+ */
+function initPlanDayRows() {
+  const container = document.getElementById('plan-day-rows');
+  if (!container) return;
+  container.innerHTML = '';
+  const days = [...(window._planDays || [])].sort();
+  const dt = window._planDayTimes || {};
+  days.forEach(d => {
+    const ov = dt[d] || {};
+    addPlanDayRow(d, ov.start, ov.end);
   });
-
-  for (let i = 0; i < firstDay; i++) html += '<div></div>';
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    const isSelected = selected.includes(dateStr);
-    const busyItems = busy[dateStr];
-    const isToday = dateStr === today;
-
-    // Per-day time override for current step
-    const dayTime = (window._planDayTimes && window._planDayTimes[dateStr]) || currentTime;
-
-    // Check overlap: orange = time overlaps, green = no overlap
-    let hasOverlap = false;
-    let allOverlap = false;
-    if (busyItems && busyItems.length > 0) {
-      const overlapping = busyItems.filter(b => timeRangesOverlap(dayTime, b.time));
-      hasOverlap = overlapping.length > 0;
-      allOverlap = overlapping.length === busyItems.length && busyItems.length > 0;
-    }
-
-    let cls = 'relative text-xs py-1.5 rounded cursor-pointer select-none transition-colors ';
-    if (isSelected) cls += 'bg-primary-600 text-white font-semibold ';
-    else if (busyItems && allOverlap) cls += 'bg-red-50 text-red-400 hover:bg-primary-100 ';
-    else if (busyItems && hasOverlap) cls += 'bg-amber-50 text-gray-600 hover:bg-primary-100 ';
-    else if (busyItems) cls += 'bg-green-50 text-gray-600 hover:bg-primary-100 ';
-    else cls += 'text-gray-700 hover:bg-primary-50 ';
-    if (isToday && !isSelected) cls += 'ring-1 ring-primary-400 ';
-
-    const busyTooltip = busyItems ? busyItems.map(b => b.title + (formatTimeRange(b.time) ? ' (' + formatTimeRange(b.time) + ')' : ' (ทั้งวัน)')).join(', ') : '';
-
-    html += `
-      <div class="${cls}" onclick="togglePlanDay('${dateStr}')" title="${busyItems ? 'นัดแล้ว: ' + busyTooltip : 'ว่าง'}">
-        ${day}
-        ${busyItems && !isSelected ? `<span class="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-px">${hasOverlap ? '<span class="w-1 h-1 bg-orange-400 rounded-full"></span>' : '<span class="w-1 h-1 bg-green-400 rounded-full"></span>'}</span>` : ''}
-      </div>`;
-  }
-
-  html += '</div>';
-  container.innerHTML = html;
 }
 
-function changeMiniCalMonth(delta) {
-  window._miniCalMonth += delta;
-  if (window._miniCalMonth < 0) { window._miniCalMonth = 11; window._miniCalYear--; }
-  if (window._miniCalMonth > 11) { window._miniCalMonth = 0; window._miniCalYear++; }
-  renderMiniCal();
-}
-
-function togglePlanDay(dateStr) {
-  if (window._planDays.includes(dateStr)) {
-    window._planDays = window._planDays.filter(x => x !== dateStr);
-    if (window._planDayTimes) delete window._planDayTimes[dateStr];
-  } else {
-    if (window._busyDays && window._busyDays[dateStr]) {
-      const items = window._busyDays[dateStr];
-      const startTimeEl = document.getElementById('plan-start-time');
-      const endTimeEl = document.getElementById('plan-end-time');
-      const currentTime = {
-        start: startTimeEl ? startTimeEl.value : '',
-        end: endTimeEl ? endTimeEl.value : ''
-      };
-      const overlapping = items.filter(b => timeRangesOverlap(currentTime, b.time));
-      if (overlapping.length > 0) {
-        const labels = overlapping.map(b => b.title + (formatTimeRange(b.time) ? ' ' + formatTimeRange(b.time) : '')).join(', ');
-        showToast('เวลาซ้อนกับ: ' + labels + ' — สามารถแก้เวลารายวันได้ที่ชิป', 'warning');
-      }
-    }
-    window._planDays.push(dateStr);
-  }
-  renderMiniCal();
-  renderPlanDayChips();
-}
-
-function renderPlanDayChips() {
-  const c = document.getElementById('plan-days-chips');
-  if (!c) return;
-  if (!window._planDays || window._planDays.length === 0) {
-    c.innerHTML = '<span class="text-xs text-gray-400">ยังไม่ได้ระบุวัน — ระบบจะใช้ช่วงวันที่เริ่ม–สิ้นสุดแทน</span>';
-    return;
-  }
-  const globalS = document.getElementById('plan-start-time') ? document.getElementById('plan-start-time').value : '';
-  const globalE = document.getElementById('plan-end-time') ? document.getElementById('plan-end-time').value : '';
-  const dt = window._planDayTimes || {};
-  c.innerHTML = [...window._planDays].sort().map(d => {
-    const ov = dt[d];
-    const timeLabel = ov ? formatTimeRange(ov) : (globalS || globalE ? formatTimeRange({start: globalS, end: globalE}) : '');
-    return `
-    <span class="inline-flex items-center gap-1 bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded-full">
-      ${formatDate(d)}${timeLabel ? ' <span class="text-primary-400">' + timeLabel + '</span>' : ''}
-      <button onclick="editDayTime('${d}')" class="hover:text-blue-500" title="แก้เวลา">&#x270E;</button>
-      <button onclick="removePlanDay('${d}')" class="hover:text-red-500 font-bold">&times;</button>
-    </span>`;
-  }).join('');
-}
-
-function editDayTime(dateStr) {
-  const dt = window._planDayTimes || {};
-  const cur = dt[dateStr] || {};
-  const globalS = document.getElementById('plan-start-time') ? document.getElementById('plan-start-time').value : '09:00';
-  const globalE = document.getElementById('plan-end-time') ? document.getElementById('plan-end-time').value : '17:00';
-  const s = sanitizeTime(cur.start) || globalS;
-  const e = sanitizeTime(cur.end) || globalE;
-  const html = `<div class="flex items-center gap-2 text-xs"><span>${formatDate(dateStr)}</span>` +
-    `<input type="time" id="dt-s-${dateStr}" value="${s}" class="border rounded px-1 py-0.5 text-xs w-24">` +
-    `<span>–</span><input type="time" id="dt-e-${dateStr}" value="${e}" class="border rounded px-1 py-0.5 text-xs w-24">` +
-    `<button onclick="saveDayTime('${dateStr}')" class="text-primary-600 font-medium">OK</button>` +
-    `<button onclick="clearDayTime('${dateStr}')" class="text-gray-400">ใช้ค่าเริ่มต้น</button></div>`;
-  const c = document.getElementById('plan-days-chips');
-  if (c) c.insertAdjacentHTML('beforeend', '<div id="dt-edit-row" class="mt-1">' + html + '</div>');
-}
-
-function saveDayTime(dateStr) {
-  if (!window._planDayTimes) window._planDayTimes = {};
-  const sEl = document.getElementById('dt-s-' + dateStr);
-  const eEl = document.getElementById('dt-e-' + dateStr);
-  window._planDayTimes[dateStr] = { start: sEl ? sEl.value : '', end: eEl ? eEl.value : '' };
-  const row = document.getElementById('dt-edit-row');
-  if (row) row.remove();
-  renderPlanDayChips();
-  renderMiniCal();
-}
-
-function clearDayTime(dateStr) {
-  if (window._planDayTimes) delete window._planDayTimes[dateStr];
-  const row = document.getElementById('dt-edit-row');
-  if (row) row.remove();
-  renderPlanDayChips();
-}
-
-function removePlanDay(d) {
-  window._planDays = window._planDays.filter(x => x !== d);
-  if (window._planDayTimes) delete window._planDayTimes[d];
-  renderMiniCal();
-  renderPlanDayChips();
+/**
+ * อ่านแถววันฝึกทั้งหมดกลับเป็น window._planDays + window._planDayTimes ก่อนบันทึก
+ */
+function collectPlanDays() {
+  window._planDays = [];
+  window._planDayTimes = {};
+  document.querySelectorAll('#plan-day-rows .plan-day-row').forEach(row => {
+    const dEl = row.querySelector('.plan-day-date');
+    const d = dEl ? dEl.value : '';
+    if (!d || window._planDays.indexOf(d) !== -1) return;
+    const sEl = row.querySelector('.plan-day-start');
+    const eEl = row.querySelector('.plan-day-end');
+    const s = sEl ? sEl.value : '';
+    const e = eEl ? eEl.value : '';
+    window._planDays.push(d);
+    if (s || e) window._planDayTimes[d] = { start: s, end: e };
+  });
 }
 
 async function showStepQr(stepId) {
@@ -641,6 +529,9 @@ async function showStepQr(stepId) {
 async function saveStepProgress(stepId) {
   const user = getCurrentUser();
   const note = document.getElementById('step-note-input').value.trim();
+
+  // อ่านแถววันฝึกรายวันกลับเข้า state ก่อนส่ง
+  collectPlanDays();
 
   showLoading();
   try {
