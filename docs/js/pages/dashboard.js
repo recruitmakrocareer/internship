@@ -158,36 +158,42 @@ function renderAdminStatsCharts() {
   }
 }
 
-// Feature: แยกประเภทจำนวนนักศึกษาเป็น 4 กลุ่ม (ทั้งหมด / กำลังฝึก / สำเร็จ-ยกเลิก / รอเริ่มงาน)
-function renderAdminStudentBreakdown(students) {
+// Feature: แยกประเภทจำนวนนักศึกษาเป็น 6 กลุ่ม + งานรอตรวจ
+function renderAdminStudentBreakdown(students, pendingTasks) {
   var el = document.getElementById('admin-student-breakdown');
   if (!el) return;
   var t = todayStr();
-  var total = students.length, active = 0, inactive = 0, waiting = 0;
+  var total = students.length, active = 0, completed = 0, cancelled = 0, waiting = 0;
   students.forEach(function(s) {
     var status = String(s.status || '').toLowerCase();
     var start = dateInputValue(s.startDate);
     var end = dateInputValue(s.endDate);
-    var isDone = ['done', 'inactive', 'cancel', 'ยกเลิก', 'สำเร็จ', 'back'].some(function(k) { return status.indexOf(k) !== -1; });
-    if (start && t < start) waiting++;
-    else if (isDone || (end && t > end)) inactive++;
+    var isCancelled = ['cancel', 'ยกเลิก', 'inactive'].some(function(k) { return status.indexOf(k) !== -1; });
+    var isDone = ['done', 'สำเร็จ', 'completed'].some(function(k) { return status.indexOf(k) !== -1; });
+    if (isCancelled) cancelled++;
+    else if (start && t < start) waiting++;
+    else if (isDone || (end && t > end)) completed++;
     else active++;
   });
 
   var cards = [
-    { label: 'สมาชิกทั้งหมด', value: total, border: 'border-primary-500', text: 'text-primary-600', bg: 'text-primary-100',
+    { label: 'นักศึกษาทั้งหมด', value: total, border: 'border-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', iconColor: 'text-blue-200',
       icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' },
-    { label: 'กำลังฝึกอยู่', value: active, border: 'border-green-500', text: 'text-green-600', bg: 'text-green-100',
+    { label: 'กำลังฝึกอยู่', value: active, border: 'border-green-500', text: 'text-green-600', bg: 'bg-green-50', iconColor: 'text-green-200',
       icon: 'M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z' },
-    { label: 'สำเร็จ / ยกเลิก', value: inactive, border: 'border-gray-400', text: 'text-gray-600', bg: 'text-gray-200',
+    { label: 'รอเริ่มงาน', value: waiting, border: 'border-amber-500', text: 'text-amber-600', bg: 'bg-amber-50', iconColor: 'text-amber-200',
+      icon: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { label: 'สำเร็จการฝึก', value: completed, border: 'border-emerald-500', text: 'text-emerald-600', bg: 'bg-emerald-50', iconColor: 'text-emerald-200',
       icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { label: 'รอเริ่มงาน', value: waiting, border: 'border-yellow-500', text: 'text-yellow-600', bg: 'text-yellow-100',
-      icon: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z' }
+    { label: 'ยกเลิก', value: cancelled, border: 'border-red-400', text: 'text-red-500', bg: 'bg-red-50', iconColor: 'text-red-200',
+      icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
+    { label: 'งานที่รอตรวจ', value: pendingTasks || 0, border: 'border-violet-500', text: 'text-violet-600', bg: 'bg-violet-50', iconColor: 'text-violet-200',
+      icon: 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z' }
   ];
 
   el.innerHTML = cards.map(function(c) {
-    return '<div class="bg-white rounded-xl p-5 shadow-sm border-l-4 ' + c.border + ' relative overflow-hidden">' +
-      '<div class="absolute top-2 right-2 ' + c.bg + '"><svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="' + c.icon + '"/></svg></div>' +
+    return '<div class="' + c.bg + ' rounded-xl p-5 shadow-sm border-l-4 ' + c.border + ' relative overflow-hidden group hover:shadow-md transition-shadow">' +
+      '<div class="absolute top-2 right-2 ' + c.iconColor + '"><svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="' + c.icon + '"/></svg></div>' +
       '<p class="text-xs text-gray-500 mb-1">' + escAttr(c.label) + '</p>' +
       '<p class="text-3xl font-bold ' + c.text + '">' + c.value + '</p>' +
     '</div>';
@@ -327,11 +333,10 @@ async function renderAdminDashboard(content) {
   content.innerHTML = `
     <div class="fade-in">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">แดชบอร์ดผู้ดูแลระบบ</h2>
-      <div id="admin-student-breakdown" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
-      <div id="admin-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        ${[1,2,3,4].map(() => `
-          <div class="bg-white rounded-xl p-6 shadow-sm animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-1/2 mb-3"></div>
+      <div id="admin-student-breakdown" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        ${[1,2,3,4,5,6].map(() => `
+          <div class="bg-white rounded-xl p-5 shadow-sm animate-pulse">
+            <div class="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
             <div class="h-8 bg-gray-200 rounded w-1/3"></div>
           </div>
         `).join('')}
@@ -390,44 +395,7 @@ async function renderAdminDashboard(content) {
     var r = stats.roadmaps || {};
     var recent = stats.recentActivity || {};
 
-    document.getElementById('admin-stats').innerHTML = `
-      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-primary-500 relative overflow-hidden group hover:shadow-md transition-shadow">
-        <div class="absolute top-3 right-3 text-primary-100 group-hover:text-primary-200 transition-colors">${adminDashSvgIcon('users')}</div>
-        <p class="text-sm text-gray-500 mb-1">นักศึกษาทั้งหมด</p>
-        <p class="text-3xl font-bold text-gray-800">${u.totalStudents || 0}</p>
-        <div class="flex items-center gap-1.5 mt-2">
-          <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> ใช้งาน ${u.activeStudents || 0}
-          </span>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500 relative overflow-hidden group hover:shadow-md transition-shadow">
-        <div class="absolute top-3 right-3 text-green-100 group-hover:text-green-200 transition-colors">${adminDashSvgIcon('userCheck')}</div>
-        <p class="text-sm text-gray-500 mb-1">พี่เลี้ยงทั้งหมด</p>
-        <p class="text-3xl font-bold text-gray-800">${u.totalMentors || 0}</p>
-        <div class="flex items-center gap-1.5 mt-2">
-          <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> ใช้งาน ${u.activeMentors || 0}
-          </span>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-yellow-500 relative overflow-hidden group hover:shadow-md transition-shadow">
-        <div class="absolute top-3 right-3 text-yellow-100 group-hover:text-yellow-200 transition-colors">${adminDashSvgIcon('clipboard')}</div>
-        <p class="text-sm text-gray-500 mb-1">งานที่รอตรวจ</p>
-        <p class="text-3xl font-bold text-gray-800">${a.pendingSubmissions || 0}</p>
-        <div class="flex items-center gap-1.5 mt-2">
-          <span class="text-xs text-gray-400">จากทั้งหมด ${a.totalSubmissions || 0} งาน</span>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-purple-500 relative overflow-hidden group hover:shadow-md transition-shadow">
-        <div class="absolute top-3 right-3 text-purple-100 group-hover:text-purple-200 transition-colors">${adminDashSvgIcon('map')}</div>
-        <p class="text-sm text-gray-500 mb-1">แผนฝึกงาน</p>
-        <p class="text-3xl font-bold text-gray-800">${r.totalRoadmaps || 0}</p>
-        <div class="flex items-center gap-1.5 mt-2">
-          <span class="text-xs text-gray-400">รวม ${r.totalSteps || 0} ขั้นตอน</span>
-        </div>
-      </div>
-    `;
+    // 6-card KPI rendered by renderAdminStudentBreakdown (replaces old 4+4 layout)
 
     // Donut chart for assignment summary
     var submitted = (a.totalSubmissions || 0) - (a.reviewedSubmissions || 0) - (a.pendingSubmissions || 0);
@@ -537,7 +505,7 @@ async function renderAdminDashboard(content) {
     var students = Array.isArray(studentsRes && (studentsRes.data || studentsRes))
       ? (studentsRes.data || studentsRes) : [];
     _adminAllStudents = students;
-    renderAdminStudentBreakdown(students);
+    renderAdminStudentBreakdown(students, a.pendingSubmissions || 0);
     renderAdminStatsPeriodControl();
     renderAdminStatsCharts();
     renderAdminUpcomingInterns();

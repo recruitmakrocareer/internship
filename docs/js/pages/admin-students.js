@@ -7,16 +7,16 @@ function renderAdminStudents() {
 
   const content = initLayout(user);
   content.innerHTML = `
-    <div class="fade-in">
+    <div class="fade-in" style="min-height:100vh">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <h2 class="text-2xl font-bold text-gray-800">จัดการนักศึกษา</h2>
-        <button onclick="openAddStudentModal()" class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button onclick="openAddStudentModal()" class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           เพิ่มนักศึกษา
         </button>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-0">
         <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
           <div class="flex-1 min-w-[200px] relative">
             <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -73,12 +73,10 @@ function renderAdminStudents() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
+        <div class="border-t border-gray-100 mt-4"></div>
+        <div class="overflow-x-auto -mx-5 px-0 mt-4">
           <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-200">
+            <thead class="bg-slate-50/80">
               <tr>
                 <th class="scol-name text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px] whitespace-nowrap">ชื่อ-นามสกุล</th>
                 <th class="scol-studentId text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 whitespace-nowrap">รหัส</th>
@@ -405,7 +403,7 @@ function renderStudentsTable() {
       const safeName = escJs(displayName);
 
       return `
-        <tr class="hover:bg-gray-50 transition-colors">
+        <tr class="hover:bg-slate-50/50 transition-colors cursor-pointer border-b border-gray-100">
           <td class="scol-name px-4 py-3">
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${s.photoFileUrl ? '' : 'bg-primary-100'}">
@@ -419,20 +417,20 @@ function renderStudentsTable() {
               </div>
             </div>
           </td>
-          <td class="scol-studentId px-4 py-3 text-xs">${s.studentId ? escAttr(s.studentId) : '<span class="text-gray-300">ไม่ระบุ</span>'}</td>
+          <td class="scol-studentId px-4 py-3 text-xs">${s.studentId ? escAttr(s.studentId) : '<span class="text-gray-400 italic text-sm">ไม่ระบุ</span>'}</td>
           <td class="scol-university px-4 py-3 text-xs">
-            <div class="text-gray-800">${s.university ? escAttr(s.university) : '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
+            <div class="text-gray-800">${s.university ? escAttr(s.university) : '<span class="text-gray-400 italic text-sm">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${escAttr(s.major || s.faculty || '')}</div>
           </td>
           <td class="scol-department px-4 py-3 text-xs">
-            <div class="text-gray-800">${s.department ? escAttr(s.department) : '<span class="text-gray-300">ไม่ระบุ</span>'}</div>
+            <div class="text-gray-800">${s.department ? escAttr(s.department) : '<span class="text-gray-400 italic text-sm">ไม่ระบุ</span>'}</div>
             <div class="text-gray-400">${escAttr(s.branch || '')}</div>
           </td>
           <td class="scol-type px-4 py-3 whitespace-nowrap">
-            ${s.internshipType ? '<span class="text-xs px-2 py-0.5 rounded-full ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') + '">' + escAttr(s.internshipType) + '</span>' : '<span class="text-xs text-gray-400">ไม่ระบุ</span>'}
+            ${s.internshipType ? '<span class="text-xs px-2.5 py-0.5 rounded-full ring-1 ' + (s.internshipType === 'สหกิจศึกษา' ? 'bg-purple-50 text-purple-700 ring-purple-200' : 'bg-blue-50 text-blue-700 ring-blue-200') + '">' + escAttr(s.internshipType) + '</span>' : '<span class="text-gray-400 italic text-sm">ไม่ระบุ</span>'}
           </td>
           <td class="scol-period px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
-            ${s.startDate ? formatDate(s.startDate) : '<span class="text-gray-300">ไม่ระบุ</span>'}
+            ${s.startDate ? formatDate(s.startDate) : '<span class="text-gray-400 italic text-sm">ไม่ระบุ</span>'}
             ${s.endDate ? '<br>ถึง ' + formatDate(s.endDate) : ''}
           </td>
           <td class="scol-mentor px-4 py-3">
@@ -449,18 +447,26 @@ function renderStudentsTable() {
           </td>
           <td class="scol-status px-4 py-3">${studentStatusBadge(s)}</td>
           <td class="px-4 py-3 text-center">
-            <div class="flex items-center justify-center gap-1">
-              <button onclick="viewStudentDetail('${safeId}')" class="text-blue-600 hover:text-blue-800 p-1" title="ดูรายละเอียด">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            <div class="relative inline-block">
+              <button onclick="toggleStudentActionMenu(this)" class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="ตัวเลือก">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
               </button>
-              <button onclick="openEditStudentModal('${safeId}')" class="text-primary-600 hover:text-primary-800 p-1" title="แก้ไข">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-              </button>
-              <button onclick="toggleStudentStatus('${safeId}', '${safeName}')" class="${String(s.isActive) === 'false' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'} p-1" title="${String(s.isActive) === 'false' ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}">
-                ${String(s.isActive) === 'false'
-                  ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
-                  : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>'}
-              </button>
+              <div class="student-action-menu hidden absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1 text-left">
+                <button onclick="this.closest('.student-action-menu').classList.add('hidden'); viewStudentDetail('${safeId}')" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  ดูรายละเอียด
+                </button>
+                <button onclick="this.closest('.student-action-menu').classList.add('hidden'); openEditStudentModal('${safeId}')" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  แก้ไข
+                </button>
+                <div class="border-t border-gray-100 my-1"></div>
+                <button onclick="this.closest('.student-action-menu').classList.add('hidden'); toggleStudentStatus('${safeId}', '${safeName}')" class="w-full flex items-center gap-2 px-3 py-2 text-sm ${String(s.isActive) === 'false' ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}">
+                  ${String(s.isActive) === 'false'
+                    ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> เปิดใช้งาน'
+                    : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg> ปิดการใช้งาน'}
+                </button>
+              </div>
             </div>
           </td>
         </tr>`;
@@ -1201,5 +1207,22 @@ async function toggleStudentStatus(id, name) {
   } catch (error) {
     hideLoading();
     showToast('เกิดข้อผิดพลาด', 'error');
+  }
+}
+
+function toggleStudentActionMenu(btn) {
+  var menu = btn.nextElementSibling;
+  var wasHidden = menu.classList.contains('hidden');
+  document.querySelectorAll('.student-action-menu').forEach(function(m) { m.classList.add('hidden'); });
+  if (wasHidden) {
+    menu.classList.remove('hidden');
+    setTimeout(function() {
+      document.addEventListener('mousedown', function handler(e) {
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.classList.add('hidden');
+          document.removeEventListener('mousedown', handler);
+        }
+      });
+    }, 0);
   }
 }
