@@ -84,16 +84,21 @@ function parsePlanDayTimes(p) {
  * แปลง Sheets date-serial time (1899-12-30T...) หรือ ISO datetime เป็น HH:MM (เวลาท้องถิ่น)
  */
 function sanitizeTime(v) {
-  if (!v) return '';
+  if (!v && v !== 0) return '';
   var s = String(v).trim();
-  if (/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5, '0');
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.substring(0, 5).padStart(5, '0');
   if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
     var d = new Date(s);
     if (!isNaN(d.getTime())) {
       return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     }
   }
-  return s;
+  var n = typeof v === 'number' ? v : parseFloat(s);
+  if (!isNaN(n) && n >= 0 && n < 1) {
+    var totalMin = Math.round(n * 1440);
+    return String(Math.floor(totalMin / 60)).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
+  }
+  return '';
 }
 
 /**

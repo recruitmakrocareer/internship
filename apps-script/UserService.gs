@@ -531,11 +531,15 @@ function getStoreList() {
     if (!sheet) return { success: true, data: [] };
     var data = sheet.getDataRange().getValues();
     if (data.length < 2) return { success: true, data: [] };
+    var headers = data[0];
     var stores = [];
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] !== '' && data[i][1] !== '') {
-        stores.push({ storeNo: String(data[i][0]), storeName: String(data[i][1]) });
+      if (data[i][0] === '' && data[i][1] === '') continue;
+      var row = {};
+      for (var j = 0; j < headers.length; j++) {
+        row[headers[j]] = String(data[i][j] != null ? data[i][j] : '');
       }
+      stores.push(row);
     }
     return { success: true, data: stores };
   } catch (err) {

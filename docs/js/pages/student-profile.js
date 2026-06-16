@@ -200,7 +200,8 @@ async function renderStudentProfile() {
 
     var storeOpts = '<option value="">-- เลือกสาขา --</option>';
     for (var si = 0; si < _profileStoreList.length; si++) {
-      var sv = _profileStoreList[si].storeNo + ' - ' + _profileStoreList[si].storeName;
+      var slabel = _profileStoreList[si].storeNameTH || _profileStoreList[si].storeName;
+      var sv = _profileStoreList[si].storeNo + ' - ' + slabel;
       storeOpts += '<option value="' + escAttr(sv) + '">' + escAttr(sv) + '</option>';
     }
 
@@ -502,17 +503,26 @@ async function renderStudentProfile() {
             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลการศึกษา</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               ${inputField('profile-student-id', 'รหัสนักศึกษา', 'text', profile.studentId || '')}
-              ${inputField('profile-university', 'มหาวิทยาลัย', 'text', profile.university || '')}
+              ${inputField('profile-university', 'ชื่อสถาบันการศึกษา/มหาวิทยาลัย', 'text', profile.university || '')}
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               ${inputField('profile-faculty', 'คณะ', 'text', profile.faculty || '')}
               ${inputField('profile-major', 'สาขา', 'text', profile.major || '')}
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              ${selectField('profile-year', 'ชั้นปี', [
-                {value: '', text: '-- เลือก --'},
-                {value: '1', text: 'ปี 1'}, {value: '2', text: 'ปี 2'},
-                {value: '3', text: 'ปี 3'}, {value: '4', text: 'ปี 4'}, {value: '5', text: 'ปี 5'}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              ${selectField('profile-education-level', 'ระดับการศึกษาปัจจุบัน', [
+                {value: '', text: '-- เลือกระดับการศึกษา --'},
+                {value: 'มัธยมศึกษา', text: 'มัธยมศึกษา'},
+                {value: 'อาชีวศึกษา', text: 'อาชีวศึกษา'},
+                {value: 'ปริญญาตรี', text: 'ปริญญาตรี'}
+              ], profile.educationLevel || '')}
+              ${selectField('profile-year', 'ระดับชั้น', [
+                {value: '', text: '-- เลือกระดับชั้น --'},
+                {value: 'มัธยมศึกษาตอนปลาย', text: 'มัธยมศึกษาตอนปลาย'},
+                {value: 'ปวช.', text: 'ปวช.'}, {value: 'ปวส.', text: 'ปวส.'},
+                {value: 'ชั้นปีที่ 1', text: 'ชั้นปีที่ 1'}, {value: 'ชั้นปีที่ 2', text: 'ชั้นปีที่ 2'},
+                {value: 'ชั้นปีที่ 3', text: 'ชั้นปีที่ 3'}, {value: 'ชั้นปีที่ 4', text: 'ชั้นปีที่ 4'},
+                {value: 'ชั้นปีที่ 5', text: 'ชั้นปีที่ 5'}
               ], profile.year || '')}
               <div class="mb-4">
                 <label for="profile-gpa" class="block text-sm font-medium text-gray-700 mb-1">GPA</label>
@@ -620,12 +630,8 @@ async function renderStudentProfile() {
           <div class="profile-step hidden" data-pstep="4">
           <!-- Section: ข้อมูลเพิ่มเติม -->
           <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ทักษะ / ข้อมูลเพิ่มเติม</h3>
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">ทักษะ/ความสามารถ</label>
-              ${buildProfileSkillsHtml(profile.skills || '')}
-            </div>
-            ${textareaField('profile-interests', 'ความสนใจ', profile.interests || '', 'สิ่งที่สนใจหรืออยากเรียนรู้', 2)}
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">ข้อมูลเพิ่มเติม</h3>
+            ${textareaField('profile-additional-info', 'ข้อมูลเพิ่มเติม', profile.additionalInfo || profile.skills || '', 'กรอกข้อมูลเพิ่มเติม เช่น ทักษะ ความสามารถ ความสนใจ ฯลฯ', 4)}
           </div>
           </div><!-- /step 4 -->
 
@@ -978,6 +984,7 @@ async function renderStudentProfile() {
         university: document.getElementById('profile-university').value.trim(),
         faculty: document.getElementById('profile-faculty').value.trim(),
         major: document.getElementById('profile-major').value.trim(),
+        educationLevel: (document.getElementById('profile-education-level') || {}).value || '',
         year: document.getElementById('profile-year').value,
         gpa: document.getElementById('profile-gpa').value,
         advisorName: document.getElementById('profile-advisor').value.trim(),
@@ -992,8 +999,9 @@ async function renderStudentProfile() {
         preferredDept1: document.getElementById('profile-dept1').value,
         preferredDept2: document.getElementById('profile-dept2').value,
         preferredDept3: document.getElementById('profile-dept3').value,
-        skills: collectProfileSkillsValue(),
-        interests: document.getElementById('profile-interests').value.trim()
+        skills: (document.getElementById('profile-additional-info') || {}).value ? document.getElementById('profile-additional-info').value.trim() : '',
+        interests: '',
+        additionalInfo: (document.getElementById('profile-additional-info') || {}).value ? document.getElementById('profile-additional-info').value.trim() : ''
       };
 
       try {

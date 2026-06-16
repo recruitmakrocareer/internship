@@ -665,7 +665,8 @@ function renderOverviewCalendar() {
         sIndex: lookup ? lookup.sIndex : 0,
         title: title,
         color: color,
-        timeLabel: formatTimeRange(t)
+        timeLabel: formatTimeRange(t),
+        trainerName: p.trainerName || ''
       });
     });
   });
@@ -735,7 +736,7 @@ function renderOverviewCalGrid() {
 
     dayEvents.slice(0, 2).forEach(ev => {
       html += '<div class="' + ev.color + ' text-[9px] leading-tight px-0.5 py-px rounded truncate" title="' +
-        ev.title + (ev.timeLabel ? ' ' + ev.timeLabel : '') + '">' +
+        ev.title + (ev.timeLabel ? ' ' + ev.timeLabel : '') + (ev.trainerName ? ' — ' + ev.trainerName : '') + '">' +
         (ev.timeLabel ? '<span class="font-medium">' + ev.timeLabel + '</span> ' : '') +
         ev.title + '</div>';
     });
@@ -777,7 +778,7 @@ function showDaySummary(dateStr, events, evt) {
     eventsHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors" ' +
       'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ev.stepId + '\', ' + ev.rIndex + ', ' + ev.sIndex + ', \'' + dateStr + '\')">' +
       '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + (ev.color.indexOf('green') >= 0 ? 'bg-green-400' : ev.color.indexOf('blue') >= 0 ? 'bg-blue-400' : ev.color.indexOf('red') >= 0 ? 'bg-red-400' : 'bg-gray-400') + '"></span>' +
-      '<span class="truncate flex-1">' + ev.title + '</span>' +
+      '<span class="truncate flex-1">' + ev.title + (ev.trainerName ? ' <span class="text-gray-400 font-normal">(' + escAttr(ev.trainerName) + ')</span>' : '') + '</span>' +
       (ev.timeLabel ? '<span class="text-[10px] text-gray-400 flex-shrink-0">' + ev.timeLabel + '</span>' : '') +
       '<svg class="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
       '</button>';

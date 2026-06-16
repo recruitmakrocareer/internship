@@ -35,7 +35,6 @@ var THAI_PROVINCE_POSTCODE = {
   'อุดรธานี':'41000','อุตรดิตถ์':'53000','อุทัยธานี':'61000','อุบลราชธานี':'34000'
 };
 
-var SKILLS_CHECKBOXES = ['Excel', 'การเขียนโปรแกรม', 'Graphic Designer', 'Automation', 'ทักษะการขาย', 'การบริการลูกค้า'];
 
 function buildProvinceOptions(selectedValue) {
   var provs = (typeof getThaiProvinces === 'function') ? getThaiProvinces() : THAI_PROVINCES;
@@ -84,7 +83,8 @@ function buildStoreOptions() {
   var opts = '<option value="">-- เลือกสาขา --</option>';
   for (var i = 0; i < _regStoreList.length; i++) {
     var s = _regStoreList[i];
-    opts += '<option value="' + s.storeNo + ' - ' + s.storeName + '">' + s.storeNo + ' - ' + s.storeName + '</option>';
+    var label = s.storeNameTH || s.storeName;
+    opts += '<option value="' + s.storeNo + ' - ' + label + '">' + s.storeNo + ' - ' + label + '</option>';
   }
   return opts;
 }
@@ -105,31 +105,29 @@ function buildDeptOptions() {
   return opts;
 }
 
-function buildSkillsCheckboxesHtml() {
-  var html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">';
-  for (var i = 0; i < SKILLS_CHECKBOXES.length; i++) {
-    var sk = SKILLS_CHECKBOXES[i];
-    html += '<label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="reg-skill-cb w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" value="' + sk + '"> ' + sk + '</label>';
+function buildStoreProvinceOptions() {
+  var seen = {};
+  var opts = '<option value="">-- เลือกจังหวัด --</option>';
+  for (var i = 0; i < _regStoreList.length; i++) {
+    var prov = _regStoreList[i].provinceTH;
+    if (!prov || seen[prov]) continue;
+    seen[prov] = true;
+    opts += '<option value="' + prov + '">' + prov + '</option>';
   }
-  html += '</div>';
-  html += '<div><label class="flex items-center gap-2 text-sm text-gray-700 mb-1"><input type="checkbox" id="reg-skill-other-cb" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"> อื่นๆ</label>';
-  html += '<input type="text" id="reg-skill-other-text" placeholder="ระบุทักษะอื่นๆ" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm mt-1"></div>';
-  return html;
+  return opts;
 }
 
-function collectSkillsValue() {
-  var skills = [];
-  var cbs = document.querySelectorAll('.reg-skill-cb');
-  for (var i = 0; i < cbs.length; i++) {
-    if (cbs[i].checked) skills.push(cbs[i].value);
+function filterStoresByProvince(provinceTH) {
+  var opts = '<option value="">-- เลือกสาขา --</option>';
+  for (var i = 0; i < _regStoreList.length; i++) {
+    var s = _regStoreList[i];
+    if (s.provinceTH !== provinceTH) continue;
+    var label = s.storeNameTH || s.storeName;
+    opts += '<option value="' + s.storeNo + ' - ' + label + '">' + s.storeNo + ' - ' + label + '</option>';
   }
-  var otherCb = document.getElementById('reg-skill-other-cb');
-  var otherText = document.getElementById('reg-skill-other-text');
-  if (otherCb && otherCb.checked && otherText && otherText.value.trim()) {
-    skills.push(otherText.value.trim());
-  }
-  return skills.join(', ');
+  return opts;
 }
+
 
 function renderRegister() {
   const app = document.getElementById('app');
@@ -164,6 +162,7 @@ function renderRegister() {
     var storeOpts = buildStoreOptions();
     var deptOpts = buildDeptOptions();
     var provinceOpts = buildProvinceOptions('');
+    var storeProvinceOpts = buildStoreProvinceOptions();
 
     form.innerHTML = `
       <!-- Section 1: ข้อมูลบัญชี -->
@@ -412,8 +411,8 @@ function renderRegister() {
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
             <div>
-              <label for="reg-university" class="block text-sm font-medium text-gray-700 mb-1">มหาวิทยาลัย <span class="text-red-500">*</span></label>
-              <input type="text" id="reg-university" placeholder="ชื่อมหาวิทยาลัย" required
+              <label for="reg-university" class="block text-sm font-medium text-gray-700 mb-1">ชื่อสถาบันการศึกษา/มหาวิทยาลัย <span class="text-red-500">*</span></label>
+              <input type="text" id="reg-university" placeholder="ชื่อสถาบันการศึกษา/มหาวิทยาลัย" required
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
           </div>
@@ -429,17 +428,30 @@ function renderRegister() {
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label for="reg-year" class="block text-sm font-medium text-gray-700 mb-1">ชั้นปี <span class="text-red-500">*</span></label>
+              <label for="reg-education-level" class="block text-sm font-medium text-gray-700 mb-1">ระดับการศึกษาปัจจุบัน <span class="text-red-500">*</span></label>
+              <select id="reg-education-level" required
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                <option value="">-- เลือกระดับการศึกษา --</option>
+                <option value="มัธยมศึกษา">มัธยมศึกษา</option>
+                <option value="อาชีวศึกษา">อาชีวศึกษา</option>
+                <option value="ปริญญาตรี">ปริญญาตรี</option>
+              </select>
+            </div>
+            <div>
+              <label for="reg-year" class="block text-sm font-medium text-gray-700 mb-1">ระดับชั้น <span class="text-red-500">*</span></label>
               <select id="reg-year" required
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                <option value="">-- เลือกชั้นปี --</option>
-                <option value="1">ปี 1</option>
-                <option value="2">ปี 2</option>
-                <option value="3">ปี 3</option>
-                <option value="4">ปี 4</option>
-                <option value="5">ปี 5</option>
+                <option value="">-- เลือกระดับชั้น --</option>
+                <option value="มัธยมศึกษาตอนปลาย">มัธยมศึกษาตอนปลาย</option>
+                <option value="ปวช.">ปวช.</option>
+                <option value="ปวส.">ปวส.</option>
+                <option value="ชั้นปีที่ 1">ชั้นปีที่ 1</option>
+                <option value="ชั้นปีที่ 2">ชั้นปีที่ 2</option>
+                <option value="ชั้นปีที่ 3">ชั้นปีที่ 3</option>
+                <option value="ชั้นปีที่ 4">ชั้นปีที่ 4</option>
+                <option value="ชั้นปีที่ 5">ชั้นปีที่ 5</option>
               </select>
             </div>
             <div>
@@ -500,11 +512,17 @@ function renderRegister() {
           </div>
 
           <h3 class="text-sm font-semibold text-gray-600 pt-2">สาขาและแผนกที่ต้องการฝึกงาน (เลือก 3 ลำดับ)</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="reg-branch-province1" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด ลำดับ 1</label>
+              <select id="reg-branch-province1" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                ${storeProvinceOpts}
+              </select>
+            </div>
             <div>
               <label for="reg-branch1" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 1</label>
-              <select id="reg-branch1" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                ${storeOpts}
+              <select id="reg-branch1" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-gray-50">
+                <option value="">-- เลือกสาขา --</option>
               </select>
             </div>
             <div>
@@ -514,11 +532,17 @@ function renderRegister() {
               </select>
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="reg-branch-province2" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด ลำดับ 2</label>
+              <select id="reg-branch-province2" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                ${storeProvinceOpts}
+              </select>
+            </div>
             <div>
               <label for="reg-branch2" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 2</label>
-              <select id="reg-branch2" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                ${storeOpts}
+              <select id="reg-branch2" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-gray-50">
+                <option value="">-- เลือกสาขา --</option>
               </select>
             </div>
             <div>
@@ -528,11 +552,17 @@ function renderRegister() {
               </select>
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="reg-branch-province3" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด ลำดับ 3</label>
+              <select id="reg-branch-province3" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                ${storeProvinceOpts}
+              </select>
+            </div>
             <div>
               <label for="reg-branch3" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 3</label>
-              <select id="reg-branch3" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                ${storeOpts}
+              <select id="reg-branch3" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-gray-50">
+                <option value="">-- เลือกสาขา --</option>
               </select>
             </div>
             <div>
@@ -555,12 +585,8 @@ function renderRegister() {
         </div>
         <div class="space-y-4 pl-9">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">ทักษะ/ความสามารถ</label>
-            ${buildSkillsCheckboxesHtml()}
-          </div>
-          <div>
-            <label for="reg-interests" class="block text-sm font-medium text-gray-700 mb-1">ความสนใจ</label>
-            <textarea id="reg-interests" rows="2" placeholder="สิ่งที่สนใจหรืออยากเรียนรู้"
+            <label for="reg-additional-info" class="block text-sm font-medium text-gray-700 mb-1">ข้อมูลเพิ่มเติม</label>
+            <textarea id="reg-additional-info" rows="4" placeholder="กรอกข้อมูลเพิ่มเติม เช่น ทักษะ ความสามารถ ความสนใจ ฯลฯ"
               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -669,11 +695,20 @@ function renderRegister() {
       );
     });
 
-    // Skills "อื่นๆ" checkbox toggle
-    document.getElementById('reg-skill-other-cb').addEventListener('change', function() {
-      var otherInput = document.getElementById('reg-skill-other-text');
-      otherInput.disabled = !this.checked;
-      if (!this.checked) otherInput.value = '';
+    // Province → Branch cascading for all 3 preference rows
+    [1, 2, 3].forEach(function(n) {
+      document.getElementById('reg-branch-province' + n).addEventListener('change', function() {
+        var branchEl = document.getElementById('reg-branch' + n);
+        if (this.value) {
+          branchEl.innerHTML = filterStoresByProvince(this.value);
+          branchEl.disabled = false;
+          branchEl.classList.remove('bg-gray-50');
+        } else {
+          branchEl.innerHTML = '<option value="">-- เลือกสาขา --</option>';
+          branchEl.disabled = true;
+          branchEl.classList.add('bg-gray-50');
+        }
+      });
     });
 
     // Form submit
@@ -821,8 +856,10 @@ async function handleRegisterSubmit(e) {
     preferredDept1: document.getElementById('reg-dept1').value,
     preferredDept2: document.getElementById('reg-dept2').value,
     preferredDept3: document.getElementById('reg-dept3').value,
-    skills: collectSkillsValue(),
-    interests: document.getElementById('reg-interests').value.trim()
+    educationLevel: document.getElementById('reg-education-level').value,
+    skills: document.getElementById('reg-additional-info').value.trim(),
+    interests: '',
+    additionalInfo: document.getElementById('reg-additional-info').value.trim()
   };
 
   errorDiv.classList.add('hidden');

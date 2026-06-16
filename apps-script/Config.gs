@@ -49,7 +49,8 @@ var CONFIG = {
       'currentSubdistrict', 'currentDistrict',
       'idCardHouseNo', 'idCardVillage', 'idCardSoi', 'idCardRoad',
       'idCardSubdistrict', 'idCardDistrict',
-      'maxStudents', 'studentStatus'
+      'maxStudents', 'studentStatus',
+      'educationLevel', 'additionalInfo'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'
@@ -104,7 +105,7 @@ var CONFIG = {
       'createdAt', 'updatedAt',
       'fileUrl', 'fileName'
     ],
-    StoreList: ['storeNo', 'storeName'],
+    StoreList: ['storeNo', 'storeName', 'storeNameTH', 'formatType', 'subregion', 'province', 'provinceTH'],
     DepartmentList: ['division', 'department']
   },
 

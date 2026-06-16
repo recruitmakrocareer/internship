@@ -652,6 +652,10 @@ async function viewStudentDetail(studentId) {
           <div class="flex gap-3 pt-2">
             <button onclick="document.getElementById('detail-modal').remove(); openEditStudentModal('${escJs(studentId)}')" class="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-700">แก้ไขข้อมูล</button>
             <button onclick="document.getElementById('detail-modal').remove(); openAssignRoadmapModal('${escJs(studentId)}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700">Assign แผนฝึกงาน</button>
+            <button onclick="printStudentProfile('${escJs(studentId)}')" class="flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              พิมพ์
+            </button>
           </div>
         </div>
       </div>
@@ -801,7 +805,7 @@ async function openEditStudentModal(studentId) {
     if (!student) { showToast('ไม่พบข้อมูล', 'error'); return; }
 
     _editDeptOptions = (deptRes.success && deptRes.data) ? deptRes.data.map(function(d) { return d.department; }).filter(Boolean) : [];
-    _editBranchOptions = (storeRes.success && storeRes.data) ? storeRes.data.map(function(s) { return s.storeNo + ' - ' + s.storeName; }) : [];
+    _editBranchOptions = (storeRes.success && storeRes.data) ? storeRes.data.map(function(s) { return s.storeNo + ' - ' + (s.storeNameTH || s.storeName); }) : [];
     var deptUnique = [];
     _editDeptOptions.forEach(function(d) { if (deptUnique.indexOf(d) === -1) deptUnique.push(d); });
     _editDeptOptions = deptUnique;
@@ -1224,5 +1228,90 @@ function toggleStudentActionMenu(btn) {
         }
       });
     }, 0);
+  }
+}
+
+function printStudentProfile(studentId) {
+  var student = _studentsCache.find(function(s) { return s.id === studentId; });
+  if (!student) { showToast('ไม่พบข้อมูล', 'error'); return; }
+
+  var displayName = (student.prefix || '') + (student.firstName || '') + ' ' + (student.lastName || '');
+  var photoHtml = '';
+  var photoSrc = student.photoFileUrl || student.profileImage;
+  if (photoSrc) {
+    photoHtml = '<img src="' + safeUrl(driveImageUrl(photoSrc)) + '" style="width:120px;height:150px;object-fit:cover;border:1px solid #ddd;border-radius:6px;" alt="photo">';
+  } else {
+    photoHtml = '<div style="width:120px;height:150px;background:#f0f0f0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:40px;font-weight:bold;">' + (student.firstName || 'S').charAt(0) + '</div>';
+  }
+
+  var field = function(label, val) { return '<tr><td style="padding:4px 12px 4px 0;color:#666;white-space:nowrap;vertical-align:top;">' + label + '</td><td style="padding:4px 0;font-weight:500;">' + (val || '-') + '</td></tr>'; };
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>ประวัตินักศึกษา - ' + escAttr(displayName) + '</title>' +
+    '<style>@page{size:A4;margin:15mm}body{font-family:"Sarabun",sans-serif;font-size:13px;color:#333;margin:0;padding:20px}' +
+    'h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;color:#555;margin:16px 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px}' +
+    'table{border-collapse:collapse;width:100%}.header{display:flex;gap:20px;align-items:flex-start;margin-bottom:16px}' +
+    '.logo{text-align:center;margin-bottom:12px;font-size:16px;font-weight:bold;color:#1e40af}' +
+    '@media print{body{padding:0}.no-print{display:none!important}}</style></head><body>' +
+    '<div class="no-print" style="text-align:right;margin-bottom:12px"><button onclick="window.print()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">พิมพ์ / บันทึก PDF</button></div>' +
+    '<div class="logo">ระบบจัดการฝึกงาน Makro — ประวัตินักศึกษา</div>' +
+    '<div class="header">' + photoHtml +
+    '<div style="flex:1"><h1>' + escAttr(displayName) + '</h1>' +
+    '<div style="color:#666;font-size:12px">' + escAttr(student.email || '') + (student.phone ? ' | ' + escAttr(student.phone) : '') + '</div>' +
+    '<div style="color:#666;font-size:12px">รหัสนักศึกษา: ' + escAttr(student.studentId || '-') + '</div>' +
+    '</div></div>' +
+    '<h2>ข้อมูลส่วนตัว</h2><table>' +
+    field('ชื่อ-นามสกุล', escAttr(displayName)) +
+    field('ชื่อเล่น', escAttr(student.nickname)) +
+    field('วันเกิด', student.birthDate ? formatDate(student.birthDate) : '') +
+    field('เลขบัตรประชาชน', escAttr(student.idCardNumber)) +
+    field('โทรศัพท์', escAttr(student.phone)) +
+    field('อีเมล', escAttr(student.email)) +
+    field('สถานะทางทหาร', escAttr(student.militaryStatus)) +
+    field('โรคประจำตัว', escAttr(student.medicalCondition)) +
+    '</table>' +
+    '<h2>ที่อยู่</h2><table>' +
+    field('ที่อยู่ปัจจุบัน', escAttr(student.currentAddress || student.address)) +
+    field('ที่อยู่ตามบัตรประชาชน', escAttr(student.idCardAddress)) +
+    '</table>' +
+    '<h2>การศึกษา</h2><table>' +
+    field('สถาบันการศึกษา', escAttr(student.university)) +
+    field('ที่อยู่มหาวิทยาลัย', escAttr(student.universityAddress)) +
+    field('คณะ', escAttr(student.faculty)) +
+    field('สาขา', escAttr(student.major)) +
+    field('ระดับการศึกษา', escAttr(student.educationLevel)) +
+    field('ระดับชั้น', escAttr(student.year)) +
+    field('GPA', escAttr(student.gpa)) +
+    field('อาจารย์ที่ปรึกษา', escAttr(student.advisorName)) +
+    field('เบอร์/อีเมลอาจารย์', escAttr(student.advisorContact)) +
+    '</table>' +
+    '<h2>ข้อมูลการฝึกงาน</h2><table>' +
+    field('ประเภทการฝึก', escAttr(student.internshipType)) +
+    field('วันเริ่มฝึก', student.startDate ? formatDate(student.startDate) : '') +
+    field('วันสิ้นสุดฝึก', student.endDate ? formatDate(student.endDate) : '') +
+    field('แผนกที่ฝึก', escAttr(student.department)) +
+    field('สาขาที่ฝึก', escAttr(student.branch)) +
+    field('รหัสพนักงาน', escAttr(student.employeeId)) +
+    '</table>' +
+    '<h2>สาขา/แผนกที่ต้องการ</h2><table>' +
+    field('ลำดับ 1', escAttr(student.preferredBranch1) + (student.preferredDept1 ? ' (' + escAttr(student.preferredDept1) + ')' : '')) +
+    field('ลำดับ 2', escAttr(student.preferredBranch2) + (student.preferredDept2 ? ' (' + escAttr(student.preferredDept2) + ')' : '')) +
+    field('ลำดับ 3', escAttr(student.preferredBranch3) + (student.preferredDept3 ? ' (' + escAttr(student.preferredDept3) + ')' : '')) +
+    '</table>' +
+    '<h2>ข้อมูลเพิ่มเติม</h2><table>' +
+    field('ทักษะ/ข้อมูลเพิ่มเติม', escAttr(student.skills || student.additionalInfo)) +
+    '</table>' +
+    '<h2>เอกสารแนบ</h2><table>' +
+    field('CV/Resume', student.cvFileUrl ? '<a href="' + safeUrl(student.cvFileUrl) + '">' + escAttr(student.cvFileName || 'ดาวน์โหลด') + '</a>' : 'ไม่มี') +
+    field('ใบรับรองผลการเรียน', student.transcriptFileUrl ? '<a href="' + safeUrl(student.transcriptFileUrl) + '">' + escAttr(student.transcriptFileName || 'ดาวน์โหลด') + '</a>' : 'ไม่มี') +
+    field('รูปถ่าย', student.photoFileUrl ? 'มี' : 'ไม่มี') +
+    '</table>' +
+    '</body></html>';
+
+  var w = window.open('', '_blank');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+  } else {
+    showToast('กรุณาอนุญาตให้เปิด Popup', 'error');
   }
 }

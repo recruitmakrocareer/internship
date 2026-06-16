@@ -103,7 +103,11 @@ function getAllRows(sheetName) {
     for (var i = 1; i < data.length; i++) {
       var row = {};
       for (var j = 0; j < headers.length; j++) {
-        row[headers[j]] = data[i][j];
+        var val = data[i][j];
+        if (val instanceof Date) {
+          val = val.toISOString();
+        }
+        row[headers[j]] = val;
       }
       rows.push(row);
     }
