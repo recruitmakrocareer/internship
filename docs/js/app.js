@@ -81,15 +81,18 @@ function parsePlanDayTimes(p) {
 }
 
 /**
- * แปลง Sheets date-serial time (1899-12-30T...) หรือ ISO datetime เป็น HH:MM
+ * แปลง Sheets date-serial time (1899-12-30T...) หรือ ISO datetime เป็น HH:MM (เวลาท้องถิ่น)
  */
 function sanitizeTime(v) {
   if (!v) return '';
   var s = String(v).trim();
-  var m = s.match(/^1899-12-\d{2}T(\d{2}):(\d{2})/);
-  if (m) return m[1] + ':' + m[2];
-  m = s.match(/^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/);
-  if (m) return m[1] + ':' + m[2];
+  if (/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5, '0');
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+  }
   return s;
 }
 
@@ -510,10 +513,14 @@ function escAttr(v) {
 function sanitizeSheetTitle(v) {
   if (!v) return '';
   var s = String(v);
-  var m = s.match(/^1899-12-30T(\d{2}):(\d{2})/);
-  if (m) return m[1] + ':' + m[2];
-  m = s.match(/^1899-12-\d{2}T/);
-  if (m) return 'หัวข้อการฝึก';
+  if (/^1899-12-\d{2}T/.test(s)) {
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      var h = d.getHours(), m = d.getMinutes();
+      if (h || m) return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+    return 'หัวข้อการฝึก';
+  }
   return s;
 }
 

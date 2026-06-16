@@ -580,7 +580,7 @@ async function renderStudentDashboard(content) {
             <h2 class="text-xl font-bold truncate">สวัสดี, ${escAttr(user.name || 'นักศึกษา')}</h2>
             <p class="text-sm text-blue-100 truncate">${escAttr(user.email || '')}</p>
           </div>
-          <div id="dash-countdown" class="hidden sm:block flex-shrink-0 text-right"></div>
+          <div id="dash-countdown" class="flex-shrink-0 text-right"></div>
         </div>
       </div>
 
@@ -737,7 +737,7 @@ async function renderStudentDashboard(content) {
 
       // Feature: avatar image (fallback to initial on missing/broken image)
       var avatarEl = document.getElementById('dash-avatar');
-      var photo = profile.profileImage || profile.photoUrl || user.profileImage;
+      var photo = profile.photoFileUrl || profile.profileImage || profile.photoUrl || user.profileImage || user.photoFileUrl;
       if (avatarEl && photo) {
         avatarEl.innerHTML = '<img src="' + safeUrl(driveImageUrl(photo)) + '" alt="โปรไฟล์" class="w-full h-full object-cover" ' +
           'onerror="dashAvatarError(this, \'' + escJs((user.name || 'S').charAt(0)) + '\')">';
