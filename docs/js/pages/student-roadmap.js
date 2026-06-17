@@ -271,6 +271,17 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
   // Per-day time overrides (keyed by date string, value: {start, end})
   window._planDayTimes = parsePlanDayTimes(p);
 
+  // Derive global time display: prefer saved global times, fallback to first dayTime entry
+  var _dtKeys = Object.keys(window._planDayTimes || {}).sort();
+  var _globalStart = sanitizeTime(p.startTime);
+  var _globalEnd = sanitizeTime(p.endTime);
+  if (!_globalStart && _dtKeys.length > 0 && window._planDayTimes[_dtKeys[0]]) {
+    _globalStart = sanitizeTime(window._planDayTimes[_dtKeys[0]].start);
+  }
+  if (!_globalEnd && _dtKeys.length > 0 && window._planDayTimes[_dtKeys[0]]) {
+    _globalEnd = sanitizeTime(window._planDayTimes[_dtKeys[0]].end);
+  }
+
   document.getElementById('step-modal-title').textContent = step.title || 'ขั้นตอนที่ ' + (stepIndex + 1);
 
   // ส่วนแสดงผลการประเมิน
@@ -376,12 +387,12 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">เวลาเริ่ม</label>
-            <input type="time" id="plan-start-time" value="${sanitizeTime(p.startTime) || '09:00'}"
+            <input type="time" id="plan-start-time" value="${_globalStart}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">เวลาสิ้นสุด</label>
-            <input type="time" id="plan-end-time" value="${sanitizeTime(p.endTime) || '17:00'}"
+            <input type="time" id="plan-end-time" value="${_globalEnd}"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
@@ -450,10 +461,16 @@ function openStepModal(stepId, roadmapIndex, stepIndex, clickedDate) {
 function addPlanDayRow(date, start, end) {
   const container = document.getElementById('plan-day-rows');
   if (!container) return;
-  const gs = document.getElementById('plan-start-time');
-  const ge = document.getElementById('plan-end-time');
-  const defStart = sanitizeTime(start) || (gs && gs.value) || '09:00';
-  const defEnd = sanitizeTime(end) || (ge && ge.value) || '17:00';
+  var defStart, defEnd;
+  if (start !== undefined || end !== undefined) {
+    defStart = sanitizeTime(start) || '';
+    defEnd = sanitizeTime(end) || '';
+  } else {
+    var gs = document.getElementById('plan-start-time');
+    var ge = document.getElementById('plan-end-time');
+    defStart = (gs && gs.value) || '09:00';
+    defEnd = (ge && ge.value) || '17:00';
+  }
   const row = document.createElement('div');
   row.className = 'plan-day-row flex items-center gap-2';
   row.innerHTML =
@@ -532,6 +549,17 @@ async function saveStepProgress(stepId) {
 
   // อ่านแถววันฝึกรายวันกลับเข้า state ก่อนส่ง
   collectPlanDays();
+
+  // Auto-sync global time fields from per-day times to prevent stale defaults
+  var _dtObj = window._planDayTimes || {};
+  var _dtSorted = Object.keys(_dtObj).sort();
+  if (_dtSorted.length > 0 && _dtObj[_dtSorted[0]]) {
+    var _ft = _dtObj[_dtSorted[0]];
+    var gStartEl = document.getElementById('plan-start-time');
+    var gEndEl = document.getElementById('plan-end-time');
+    if (_ft.start && gStartEl && !gStartEl.value) gStartEl.value = _ft.start;
+    if (_ft.end && gEndEl && !gEndEl.value) gEndEl.value = _ft.end;
+  }
 
   showLoading();
   try {
@@ -666,7 +694,8 @@ function renderOverviewCalendar() {
         title: title,
         color: color,
         timeLabel: formatTimeRange(t),
-        trainerName: p.trainerName || ''
+        trainerName: p.trainerName || '',
+        trainerPosition: p.trainerPosition || ''
       });
     });
   });
@@ -736,7 +765,7 @@ function renderOverviewCalGrid() {
 
     dayEvents.slice(0, 2).forEach(ev => {
       html += '<div class="' + ev.color + ' text-[9px] leading-tight px-0.5 py-px rounded truncate" title="' +
-        ev.title + (ev.timeLabel ? ' ' + ev.timeLabel : '') + (ev.trainerName ? ' — ' + ev.trainerName : '') + '">' +
+        ev.title + (ev.timeLabel ? ' ' + ev.timeLabel : '') + (ev.trainerName ? ' — ' + ev.trainerName + (ev.trainerPosition ? ' (' + ev.trainerPosition + ')' : '') : '') + '">' +
         (ev.timeLabel ? '<span class="font-medium">' + ev.timeLabel + '</span> ' : '') +
         ev.title + '</div>';
     });
@@ -778,7 +807,7 @@ function showDaySummary(dateStr, events, evt) {
     eventsHtml += '<button class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors" ' +
       'onclick="document.getElementById(\'day-step-picker\').remove(); openStepModal(\'' + ev.stepId + '\', ' + ev.rIndex + ', ' + ev.sIndex + ', \'' + dateStr + '\')">' +
       '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + (ev.color.indexOf('green') >= 0 ? 'bg-green-400' : ev.color.indexOf('blue') >= 0 ? 'bg-blue-400' : ev.color.indexOf('red') >= 0 ? 'bg-red-400' : 'bg-gray-400') + '"></span>' +
-      '<span class="truncate flex-1">' + ev.title + (ev.trainerName ? ' <span class="text-gray-400 font-normal">(' + escAttr(ev.trainerName) + ')</span>' : '') + '</span>' +
+      '<span class="truncate flex-1">' + ev.title + (ev.trainerName ? ' <span class="text-gray-400 font-normal">(' + escAttr(ev.trainerName) + (ev.trainerPosition ? ' — ' + escAttr(ev.trainerPosition) : '') + ')</span>' : '') + '</span>' +
       (ev.timeLabel ? '<span class="text-[10px] text-gray-400 flex-shrink-0">' + ev.timeLabel + '</span>' : '') +
       '<svg class="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
       '</button>';

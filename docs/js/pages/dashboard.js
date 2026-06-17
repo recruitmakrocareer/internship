@@ -780,7 +780,8 @@ async function renderStudentDashboard(content) {
             time: tm,
             startMin: toMin(tm.start),
             pass: String(p.evalResult || '').toUpperCase() === 'PASS',
-            trainerName: p.trainerName || ''
+            trainerName: p.trainerName || '',
+            trainerPosition: p.trainerPosition || ''
           });
         });
       });
@@ -794,7 +795,7 @@ async function renderStudentDashboard(content) {
             '<div class="flex-shrink-0 w-1.5 rounded-full ' + (ev.pass ? 'bg-green-400' : 'bg-primary-500') + '"></div>' +
             '<div class="flex-1 min-w-0 bg-primary-50 rounded-lg px-3 py-2">' +
               '<p class="text-sm font-medium text-gray-800 truncate">' + escAttr(ev.title) + '</p>' +
-              (ev.trainerName ? '<p class="text-[11px] text-gray-500 truncate"><svg class="inline w-3 h-3 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>' + escAttr(ev.trainerName) + '</p>' : '') +
+              (ev.trainerName ? '<p class="text-[11px] text-gray-500 truncate"><svg class="inline w-3 h-3 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>' + escAttr(ev.trainerName) + (ev.trainerPosition ? ' <span class="text-gray-400">(' + escAttr(ev.trainerPosition) + ')</span>' : '') + '</p>' : '') +
               (ev.pass ? '<span class="text-[11px] text-green-600">✓ ผ่านการประเมินแล้ว</span>' : '') +
             '</div>' +
           '</div>';

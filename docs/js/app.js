@@ -122,6 +122,19 @@ function formatTimeRange(t) {
   return (t.start || '–') + '–' + (t.end || '–');
 }
 
+function composeAddressString(houseNo, village, soi, road, subdistrict, district, province, postcode) {
+  var parts = [];
+  if (houseNo) parts.push(houseNo);
+  if (village) parts.push(village);
+  if (soi) parts.push('ซ.' + soi);
+  if (road) parts.push('ถ.' + road);
+  if (subdistrict) parts.push('แขวง/ตำบล ' + subdistrict);
+  if (district) parts.push('เขต/อำเภอ ' + district);
+  if (province) parts.push('จังหวัด ' + province);
+  if (postcode) parts.push(postcode);
+  return parts.join(' ');
+}
+
 /**
  * ตรวจว่าช่วงเวลาสองช่วงทับซ้อนกันหรือไม่ (รองรับกะข้ามคืน เช่น 22:00–06:00)
  * ช่วงที่ไม่ระบุเวลา = ทั้งวัน → ถือว่าทับซ้อนเสมอ

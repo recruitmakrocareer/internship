@@ -50,7 +50,8 @@ var CONFIG = {
       'idCardHouseNo', 'idCardVillage', 'idCardSoi', 'idCardRoad',
       'idCardSubdistrict', 'idCardDistrict',
       'maxStudents', 'studentStatus',
-      'educationLevel', 'additionalInfo'
+      'educationLevel', 'additionalInfo',
+      'uniHouseNo', 'uniRoad', 'uniSubdistrict', 'uniDistrict', 'uniProvince', 'uniPostcode'
     ],
     MentorStudents: [
       'id', 'mentorId', 'studentId', 'assignedAt', 'isActive'

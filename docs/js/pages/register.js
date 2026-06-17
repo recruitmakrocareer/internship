@@ -107,22 +107,40 @@ function buildDeptOptions() {
 
 function buildStoreProvinceOptions() {
   var seen = {};
-  var opts = '<option value="">-- เลือกจังหวัด --</option>';
+  var provinces = [];
   for (var i = 0; i < _regStoreList.length; i++) {
-    var prov = _regStoreList[i].provinceTH;
+    var prov = _regStoreList[i].provinceTH || _regStoreList[i].province || '';
     if (!prov || seen[prov]) continue;
     seen[prov] = true;
-    opts += '<option value="' + prov + '">' + prov + '</option>';
+    provinces.push(prov);
+  }
+  provinces.sort();
+  var opts = '';
+  for (var j = 0; j < provinces.length; j++) {
+    opts += '<option value="' + provinces[j] + '">';
   }
   return opts;
+}
+
+function getStoreProvinceList() {
+  var seen = {};
+  var provinces = [];
+  for (var i = 0; i < _regStoreList.length; i++) {
+    var prov = _regStoreList[i].provinceTH || _regStoreList[i].province || '';
+    if (!prov || seen[prov]) continue;
+    seen[prov] = true;
+    provinces.push(prov);
+  }
+  return provinces.sort();
 }
 
 function filterStoresByProvince(provinceTH) {
   var opts = '<option value="">-- เลือกสาขา --</option>';
   for (var i = 0; i < _regStoreList.length; i++) {
     var s = _regStoreList[i];
-    if (s.provinceTH !== provinceTH) continue;
-    var label = s.storeNameTH || s.storeName;
+    var storeProv = s.provinceTH || s.province || '';
+    if (storeProv !== provinceTH) continue;
+    var label = s.storeNameTH || s.storeName || s.storeNo;
     opts += '<option value="' + s.storeNo + ' - ' + label + '">' + s.storeNo + ' - ' + label + '</option>';
   }
   return opts;
@@ -472,10 +490,44 @@ function renderRegister() {
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
           </div>
-          <div>
-            <label for="reg-uni-address" class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่มหาวิทยาลัย</label>
-            <textarea id="reg-uni-address" rows="2" placeholder="ที่อยู่ของมหาวิทยาลัย"
-              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+          <h3 class="text-sm font-semibold text-gray-600 pt-2">ที่อยู่สถาบันการศึกษา</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-uni-house-no" class="block text-sm font-medium text-gray-700 mb-1">บ้านเลขที่/ถนน</label>
+              <input type="text" id="reg-uni-house-no" placeholder="เช่น 999 ถ.พหลโยธิน"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+            <div>
+              <label for="reg-uni-road" class="block text-sm font-medium text-gray-700 mb-1">ซอย/ถนน</label>
+              <input type="text" id="reg-uni-road" placeholder="ซอย/ถนน"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-uni-subdistrict" class="block text-sm font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
+              <input type="text" id="reg-uni-subdistrict" placeholder="แขวง/ตำบล"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+            <div>
+              <label for="reg-uni-district" class="block text-sm font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
+              <input type="text" id="reg-uni-district" placeholder="เขต/อำเภอ"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="reg-uni-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+              <select id="reg-uni-province"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                ${provinceOpts}
+              </select>
+            </div>
+            <div>
+              <label for="reg-uni-postcode" class="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+              <input type="text" id="reg-uni-postcode" placeholder="รหัสไปรษณีย์" maxlength="5"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+            </div>
           </div>
         </div>
       </div>
@@ -512,17 +564,17 @@ function renderRegister() {
           </div>
 
           <h3 class="text-sm font-semibold text-gray-600 pt-2">สาขาและแผนกที่ต้องการฝึกงาน (เลือก 3 ลำดับ)</h3>
+          <datalist id="reg-store-province-list">${storeProvinceOpts}</datalist>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label for="reg-branch-province1" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด ลำดับ 1</label>
-              <select id="reg-branch-province1" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                ${storeProvinceOpts}
-              </select>
+              <input list="reg-store-province-list" id="reg-branch-province1" placeholder="พิมพ์เพื่อค้นหาจังหวัด..." autocomplete="off"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
             <div>
               <label for="reg-branch1" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 1</label>
               <select id="reg-branch1" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-gray-50">
-                <option value="">-- เลือกสาขา --</option>
+                <option value="">-- เลือกจังหวัดก่อน --</option>
               </select>
             </div>
             <div>
@@ -535,14 +587,13 @@ function renderRegister() {
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label for="reg-branch-province2" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด ลำดับ 2</label>
-              <select id="reg-branch-province2" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                ${storeProvinceOpts}
-              </select>
+              <input list="reg-store-province-list" id="reg-branch-province2" placeholder="พิมพ์เพื่อค้นหาจังหวัด..." autocomplete="off"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
             <div>
               <label for="reg-branch2" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 2</label>
               <select id="reg-branch2" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-gray-50">
-                <option value="">-- เลือกสาขา --</option>
+                <option value="">-- เลือกจังหวัดก่อน --</option>
               </select>
             </div>
             <div>
@@ -555,14 +606,13 @@ function renderRegister() {
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label for="reg-branch-province3" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด ลำดับ 3</label>
-              <select id="reg-branch-province3" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                ${storeProvinceOpts}
-              </select>
+              <input list="reg-store-province-list" id="reg-branch-province3" placeholder="พิมพ์เพื่อค้นหาจังหวัด..." autocomplete="off"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
             </div>
             <div>
               <label for="reg-branch3" class="block text-sm font-medium text-gray-700 mb-1">สาขาที่ต้องการ ลำดับ 3</label>
               <select id="reg-branch3" disabled class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-gray-50">
-                <option value="">-- เลือกสาขา --</option>
+                <option value="">-- เลือกจังหวัดก่อน --</option>
               </select>
             </div>
             <div>
@@ -695,20 +745,25 @@ function renderRegister() {
       );
     });
 
-    // Province → Branch cascading for all 3 preference rows
+    // Province → Branch cascading for all 3 preference rows (searchable input)
+    var _storeProvList = getStoreProvinceList();
     [1, 2, 3].forEach(function(n) {
-      document.getElementById('reg-branch-province' + n).addEventListener('change', function() {
+      var provInput = document.getElementById('reg-branch-province' + n);
+      var cascadeProvince = function() {
         var branchEl = document.getElementById('reg-branch' + n);
-        if (this.value) {
-          branchEl.innerHTML = filterStoresByProvince(this.value);
+        var val = provInput.value.trim();
+        if (val && _storeProvList.indexOf(val) !== -1) {
+          branchEl.innerHTML = filterStoresByProvince(val);
           branchEl.disabled = false;
           branchEl.classList.remove('bg-gray-50');
         } else {
-          branchEl.innerHTML = '<option value="">-- เลือกสาขา --</option>';
+          branchEl.innerHTML = '<option value="">-- เลือกจังหวัดก่อน --</option>';
           branchEl.disabled = true;
           branchEl.classList.add('bg-gray-50');
         }
-      });
+      };
+      provInput.addEventListener('change', cascadeProvince);
+      provInput.addEventListener('input', function() { setTimeout(cascadeProvince, 50); });
     });
 
     // Form submit
@@ -846,7 +901,20 @@ async function handleRegisterSubmit(e) {
     gpa: document.getElementById('reg-gpa').value || '',
     advisorName: document.getElementById('reg-advisor').value.trim(),
     advisorContact: document.getElementById('reg-advisor-phone').value.trim(),
-    universityAddress: document.getElementById('reg-uni-address').value.trim(),
+    uniHouseNo: (document.getElementById('reg-uni-house-no') || {}).value ? document.getElementById('reg-uni-house-no').value.trim() : '',
+    uniRoad: (document.getElementById('reg-uni-road') || {}).value ? document.getElementById('reg-uni-road').value.trim() : '',
+    uniSubdistrict: (document.getElementById('reg-uni-subdistrict') || {}).value ? document.getElementById('reg-uni-subdistrict').value.trim() : '',
+    uniDistrict: (document.getElementById('reg-uni-district') || {}).value ? document.getElementById('reg-uni-district').value.trim() : '',
+    uniProvince: (document.getElementById('reg-uni-province') || {}).value || '',
+    uniPostcode: (document.getElementById('reg-uni-postcode') || {}).value ? document.getElementById('reg-uni-postcode').value.trim() : '',
+    universityAddress: composeAddressString(
+      (document.getElementById('reg-uni-house-no') || {}).value || '',
+      '', '', (document.getElementById('reg-uni-road') || {}).value || '',
+      (document.getElementById('reg-uni-subdistrict') || {}).value || '',
+      (document.getElementById('reg-uni-district') || {}).value || '',
+      (document.getElementById('reg-uni-province') || {}).value || '',
+      (document.getElementById('reg-uni-postcode') || {}).value || ''
+    ),
     internshipType: document.getElementById('reg-internship-type').value,
     startDate: document.getElementById('reg-start-date').value,
     endDate: document.getElementById('reg-end-date').value,

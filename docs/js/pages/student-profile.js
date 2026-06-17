@@ -542,10 +542,23 @@ async function renderStudentProfile() {
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
               </div>
             </div>
-            <div class="mb-4">
-              <label for="profile-uni-address" class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่มหาวิทยาลัย</label>
-              <textarea id="profile-uni-address" rows="2" placeholder="ที่อยู่ของมหาวิทยาลัย"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">${escAttr(profile.universityAddress || '')}</textarea>
+            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-2 mb-2">ที่อยู่สถาบันการศึกษา</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${inputField('profile-uni-house-no', 'บ้านเลขที่/ถนน', 'text', profile.uniHouseNo || '')}
+              ${inputField('profile-uni-road', 'ซอย/ถนน', 'text', profile.uniRoad || '')}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${inputField('profile-uni-subdistrict', 'แขวง/ตำบล', 'text', profile.uniSubdistrict || '')}
+              ${inputField('profile-uni-district', 'เขต/อำเภอ', 'text', profile.uniDistrict || '')}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label for="profile-uni-province" class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                <select id="profile-uni-province" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                  ${buildProvinceOptions(profile.uniProvince || '')}
+                </select>
+              </div>
+              ${inputField('profile-uni-postcode', 'รหัสไปรษณีย์', 'text', profile.uniPostcode || '')}
             </div>
           </div>
 
@@ -989,7 +1002,20 @@ async function renderStudentProfile() {
         gpa: document.getElementById('profile-gpa').value,
         advisorName: document.getElementById('profile-advisor').value.trim(),
         advisorContact: document.getElementById('profile-advisor-contact').value.trim(),
-        universityAddress: document.getElementById('profile-uni-address').value.trim(),
+        uniHouseNo: (document.getElementById('profile-uni-house-no') || {}).value ? document.getElementById('profile-uni-house-no').value.trim() : '',
+        uniRoad: (document.getElementById('profile-uni-road') || {}).value ? document.getElementById('profile-uni-road').value.trim() : '',
+        uniSubdistrict: (document.getElementById('profile-uni-subdistrict') || {}).value ? document.getElementById('profile-uni-subdistrict').value.trim() : '',
+        uniDistrict: (document.getElementById('profile-uni-district') || {}).value ? document.getElementById('profile-uni-district').value.trim() : '',
+        uniProvince: (document.getElementById('profile-uni-province') || {}).value || '',
+        uniPostcode: (document.getElementById('profile-uni-postcode') || {}).value ? document.getElementById('profile-uni-postcode').value.trim() : '',
+        universityAddress: (typeof composeAddressString === 'function') ? composeAddressString(
+          (document.getElementById('profile-uni-house-no') || {}).value || '',
+          '', '', (document.getElementById('profile-uni-road') || {}).value || '',
+          (document.getElementById('profile-uni-subdistrict') || {}).value || '',
+          (document.getElementById('profile-uni-district') || {}).value || '',
+          (document.getElementById('profile-uni-province') || {}).value || '',
+          (document.getElementById('profile-uni-postcode') || {}).value || ''
+        ) : '',
         internshipType: document.getElementById('profile-internship-type').value,
         startDate: document.getElementById('profile-start-date').value,
         endDate: document.getElementById('profile-end-date').value,
