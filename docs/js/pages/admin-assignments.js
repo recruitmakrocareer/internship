@@ -61,7 +61,8 @@ async function loadAdminAssignments() {
                 <td class="p-3"><span class="px-2 py-1 text-xs rounded-full ${a.isActive === 'true' || a.isActive === true ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">${a.isActive === 'true' || a.isActive === true ? 'เปิดใช้งาน' : 'ปิด'}</span></td>
                 <td class="p-3 text-center">
                   <button onclick="editAssignment('${escJs(a.id)}')" class="text-blue-600 hover:underline text-sm mr-2">แก้ไข</button>
-                  <button onclick="viewSubmissions('${escJs(a.id)}','${escJs(a.title||'')}')" class="text-green-600 hover:underline text-sm">ดูงานที่ส่ง</button>
+                  <button onclick="viewSubmissions('${escJs(a.id)}','${escJs(a.title||'')}')" class="text-green-600 hover:underline text-sm mr-2">ดูงานที่ส่ง</button>
+                  <button onclick="deleteAssignmentById('${escJs(a.id)}','${escJs(a.title||'')}')" class="text-red-600 hover:underline text-sm">ลบ</button>
                 </td>
               </tr>
             `).join('')}
@@ -202,5 +203,29 @@ async function viewSubmissions(assignmentId, title) {
       </div>`;
   } catch (e) {
     document.getElementById('assign-modal-content').innerHTML = '<div class="text-center py-8 text-red-500">เกิดข้อผิดพลาด</div>';
+  }
+}
+
+/**
+ * ลบงานมอบหมาย (backend มี deleteAssignment มาตลอดแต่ยังไม่มีปุ่มเรียกใช้)
+ * เป็นการลบแบบ soft delete — ตั้ง isActive = false ทำให้หายจากทุกรายการ
+ * แต่แถวข้อมูลและงานที่นักศึกษาส่งไว้ยังอยู่ในชีท
+ */
+async function deleteAssignmentById(id, title) {
+  if (!confirm('ลบงาน "' + (title || '') + '" ?\n\nงานจะหายจากรายการและนักศึกษาจะไม่เห็นงานนี้อีก (ข้อมูลที่ส่งไว้ยังเก็บอยู่ในชีท)')) return;
+
+  showLoading();
+  try {
+    const res = await callApiPost('deleteAssignment', { id: id });
+    hideLoading();
+    if (res.success === false) {
+      showToast(res.message || 'ไม่สามารถลบงานได้', 'error');
+      return;
+    }
+    showToast('ลบงานสำเร็จ', 'success');
+    await loadAdminAssignments();
+  } catch (e) {
+    hideLoading();
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 }

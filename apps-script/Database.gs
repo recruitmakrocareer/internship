@@ -82,6 +82,7 @@ function reconcileHeaders(sheet, expected) {
   // Existing headers are a valid prefix of expected. Append any missing columns.
   if (currentLen < expected.length) {
     sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
+    invalidateSheetCache_(sheet.getName());
     sheet.getRange(1, 1, 1, expected.length).setFontWeight('bold');
     if (sheet.getFrozenRows() < 1) sheet.setFrozenRows(1);
     return 'extended ' + currentLen + ' -> ' + expected.length + ' cols';
@@ -131,20 +132,41 @@ function isReferenceSheet(sheetName) {
 }
 
 /**
- * Gets all rows from a sheet as an array of objects.
- * @param {string} sheetName - The name of the sheet
- * @return {Object[]} Array of row objects with header keys
+ * แคชข้อมูลชีทต่อ 1 request
+ *
+ * ทำไมต้องมี: getRowById() อ่านทั้งชีทหนึ่งครั้งต่อการเรียกหนึ่งครั้ง และหลาย handler
+ * เรียกมันในลูป (เช่น getSubmissions หา user + assignment ของทุกแถว) ทำให้รายการ
+ * 50 แถวกลายเป็นการอ่านชีทเป็นร้อยครั้ง ซึ่งเป็นงานที่ช้าที่สุดใน Apps Script
+ *
+ * ปลอดภัยเพราะ Apps Script เริ่มตัวแปร global ใหม่ทุกครั้งที่ web app ถูกเรียก
+ * แคชจึงมีอายุแค่ภายใน request เดียว ไม่มีข้อมูลค้างข้าม request
+ * และทุกฟังก์ชันที่เขียนข้อมูลจะล้างแคชของชีทนั้นทันที
  */
-function getAllRows(sheetName) {
-  try {
-    var sheet = getSheet(sheetName);
-    var data = sheet.getDataRange().getValues();
+var SHEET_CACHE_ = {};
 
-    if (data.length <= 1) return [];
+/**
+ * ล้างแคชของชีท (ไม่ระบุชื่อ = ล้างทั้งหมด)
+ * @param {string} [sheetName]
+ */
+function invalidateSheetCache_(sheetName) {
+  if (sheetName) delete SHEET_CACHE_[sheetName];
+  else SHEET_CACHE_ = {};
+}
 
+/**
+ * อ่านชีททั้งหมดจากแคช (อ่านจริงครั้งแรกครั้งเดียวต่อ request)
+ * @param {string} sheetName
+ * @return {Object[]} แถวข้อมูลที่ parse แล้ว (ห้ามแก้ไข — ใช้ผ่าน getAllRows)
+ */
+function cachedRows_(sheetName) {
+  if (SHEET_CACHE_[sheetName]) return SHEET_CACHE_[sheetName];
+
+  var sheet = getSheet(sheetName);
+  var data = sheet.getDataRange().getValues();
+
+  var rows = [];
+  if (data.length > 1) {
     var headers = data[0];
-    var rows = [];
-
     for (var i = 1; i < data.length; i++) {
       var row = {};
       for (var j = 0; j < headers.length; j++) {
@@ -156,8 +178,32 @@ function getAllRows(sheetName) {
       }
       rows.push(row);
     }
+  }
 
-    return rows;
+  SHEET_CACHE_[sheetName] = rows;
+  return rows;
+}
+
+/**
+ * Gets all rows from a sheet as an array of objects.
+ * @param {string} sheetName - The name of the sheet
+ * @return {Object[]} Array of row objects with header keys
+ */
+function getAllRows(sheetName) {
+  try {
+    var rows = cachedRows_(sheetName);
+
+    // คืนสำเนาใหม่ทุกครั้ง เพราะผู้เรียกหลายที่แก้ไข object ที่ได้
+    // (เช่น เติม studentName หรือ delete password) ถ้าคืนตัวเดิมจะเปื้อนข้ามการเรียก
+    var copies = [];
+    for (var i = 0; i < rows.length; i++) {
+      var src = rows[i];
+      var copy = {};
+      var keys = Object.keys(src);
+      for (var k = 0; k < keys.length; k++) copy[keys[k]] = src[keys[k]];
+      copies.push(copy);
+    }
+    return copies;
   } catch (err) {
     Logger.log('Error in getAllRows(' + sheetName + '): ' + err.message);
     return [];
@@ -260,6 +306,7 @@ function appendRow(sheetName, data) {
     });
 
     sheet.appendRow(rowArray);
+    invalidateSheetCache_(sheetName);
 
     // Build return object
     var result = {};
@@ -325,6 +372,7 @@ function updateRow(sheetName, id, data) {
 
     // Write back (rowIndex + 1 because sheet is 1-indexed)
     sheet.getRange(rowIndex + 1, 1, 1, headers.length).setValues([currentRow]);
+    invalidateSheetCache_(sheetName);
 
     // Build return object
     var result = {};
@@ -364,6 +412,7 @@ function deleteRow(sheetName, id) {
     for (var i = 1; i < allData.length; i++) {
       if (String(allData[i][idColIndex]) === String(id)) {
         sheet.deleteRow(i + 1); // +1 because sheet is 1-indexed
+        invalidateSheetCache_(sheetName);
         return true;
       }
     }
@@ -438,6 +487,7 @@ function syncAllHeaders() {
         results.push(name + ': ' + reconcileHeaders(sheet, expected));
       }
     }
+    invalidateSheetCache_();
     return { success: true, data: results };
   } catch (err) {
     Logger.log('Error in syncAllHeaders: ' + err.message);

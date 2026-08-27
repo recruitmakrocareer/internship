@@ -108,7 +108,7 @@ Web App ถูก deploy เป็น "Anyone" เพราะ GitHub Pages เ�
 ```bash
 npm run build:gs   # รวมไฟล์โมดูล .gs ทั้งหมดเป็น apps-script/ALL_IN_ONE.gs
 npm run check:gs   # ตรวจว่า ALL_IN_ONE.gs ตรงกับไฟล์โมดูล (ใช้ใน CI ได้)
-npm test           # ทดสอบ backend: สิทธิ์, การกรองข้อมูล, ชีทข้อมูลอ้างอิง
+npm test           # ทดสอบ backend: สิทธิ์, การกรองข้อมูล, ชีทอ้างอิง, แคชการอ่านชีท
 npm run test:ui    # ทดสอบหน้า KM + Training Passport ด้วยเบราว์เซอร์จริง (ต้องมี playwright)
 ```
 
@@ -117,6 +117,16 @@ npm run test:ui    # ทดสอบหน้า KM + Training Passport ด้�
 ```bash
 npm i -D playwright && npx playwright install chromium
 ```
+
+### ข้อควรรู้เรื่องประสิทธิภาพ
+
+`Database.gs` แคชการอ่านแต่ละชีทไว้ 1 ครั้งต่อ request (`SHEET_CACHE_`) เพราะ
+`getRowById()` อ่านทั้งชีททุกครั้งที่เรียก และหลาย handler เรียกมันในลูป — การแคช
+ลดการอ่านชีทลง 90–95% ในหน้าที่หนักที่สุด (งานที่ส่ง, ภาพรวม Passport/KM)
+
+แคชมีอายุแค่ภายใน request เดียว (Apps Script เริ่มตัวแปร global ใหม่ทุกครั้งที่ถูกเรียก)
+และ `appendRow`/`updateRow`/`deleteRow` จะล้างแคชของชีทนั้นทันที **ถ้าเพิ่มฟังก์ชันที่
+เขียนชีทโดยตรงต้องเรียก `invalidateSheetCache_(sheetName)` เอง**
 
 `ALL_IN_ONE.gs` เป็นไฟล์ที่ถูก generate — **ห้ามแก้โดยตรง** ให้แก้ไฟล์โมดูลแล้วรัน
 `npm run build:gs` (สคริปต์จะเตือนด้วยถ้ามี action ที่ยังไม่มีนโยบายสิทธิ์
@@ -151,6 +161,7 @@ npm i -D playwright && npx playwright install chromium
     ├── test-auth.js            # ทดสอบสิทธิ์ทุก action
     ├── test-filters.js         # ทดสอบการกรองข้อมูลและขอบเขตพี่เลี้ยง
     ├── test-reference-data.js  # ทดสอบการอ่านชีท StoreList/DepartmentList
+    ├── test-db-cache.js        # ทดสอบแคชการอ่านชีทและการล้างแคชเมื่อเขียน
     ├── ui-harness.js           # ตัวช่วยรัน UI test (static server + stub API)
     ├── test-km-ui.js           # ทดสอบหน้า Knowledge Management ด้วยเบราว์เซอร์จริง
     └── test-passport-ui.js     # ทดสอบหน้า Training Passport ด้วยเบราว์เซอร์จริง
