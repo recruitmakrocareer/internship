@@ -2,50 +2,36 @@
  * Code.gs - Main entry point for the Internship Management System
  * ระบบจัดการนักศึกษาฝึกงาน
  *
- * ใช้ได้ 2 แบบ:
- * 1. Apps Script Web App (standalone) - ใช้ doGet() serve HTML
- * 2. REST API สำหรับ GitHub Pages - ใช้ doGet()/doPost() return JSON
+ * Web App นี้ทำหน้าที่เป็น REST API ให้ frontend บน GitHub Pages (โฟลเดอร์ docs/)
+ * ทุก request ผ่าน authorizeRequest_() ใน Session.gs เพื่อตรวจสิทธิ์ก่อนเข้า handler
  */
 
 // ============================================================
-// Mode 1: Apps Script Web App (serve HTML pages)
+// doGet: API เมื่อมี action, ไม่มี action = ชี้ทางไปหน้าเว็บ
 // ============================================================
 function doGet(e) {
-  var action = e.parameter.action;
+  var params = (e && e.parameter) || {};
 
-  // ถ้ามี action parameter = เป็น API call จาก GitHub Pages
-  if (action) {
-    return handleApiRequest(e.parameter);
+  if (params.action) {
+    return handleApiRequest(params);
   }
 
-  // ไม่มี action = serve HTML page
-  var page = e.parameter.page || 'login';
-  var publicPages = ['login', 'register'];
+  var frontendUrl = CONFIG.FRONTEND_URL || '';
+  var link = frontendUrl
+    ? '<p><a href="' + frontendUrl + '">' + frontendUrl + '</a></p>'
+    : '<p>ตั้งค่า CONFIG.FRONTEND_URL ใน Config.gs เพื่อแสดงลิงก์หน้าเว็บ</p>';
 
-  if (publicPages.indexOf(page) === -1) {
-    var user = getCurrentUser();
-    if (!user) {
-      page = 'login';
-    }
-  }
-
-  try {
-    var template = HtmlService.createTemplateFromFile(page);
-    return template.evaluate()
-      .setTitle('ระบบจัดการนักศึกษาฝึกงาน')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  } catch (err) {
-    var template = HtmlService.createTemplateFromFile('login');
-    return template.evaluate()
-      .setTitle('ระบบจัดการนักศึกษาฝึกงาน')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  }
+  return HtmlService.createHtmlOutput(
+    '<div style="font-family:sans-serif;padding:32px;line-height:1.7">' +
+    '<h2>ระบบจัดการนักศึกษาฝึกงาน — API</h2>' +
+    '<p>URL นี้เป็น API สำหรับหน้าเว็บของระบบ ไม่ใช่หน้าใช้งาน</p>' +
+    link +
+    '</div>'
+  ).setTitle('ระบบจัดการนักศึกษาฝึกงาน — API');
 }
 
 // ============================================================
-// Mode 2: REST API for GitHub Pages
+// doPost: API สำหรับทุกคำสั่งที่เขียนข้อมูล
 // ============================================================
 function doPost(e) {
   try {
@@ -67,6 +53,32 @@ function handleApiRequest(params) {
     }, 500);
   }
 
+  if (typeof authorizeRequest_ !== 'function') {
+    return jsonResponse({
+      success: false,
+      error: 'ไม่พบ Session.gs — ตรวจสอบว่าคัดลอกไฟล์ .gs ครบทุกไฟล์แล้ว'
+    }, 500);
+  }
+
+  // ── ตรวจสิทธิ์ก่อนเข้า handler ──────────────────────────────
+  // authorizeRequest_ จะบังคับพารามิเตอร์ตัวตน (userId/studentId/...)
+  // ให้ตรงกับผู้ใช้ในโทเคน จึงต้องเรียกก่อน switch เสมอ
+  var gate;
+  try {
+    gate = authorizeRequest_(action, params);
+  } catch (authErr) {
+    return jsonResponse({ success: false, error: 'ตรวจสอบสิทธิ์ไม่สำเร็จ: ' + authErr.message }, 500);
+  }
+
+  if (!gate.allowed) {
+    return jsonResponse({
+      success: false,
+      code: gate.code,
+      message: gate.message,
+      error: gate.message
+    }, gate.code === 'FORBIDDEN' ? 403 : 401);
+  }
+
   try {
     var result;
 
@@ -75,8 +87,9 @@ function handleApiRequest(params) {
       case 'ping':
         result = {
           success: true,
-          version: 'v4-auto-status',
-          usersColumns: CONFIG.HEADERS.Users.length
+          version: 'v5-server-auth',
+          usersColumns: CONFIG.HEADERS.Users.length,
+          authEnforced: !(CONFIG.AUTH && CONFIG.AUTH.ENFORCE === false)
         };
         break;
 
@@ -97,7 +110,10 @@ function handleApiRequest(params) {
         result = changePassword(params.userId, params.currentPassword, params.newPassword);
         break;
       case 'getCurrentUser':
-        result = getCurrentUser();
+        var sessionUser = getCurrentUser();
+        result = sessionUser
+          ? { success: true, user: sessionUser }
+          : { success: false, code: 'UNAUTHORIZED', message: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' };
         break;
 
       // === Users / Students ===
@@ -360,16 +376,15 @@ function handleApiRequest(params) {
   }
 }
 
+/**
+ * ตอบกลับเป็น JSON
+ * หมายเหตุ: ContentService ตั้ง HTTP status code ไม่ได้ (Apps Script คืน 200 เสมอ)
+ * statusCode รับไว้เพื่อสื่อเจตนาในโค้ด ฝั่ง client ให้ดูจากฟิลด์ code/success
+ * @param {Object} data
+ * @param {number} [statusCode]
+ */
 function jsonResponse(data, statusCode) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-function getScriptUrl() {
-  return ScriptApp.getService().getUrl();
 }

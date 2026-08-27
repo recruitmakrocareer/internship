@@ -10,6 +10,13 @@ var ROOT_FOLDER_NAME = 'InternshipSystem';
 /** @const {number} Maximum file size in bytes (50MB) */
 var MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
+/**
+ * @const {number} ขีดจำกัดสำหรับผู้ที่ยังไม่ล็อกอิน (10MB)
+ * มีแค่หน้าสมัครสมาชิกที่อัปโหลดก่อนล็อกอินได้ (CV/รูปถ่าย ลงโฟลเดอร์ profiles)
+ * จำกัดให้เล็กกว่าปกติเพื่อลดความเสี่ยงถูกใช้ทิ้งไฟล์ลง Drive
+ */
+var ANONYMOUS_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 /** @const {Object} Valid subfolder names */
 var SUBFOLDERS = {
   SUBMISSIONS: 'submissions',
@@ -87,11 +94,17 @@ function uploadFile(params) {
 
     // Decode base64 to blob and check file size
     var decodedBytes = Utilities.base64Decode(base64Data);
-    if (decodedBytes.length > MAX_FILE_SIZE_BYTES) {
+
+    // ผู้ที่ยังไม่ล็อกอิน (หน้าสมัครสมาชิก) ใช้ขีดจำกัดที่เข้มกว่า
+    var isAnonymous = typeof getSessionContext_ === 'function' && !getSessionContext_();
+    var maxBytes = isAnonymous ? ANONYMOUS_MAX_FILE_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
+
+    if (decodedBytes.length > maxBytes) {
       var sizeMB = (decodedBytes.length / (1024 * 1024)).toFixed(2);
+      var limitMB = Math.round(maxBytes / (1024 * 1024));
       return {
         success: false,
-        message: 'ขนาดไฟล์เกินขีดจำกัด (' + sizeMB + ' MB) ขนาดสูงสุดที่อนุญาตคือ 50 MB — สำหรับไฟล์ขนาดใหญ่กว่านี้ ให้อัปโหลดไฟล์ไปยัง Google Drive โดยตรง แล้ววาง URL ที่ช่อง "URL / ลิงก์" แทน'
+        message: 'ขนาดไฟล์เกินขีดจำกัด (' + sizeMB + ' MB) ขนาดสูงสุดที่อนุญาตคือ ' + limitMB + ' MB — สำหรับไฟล์ขนาดใหญ่กว่านี้ ให้อัปโหลดไฟล์ไปยัง Google Drive โดยตรง แล้ววาง URL ที่ช่อง "URL / ลิงก์" แทน'
       };
     }
 

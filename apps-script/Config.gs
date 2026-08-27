@@ -8,6 +8,9 @@ try { CONFIG_SPREADSHEET_ID_ = SpreadsheetApp.getActiveSpreadsheet().getId(); } 
 var CONFIG = {
   SPREADSHEET_ID: CONFIG_SPREADSHEET_ID_,
 
+  // URL หน้าเว็บบน GitHub Pages (ใช้แสดงลิงก์เมื่อเปิด /exec ตรง ๆ)
+  FRONTEND_URL: 'https://recruitmakrocareer.github.io/internship/',
+
   // Sheet names mapping
   SHEETS: {
     USERS: 'Users',
@@ -115,5 +118,15 @@ var CONFIG = {
     STUDENT: 'STUDENT',
     MENTOR: 'MENTOR',
     ADMIN: 'ADMIN'
+  },
+
+  // Session / authorization (ดูรายละเอียดใน Session.gs)
+  AUTH: {
+    // อายุของ session token หลังล็อกอิน (ชั่วโมง)
+    SESSION_TTL_HOURS: 12,
+
+    // ENFORCE = false จะปิดการตรวจสิทธิ์ฝั่ง server ทั้งหมด
+    // มีไว้สำหรับ debug ชั่วคราวเท่านั้น ห้ามใช้บนระบบจริง
+    ENFORCE: true
   }
 };

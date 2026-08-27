@@ -1,20 +1,68 @@
 // ==================== API Helper Functions ====================
 
 /**
+ * ดึง session token ที่ได้จากการล็อกอิน (เก็บรวมไว้กับข้อมูลผู้ใช้ใน localStorage)
+ * @returns {string}
+ */
+function getAuthToken() {
+  const user = getToken();
+  return (user && user.token) ? user.token : '';
+}
+
+/**
+ * จัดการกรณี server ปฏิเสธเพราะสิทธิ์ไม่พอหรือเซสชันหมดอายุ
+ * UNAUTHORIZED = ทิ้งเซสชันแล้วกลับไปหน้าล็อกอิน
+ * FORBIDDEN    = ล็อกอินอยู่แต่ role ไม่มีสิทธิ์ แค่แจ้งเตือน
+ * @param {object} result - ผลลัพธ์จาก API
+ * @returns {boolean} true ถ้าเป็นข้อผิดพลาดด้านสิทธิ์และจัดการแล้ว
+ */
+function handleApiAuthError(result) {
+  if (!result || result.success !== false) return false;
+
+  if (result.code === 'UNAUTHORIZED') {
+    clearToken();
+    if (typeof showToast === 'function') {
+      showToast(result.message || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'error');
+    }
+    if (window.location.hash !== '#login') {
+      window.location.hash = '#login';
+    } else if (typeof router === 'function') {
+      router();
+    }
+    return true;
+  }
+
+  if (result.code === 'FORBIDDEN') {
+    if (typeof showToast === 'function') {
+      showToast(result.message || 'คุณไม่มีสิทธิ์ใช้งานส่วนนี้', 'error');
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * เรียก API ผ่าน GET request ไปยัง Google Apps Script
  * @param {string} action - ชื่อฟังก์ชันที่ต้องการเรียก
  * @param {object} params - พารามิเตอร์เพิ่มเติม
  * @returns {Promise<object>} - ผลลัพธ์จาก API
  */
 async function callApi(action, params = {}) {
-  const queryParams = new URLSearchParams({ action, ...params });
+  const authToken = getAuthToken();
+  const payload = { action, ...params };
+  if (authToken) payload.authToken = authToken;
+
+  const queryParams = new URLSearchParams(payload);
   const url = `${API_URL}?${queryParams.toString()}`;
   try {
     console.log('[API GET]', action);
     const response = await fetch(url, { redirect: 'follow' });
     const text = await response.text();
     try {
-      return JSON.parse(text);
+      const result = JSON.parse(text);
+      handleApiAuthError(result);
+      return result;
     } catch (e) {
       console.error('[API GET] Response is not JSON:', text.substring(0, 500));
       return { success: false, message: 'เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ' };
@@ -26,18 +74,24 @@ async function callApi(action, params = {}) {
 }
 
 async function callApiPost(action, params = {}) {
+  const authToken = getAuthToken();
+  const payload = { action, ...params };
+  if (authToken) payload.authToken = authToken;
+
   try {
     console.log('[API POST]', action, Object.keys(params));
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, ...params }),
+      body: JSON.stringify(payload),
       redirect: 'follow'
     });
     const text = await response.text();
     console.log('[API POST Response]', action, text.substring(0, 200));
     try {
-      return JSON.parse(text);
+      const result = JSON.parse(text);
+      handleApiAuthError(result);
+      return result;
     } catch (e) {
       console.error('[API POST] Response is not JSON:', text.substring(0, 500));
       return { success: false, message: 'เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ กรุณา Deploy ใหม่ใน Apps Script' };
@@ -93,10 +147,13 @@ function clearToken() {
 
 /**
  * ตรวจสอบว่าผู้ใช้ล็อกอินอยู่หรือไม่
+ * ต้องมี session token ด้วย — ข้อมูลผู้ใช้ที่ค้างจากเวอร์ชันก่อนมี token
+ * จะถือว่ายังไม่ได้ล็อกอิน เพื่อให้ผู้ใช้ล็อกอินใหม่แล้วรับ token
  * @returns {boolean}
  */
 function isLoggedIn() {
-  return getToken() !== null;
+  const user = getToken();
+  return !!(user && user.token);
 }
 
 /**

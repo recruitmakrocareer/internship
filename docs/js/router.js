@@ -28,6 +28,35 @@ const routes = {
   'resource-view': renderResourceView,
 };
 
+// หน้าที่จำกัดเฉพาะบางบทบาท (ที่ไม่อยู่ในตารางนี้ = เปิดได้ทุกบทบาทที่ล็อกอินแล้ว)
+// ADMIN เปิดได้ทุกหน้า — สิทธิ์จริงยังถูกบังคับอีกชั้นที่ API (Session.gs)
+const pageRoles = {
+  'student-profile': ['STUDENT'],
+  'student-roadmap': ['STUDENT'],
+  'student-assignments': ['STUDENT'],
+  'student-evaluations': ['STUDENT'],
+  'student-resources': ['STUDENT'],
+  'student-mentors': ['STUDENT'],
+  'training-calendar': ['STUDENT'],
+  'survey': ['STUDENT'],
+  'mentor-students': ['MENTOR'],
+  'mentor-assignments': ['MENTOR'],
+  'mentor-evaluations': ['MENTOR'],
+  'admin-students': ['ADMIN'],
+  'admin-mentors': ['ADMIN'],
+  'admin-roadmaps': ['ADMIN'],
+  'admin-assignments': ['ADMIN'],
+  'admin-evaluations': ['ADMIN'],
+  'admin-resources': ['ADMIN'],
+  'admin-notifications': ['ADMIN'],
+};
+
+function isPageAllowedForRole(page, role) {
+  if (role === 'ADMIN') return true;
+  const allowed = pageRoles[page];
+  return !allowed || allowed.indexOf(role) !== -1;
+}
+
 function router() {
   const hash = window.location.hash.slice(1) || 'login';
   const page = hash.split('?')[0];
@@ -43,6 +72,16 @@ function router() {
   if (['login', 'register'].includes(page) && isLoggedIn()) {
     window.location.hash = '#dashboard';
     return;
+  }
+
+  // พิมพ์ URL เข้าหน้าของบทบาทอื่นตรง ๆ ไม่ได้
+  if (!publicPages.includes(page)) {
+    const user = getCurrentUser();
+    if (user && !isPageAllowedForRole(page, user.role)) {
+      if (typeof showToast === 'function') showToast('คุณไม่มีสิทธิ์เข้าหน้านี้', 'error');
+      window.location.hash = '#dashboard';
+      return;
+    }
   }
 
   const renderFn = routes[page];

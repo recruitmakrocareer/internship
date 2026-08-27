@@ -1,6 +1,10 @@
 /**
- * Auth.gs - Authentication service using PropertiesService and Session
- * Handles login, registration, session management, and role checking.
+ * Auth.gs - Authentication service
+ * Handles login, registration, password management and session lookup.
+ *
+ * ตัวตนของผู้เรียก API มาจาก session token ที่ออกให้ตอนล็อกอิน (ดู Session.gs)
+ * ไม่ใช่ PropertiesService เพราะ Web App ที่ deploy เป็น "Execute as: Me"
+ * มี UserProperties ร่วมกันทุกผู้เรียก (ผู้ใช้คนหนึ่งล็อกอินแล้วคนอื่นได้เซสชันนั้นไปด้วย)
  */
 
 /**
@@ -43,10 +47,16 @@ function login(email, password) {
       }
     }
 
-    // Store in session
-    setCurrentUser(safeUser);
+    // ออก session token ให้ frontend เก็บไว้แนบกับทุก request
+    var token = createSessionToken_(safeUser);
 
-    return { success: true, user: safeUser, message: 'เข้าสู่ระบบสำเร็จ' };
+    return {
+      success: true,
+      user: safeUser,
+      token: token,
+      expiresInHours: (CONFIG.AUTH && CONFIG.AUTH.SESSION_TTL_HOURS) || 12,
+      message: 'เข้าสู่ระบบสำเร็จ'
+    };
   } catch (err) {
     Logger.log('Error in login: ' + err.message);
     return { success: false, message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + err.message };
@@ -175,73 +185,46 @@ function register(data) {
 }
 
 /**
- * Resolves the acting user from an explicit user ID (sent by the frontend),
- * falling back to the script session. The PropertiesService session is
- * unreliable for anonymous web app access (shared across users), so API
- * calls should always pass the acting user's ID explicitly.
+ * Resolves the acting user for the current request.
+ * เซสชันจากโทเคนมาก่อนเสมอ ค่า userId ที่ client ส่งมาใช้เป็นทางเลือกสำรอง
+ * เฉพาะกรณีที่ปิดการตรวจสิทธิ์ไว้ (CONFIG.AUTH.ENFORCE = false)
  * @param {string} explicitUserId - User ID passed from the frontend
  * @return {Object|null} The user object (without password) or null
  */
 function resolveActingUser(explicitUserId) {
-  if (explicitUserId) {
-    var u = getRowById(CONFIG.SHEETS.USERS, explicitUserId);
-    if (u) {
-      var copy = {};
-      var keys = Object.keys(u);
-      for (var i = 0; i < keys.length; i++) {
-        if (keys[i] !== 'password') copy[keys[i]] = u[keys[i]];
-      }
-      return copy;
-    }
+  var session = getSessionContext_();
+  var userId = session ? session.userId : explicitUserId;
+  if (!userId) return null;
+
+  var u = getRowById(CONFIG.SHEETS.USERS, userId);
+  if (!u) return null;
+
+  var copy = {};
+  var keys = Object.keys(u);
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i] !== 'password') copy[keys[i]] = u[keys[i]];
   }
-  return getCurrentUser();
+  return copy;
 }
 
 /**
- * Gets the current logged-in user from UserProperties.
- * @return {Object|null} The current user object or null if not logged in
+ * Gets the user behind the current request's session token.
+ * @return {Object|null} The current user object (without password) or null
  */
 function getCurrentUser() {
-  try {
-    var props = PropertiesService.getUserProperties();
-    var userJson = props.getProperty('currentUser');
-
-    if (!userJson) return null;
-
-    return JSON.parse(userJson);
-  } catch (err) {
-    Logger.log('Error in getCurrentUser: ' + err.message);
-    return null;
-  }
+  var session = getSessionContext_();
+  if (!session) return null;
+  return resolveActingUser(session.userId);
 }
 
 /**
- * Stores the current user in UserProperties.
- * @param {Object} user - The user object to store
- */
-function setCurrentUser(user) {
-  try {
-    var props = PropertiesService.getUserProperties();
-    props.setProperty('currentUser', JSON.stringify(user));
-  } catch (err) {
-    Logger.log('Error in setCurrentUser: ' + err.message);
-    throw new Error('ไม่สามารถบันทึกข้อมูลเซสชันได้');
-  }
-}
-
-/**
- * Logs out the current user by clearing UserProperties.
+ * Logs out the current user.
+ * โทเคนเป็น stateless — ฝั่ง server ไม่มีอะไรต้องลบ client ต้องทิ้งโทเคนเอง
+ * (ถ้าต้องการตัดทุกเซสชันทันที ให้ลบ SESSION_SECRET ใน Project Settings)
  * @return {Object} Result object
  */
 function logout() {
-  try {
-    var props = PropertiesService.getUserProperties();
-    props.deleteProperty('currentUser');
-    return { success: true, message: 'ออกจากระบบสำเร็จ' };
-  } catch (err) {
-    Logger.log('Error in logout: ' + err.message);
-    return { success: false, message: 'เกิดข้อผิดพลาดในการออกจากระบบ' };
-  }
+  return { success: true, message: 'ออกจากระบบสำเร็จ' };
 }
 
 /**
@@ -348,29 +331,26 @@ function hashPassword(password) {
 }
 
 /**
- * Checks if the current user has the required role.
+ * Checks whether the current request's session has the required role.
+ * การตรวจสิทธิ์หลักทำที่ authorizeRequest_() (Session.gs) ก่อนเข้า handler
+ * ฟังก์ชันนี้ไว้ใช้ตรวจเพิ่มเติมภายใน handler
  * @param {string} requiredRole - The role required (from CONFIG.ROLES)
- * @return {boolean} True if user has the required role
+ * @return {boolean} True if the session has the required role
  */
 function checkRole(requiredRole) {
-  try {
-    var user = getCurrentUser();
-    if (!user) return false;
+  var session = getSessionContext_();
+  if (!session) return false;
 
-    // Admin has access to everything
-    if (user.role === CONFIG.ROLES.ADMIN) return true;
+  // Admin has access to everything
+  if (session.role === CONFIG.ROLES.ADMIN) return true;
 
-    return user.role === requiredRole;
-  } catch (err) {
-    Logger.log('Error in checkRole: ' + err.message);
-    return false;
-  }
+  return session.role === requiredRole;
 }
 
 /**
- * Checks if a user is currently logged in.
- * @return {boolean} True if user is logged in
+ * Checks if the current request carries a valid session.
+ * @return {boolean} True if a user is logged in
  */
 function isLoggedIn() {
-  return getCurrentUser() !== null;
+  return getSessionContext_() !== null;
 }

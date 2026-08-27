@@ -83,6 +83,13 @@ function markAsRead(notificationId) {
       return { success: false, message: 'ไม่พบข้อมูลการแจ้งเตือน' };
     }
 
+    // อ่านได้เฉพาะการแจ้งเตือนของตัวเอง (ADMIN ดูแลระบบได้ทั้งหมด)
+    var session = getSessionContext_();
+    if (session && session.role !== CONFIG.ROLES.ADMIN &&
+        String(notification.userId) !== String(session.userId)) {
+      return { success: false, message: 'คุณไม่มีสิทธิ์แก้ไขการแจ้งเตือนนี้' };
+    }
+
     updateRow(CONFIG.SHEETS.NOTIFICATIONS, notificationId, { isRead: 'true' });
 
     return { success: true, message: 'อ่านการแจ้งเตือนแล้ว' };

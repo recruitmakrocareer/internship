@@ -608,16 +608,6 @@ function updateProfile(userId, data) {
     var updated = updateRow(CONFIG.SHEETS.USERS, userId, updateData);
     delete updated.password;
 
-    // Update session data with all relevant fields
-    var sessionData = {};
-    var updatedKeys = Object.keys(updated);
-    for (var j = 0; j < updatedKeys.length; j++) {
-      if (updatedKeys[j] !== 'password') {
-        sessionData[updatedKeys[j]] = updated[updatedKeys[j]];
-      }
-    }
-    setCurrentUser(sessionData);
-
     return { success: true, data: updated, message: 'อัปเดตโปรไฟล์สำเร็จ' };
   } catch (err) {
     Logger.log('Error in updateProfile: ' + err.message);

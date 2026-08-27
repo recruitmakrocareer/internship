@@ -77,8 +77,13 @@ function renderLogin() {
 
     try {
       const result = await callApiPost('login', { email, password });
-      if (result.success) {
-        setToken(result.user);
+      if (result.success && !result.token) {
+        // Backend เวอร์ชันเก่ายังไม่ออก session token — เข้าใช้งานต่อไม่ได้
+        errorDiv.textContent = 'เซิร์ฟเวอร์ยังไม่รองรับเซสชันแบบใหม่ กรุณา Deploy Apps Script เวอร์ชันล่าสุด';
+        errorDiv.classList.remove('hidden');
+      } else if (result.success) {
+        // เก็บ session token ไว้กับข้อมูลผู้ใช้ (api.js จะแนบไปกับทุก request)
+        setToken({ ...result.user, token: result.token });
         showToast('เข้าสู่ระบบสำเร็จ', 'success');
         navigateTo('dashboard');
       } else {
