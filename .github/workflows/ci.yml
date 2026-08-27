@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ไฟล์ .gs วางตรงเข้า Apps Script และไฟล์ docs/js โหลดตรงด้วย <script>
+      # จึงต้องมั่นใจว่า parse ผ่านทุกไฟล์ก่อน
+      - name: Syntax check (.gs + docs/js + tools)
+        run: node tools/check-syntax.js
+
+      # ALL_IN_ONE.gs เป็นไฟล์ generate — ถ้าไม่ตรงกับโมดูลแปลว่ามีคนแก้มือหรือลืม build
+      - name: ALL_IN_ONE.gs ตรงกับไฟล์โมดูล
+        run: npm run check:gs
+
+      - name: Backend tests (สิทธิ์, การกรอง, ชีทอ้างอิง, แคช, การย่อข้อมูล)
+        run: npm test
+
+  ui:
+    name: UI tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # playwright ไม่ได้เป็น dependency ของโปรเจกต์ (โปรเจกต์นี้ไม่มี dependency)
+      # จึงติดตั้งเฉพาะใน CI
+      - name: Install playwright + chromium
+        run: npm i --no-save playwright && npx playwright install --with-deps chromium
+
+      - name: UI tests (Knowledge Management + Training Passport)
+        run: npm run test:ui

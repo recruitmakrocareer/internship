@@ -479,10 +479,13 @@ function renderStudentsTable() {
 }
 
 async function viewStudentDetail(studentId) {
-  const student = _studentsCache.find(s => s.id === studentId);
-  if (!student) { showToast('ไม่พบข้อมูล', 'error'); return; }
+  const listRow = _studentsCache.find(s => s.id === studentId);
+  if (!listRow) { showToast('ไม่พบข้อมูล', 'error'); return; }
 
-  const displayName = student.name || ((student.firstName || '') + ' ' + (student.lastName || ''));
+  // รายการนักศึกษาส่งมาเฉพาะฟิลด์ที่ตารางใช้ — หน้ารายละเอียดต้องดึงข้อมูลเต็ม
+  let student = listRow;
+
+  const displayName = listRow.name || ((listRow.firstName || '') + ' ' + (listRow.lastName || ''));
   const mc = document.getElementById('student-modal');
 
   // Show loading state first
@@ -493,10 +496,16 @@ async function viewStudentDetail(studentId) {
       </div>
     </div>`;
 
-  // Fetch progress data
+  // Fetch full record + progress data
   let progressList = [];
   try {
-    const progressRes = await callApi('getRoadmapProgress', { userId: studentId });
+    const [fullRes, progressRes] = await Promise.all([
+      callApi('getStudent', { id: studentId }),
+      callApi('getRoadmapProgress', { userId: studentId })
+    ]);
+    if (fullRes && fullRes.success !== false && fullRes.data) {
+      student = Object.assign({}, listRow, fullRes.data);
+    }
     progressList = Array.isArray(progressRes.data || progressRes) ? (progressRes.data || progressRes) : [];
   } catch (e) {}
 
@@ -1232,19 +1241,25 @@ function toggleStudentActionMenu(btn) {
 }
 
 async function printStudentProfile(studentId) {
-  var student = _studentsCache.find(function(s) { return s.id === studentId; });
-  if (!student) { showToast('ไม่พบข้อมูล', 'error'); return; }
+  var listRow = _studentsCache.find(function(s) { return s.id === studentId; });
+  if (!listRow) { showToast('ไม่พบข้อมูล', 'error'); return; }
 
+  // ใบโปรไฟล์ต้องมีข้อมูลครบ (ที่อยู่, เลขบัตร, สาขาที่เลือก) ซึ่งไม่ได้มากับรายการ
+  var student = listRow;
   showLoading();
   var progressList = [];
   var evalList = [];
   try {
     var results = await Promise.all([
       callApi('getRoadmapProgress', { userId: studentId }),
-      callApi('getEvaluations', { evaluateeId: studentId })
+      callApi('getEvaluations', { evaluateeId: studentId }),
+      callApi('getStudent', { id: studentId })
     ]);
     progressList = Array.isArray(results[0].data || results[0]) ? (results[0].data || results[0]) : [];
     evalList = Array.isArray(results[1].data || results[1]) ? (results[1].data || results[1]) : [];
+    if (results[2] && results[2].success !== false && results[2].data) {
+      student = Object.assign({}, listRow, results[2].data);
+    }
   } catch (e) {}
   hideLoading();
 

@@ -5139,10 +5139,49 @@ function submitEvalByToken(token, result, comment, evaluatorName, evaluatorPosit
  */
 
 /**
+ * ฟิลด์ที่ส่งออกใน "รายการนักศึกษา" (getStudents / getStudentsByMentor)
+ *
+ * หน้ารายการใช้แค่ข้อมูลระบุตัวและสถานะการฝึก จึงไม่ส่งข้อมูลอ่อนไหวที่ไม่ได้ใช้
+ * ออกไปทั้งชุด (เลขบัตรประชาชน, วันเกิด, ที่อยู่, สถานะทหาร, ประวัติสุขภาพ, GPA,
+ * สาขาที่อยากฝึก, อาจารย์ที่ปรึกษา) — ลดทั้งความเสี่ยงข้อมูลรั่วและขนาด payload
+ * จาก 80 คอลัมน์เหลือ 26
+ *
+ * หน้ารายละเอียด/แก้ไข/พิมพ์โปรไฟล์ดึงข้อมูลเต็มเมื่อเปิดจริงด้วย
+ * getStudent(id) (ADMIN) หรือ getUserProfile(userId) (พี่เลี้ยงในความดูแล)
+ */
+var STUDENT_LIST_FIELDS_ = [
+  'id', 'role', 'email', 'name', 'firstName', 'lastName', 'studentId',
+  'department', 'phone', 'profileImage', 'photoFileUrl',
+  'cvFileUrl', 'transcriptFileUrl', 'idCardFileUrl',
+  'isActive', 'studentStatus', 'university', 'faculty', 'major', 'year',
+  'internshipType', 'startDate', 'endDate', 'branch', 'createdAt', 'updatedAt'
+];
+
+/**
+ * ย่อข้อมูลนักศึกษาให้เหลือเฉพาะฟิลด์ของหน้ารายการ
+ * @param {Object} user - แถวข้อมูลผู้ใช้
+ * @param {Object} [extra] - ฟิลด์เพิ่มเติมที่ต้องการแนบ (เช่น mentor, assignedAt)
+ * @return {Object}
+ */
+function studentListView_(user, extra) {
+  var view = {};
+  for (var i = 0; i < STUDENT_LIST_FIELDS_.length; i++) {
+    var field = STUDENT_LIST_FIELDS_[i];
+    if (user[field] !== undefined) view[field] = user[field];
+  }
+
+  if (extra) {
+    var keys = Object.keys(extra);
+    for (var k = 0; k < keys.length; k++) view[keys[k]] = extra[keys[k]];
+  }
+  return view;
+}
+
+/**
  * Gets list of students with optional search and active filter.
  * @param {string} search - Optional search query (matches name, email, studentId)
  * @param {boolean} activeOnly - If true, only return active students
- * @return {Object} Result with success status and students array
+ * @return {Object} Result with success status and students array (list fields only)
  */
 function getStudents(search, activeOnly) {
   try {
@@ -5189,17 +5228,9 @@ function getStudents(search, activeOnly) {
       }
     }
 
-    // Remove password from results
+    // ส่งเฉพาะฟิลด์ของหน้ารายการ (ไม่มี password และไม่มีข้อมูลอ่อนไหวที่ไม่ได้ใช้)
     var students = users.map(function(u) {
-      var copy = {};
-      var keys = Object.keys(u);
-      for (var i = 0; i < keys.length; i++) {
-        if (keys[i] !== 'password') {
-          copy[keys[i]] = u[keys[i]];
-        }
-      }
-      copy.mentor = mentorByStudent[String(u.id)] || null;
-      return copy;
+      return studentListView_(u, { mentor: mentorByStudent[String(u.id)] || null });
     });
 
     return { success: true, data: students };
@@ -5595,9 +5626,7 @@ function getStudentsByMentor(mentorId) {
     for (var i = 0; i < assignments.length; i++) {
       var student = getRowById(CONFIG.SHEETS.USERS, assignments[i].studentId);
       if (student) {
-        delete student.password;
-        student.assignedAt = assignments[i].assignedAt;
-        students.push(student);
+        students.push(studentListView_(student, { assignedAt: assignments[i].assignedAt }));
       }
     }
 

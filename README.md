@@ -108,7 +108,8 @@ Web App ถูก deploy เป็น "Anyone" เพราะ GitHub Pages เ�
 ```bash
 npm run build:gs   # รวมไฟล์โมดูล .gs ทั้งหมดเป็น apps-script/ALL_IN_ONE.gs
 npm run check:gs   # ตรวจว่า ALL_IN_ONE.gs ตรงกับไฟล์โมดูล (ใช้ใน CI ได้)
-npm test           # ทดสอบ backend: สิทธิ์, การกรองข้อมูล, ชีทอ้างอิง, แคชการอ่านชีท
+npm run check:syntax  # ตรวจว่าไฟล์ .gs และ docs/js ทุกไฟล์ parse ผ่าน
+npm test           # ตรวจ syntax + ทดสอบ backend ทั้งหมด (สิทธิ์, การกรอง, แคช, การย่อข้อมูล)
 npm run test:ui    # ทดสอบหน้า KM + Training Passport ด้วยเบราว์เซอร์จริง (ต้องมี playwright)
 ```
 
@@ -127,6 +128,23 @@ npm i -D playwright && npx playwright install chromium
 แคชมีอายุแค่ภายใน request เดียว (Apps Script เริ่มตัวแปร global ใหม่ทุกครั้งที่ถูกเรียก)
 และ `appendRow`/`updateRow`/`deleteRow` จะล้างแคชของชีทนั้นทันที **ถ้าเพิ่มฟังก์ชันที่
 เขียนชีทโดยตรงต้องเรียก `invalidateSheetCache_(sheetName)` เอง**
+
+### การย่อข้อมูลในรายการ
+
+`getStudents` / `getStudentsByMentor` ส่งเฉพาะฟิลด์ใน `STUDENT_LIST_FIELDS_`
+(26 จาก 80 คอลัมน์) ไม่ส่งเลขบัตรประชาชน วันเกิด ที่อยู่ ประวัติสุขภาพ สถานะทหาร GPA
+ออกไปกับรายการที่ไม่ได้ใช้ หน้ารายละเอียด/แก้ไข/พิมพ์โปรไฟล์ดึงข้อมูลเต็มเมื่อเปิดจริง
+ด้วย `getStudent(id)` หรือ `getUserProfile(userId)`
+
+**ถ้าหน้ารายการต้องใช้ฟิลด์เพิ่ม** ให้ดึงข้อมูลเต็มตอนเปิดรายละเอียดแทนการขยาย
+`STUDENT_LIST_FIELDS_` — `tools/test-student-projection.js` จะเตือนถ้าโค้ดหน้ารายการ
+อ้างถึงฟิลด์ที่ไม่ได้ส่งมา
+
+### CI
+
+`.github/workflows/ci.yml` รัน 2 job ทุก push/PR
+- **backend** — ตรวจ syntax, ตรวจว่า `ALL_IN_ONE.gs` ตรงกับโมดูล, รัน `npm test` (ไม่ต้องติดตั้ง dependency)
+- **ui** — ติดตั้ง playwright + chromium แล้วรัน `npm run test:ui`
 
 `ALL_IN_ONE.gs` เป็นไฟล์ที่ถูก generate — **ห้ามแก้โดยตรง** ให้แก้ไฟล์โมดูลแล้วรัน
 `npm run build:gs` (สคริปต์จะเตือนด้วยถ้ามี action ที่ยังไม่มีนโยบายสิทธิ์
@@ -162,6 +180,8 @@ npm i -D playwright && npx playwright install chromium
     ├── test-filters.js         # ทดสอบการกรองข้อมูลและขอบเขตพี่เลี้ยง
     ├── test-reference-data.js  # ทดสอบการอ่านชีท StoreList/DepartmentList
     ├── test-db-cache.js        # ทดสอบแคชการอ่านชีทและการล้างแคชเมื่อเขียน
+    ├── test-student-projection.js  # ทดสอบว่ารายการนักศึกษาไม่ส่งข้อมูลอ่อนไหวเกินจำเป็น
+    ├── check-syntax.js         # parse ทุกไฟล์ .gs/.js เพื่อจับ syntax error
     ├── ui-harness.js           # ตัวช่วยรัน UI test (static server + stub API)
     ├── test-km-ui.js           # ทดสอบหน้า Knowledge Management ด้วยเบราว์เซอร์จริง
     └── test-passport-ui.js     # ทดสอบหน้า Training Passport ด้วยเบราว์เซอร์จริง
