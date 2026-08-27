@@ -14,6 +14,7 @@ function b64url(buf) {
 }
 
 let adminRows = [];
+let mentorStudentRows = [];
 
 const sandbox = {
   console,
@@ -46,8 +47,14 @@ const sandbox = {
     };
     return { getScriptProperties: () => api, getUserProperties: () => api };
   })(),
-  // Database layer stub — ใช้แค่ตอนเช็ค bootstrap ของ setupSystem
-  getRows: (sheet, filter) => (filter && filter.role === 'ADMIN' ? adminRows : [])
+  // Database layer stub — ใช้ตอนเช็ค bootstrap ของ setupSystem และหาคู่พี่เลี้ยง–นักศึกษา
+  getRows: (sheet, filter) => {
+    if (filter && filter.role === 'ADMIN') return adminRows;
+    if (sheet === 'MentorStudents' && filter && filter.mentorId) {
+      return mentorStudentRows.filter((r) => String(r.mentorId) === String(filter.mentorId));
+    }
+    return [];
+  }
 };
 
 vm.createContext(sandbox);
@@ -64,6 +71,13 @@ const mint = (id, role, ttlMs) => {
 const studentToken = mint('S1', 'STUDENT');
 const mentorToken = mint('M1', 'MENTOR');
 const adminToken = mint('A1', 'ADMIN');
+
+// M1 ดูแล S5 (active) และเคยดูแล S6 (ยกเลิกแล้ว) — S7 ไม่เกี่ยวข้อง
+mentorStudentRows = [
+  { mentorId: 'M1', studentId: 'S5', isActive: 'true' },
+  { mentorId: 'M1', studentId: 'S6', isActive: 'false' },
+  { mentorId: 'M2', studentId: 'S7', isActive: 'true' }
+];
 
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -143,7 +157,8 @@ check('createRoadmap ถูกห้าม', gate('createRoadmap', { authToken: 
 })();
 
 console.log('\n[4] พี่เลี้ยง');
-check('getStudents เข้าได้', gate('getStudents', { authToken: mentorToken }).res.allowed === true);
+check('getStudents ถูกห้าม (รายชื่อทั้งระบบเป็นของแอดมิน)', gate('getStudents', { authToken: mentorToken }).res.code === 'FORBIDDEN');
+check('getStudent ถูกห้าม', gate('getStudent', { authToken: mentorToken, id: 'S5' }).res.code === 'FORBIDDEN');
 check('reviewSubmission เข้าได้', gate('reviewSubmission', { authToken: mentorToken }).res.allowed === true);
 check('createStudent ถูกห้าม', gate('createStudent', { authToken: mentorToken }).res.code === 'FORBIDDEN');
 check('getAdminStats ถูกห้าม', gate('getAdminStats', { authToken: mentorToken }).res.code === 'FORBIDDEN');
@@ -165,6 +180,34 @@ check('getTrainingPassportOverview ถูกห้าม', gate('getTrainingPass
   check('ประเมินนักศึกษาได้ แต่ evaluatorId ถูกบังคับเป็นตัวเอง',
     g.res.allowed && g.params.evaluatorId === 'M1' && g.params.evaluateeId === 'S5', g.params);
 })();
+
+console.log('\n[4.1] พี่เลี้ยงเข้าถึงได้เฉพาะนักศึกษาในความดูแล (ชีท MentorStudents)');
+const MENTOR_SCOPED = ['getUserProfile', 'getRoadmapProgress', 'updateRoadmapProgress', 'updateStepPlan',
+  'getEvalToken', 'getSubmissions', 'getEvaluationsByUser', 'getTrainingPassport',
+  'getTrainingPassportSummary', 'signOffWeek', 'getKnowledgeEntries', 'getKnowledgeSummary',
+  'saveKnowledgeEntry', 'selectPresentationTopic', 'scorePresentationKM'];
+
+MENTOR_SCOPED.forEach((a) => {
+  const ok = gate(a, { authToken: mentorToken, userId: 'S5' }).res.allowed === true;
+  const blocked = gate(a, { authToken: mentorToken, userId: 'S7' }).res.code === 'FORBIDDEN';
+  check(a + ': S5 (ในความดูแล) เข้าได้ / S7 (ของพี่เลี้ยงคนอื่น) ถูกห้าม', ok && blocked,
+    { S5: ok, S7blocked: blocked });
+});
+
+check('นักศึกษาที่ยกเลิกการดูแลแล้ว (S6) ถูกห้าม',
+  gate('getUserProfile', { authToken: mentorToken, userId: 'S6' }).res.code === 'FORBIDDEN');
+check('ข้อมูลของตัวเองเข้าได้',
+  gate('getUserProfile', { authToken: mentorToken, userId: 'M1' }).res.allowed === true);
+check('ไม่ระบุ userId ไม่ถูกบล็อก (handler กรองให้เอง)',
+  gate('getSubmissions', { authToken: mentorToken }).res.allowed === true);
+check('การแจ้งเตือนถูกบังคับเป็นของตัวเอง',
+  gate('getNotifications', { authToken: mentorToken, userId: 'S5' }).params.userId === 'M1');
+
+console.log('\n[4.2] แอดมินไม่ติดข้อจำกัดพี่เลี้ยง');
+MENTOR_SCOPED.forEach((a) => {
+  const g = gate(a, { authToken: adminToken, userId: 'S7' });
+  check(a + ': แอดมินเข้าถึง S7 ได้', g.res.allowed === true && g.params.userId === 'S7', g.params);
+});
 
 console.log('\n[5] แอดมิน');
 ['getStudents', 'createStudent', 'updateStudent', 'deactivateStudent', 'createMentor', 'assignMentor',

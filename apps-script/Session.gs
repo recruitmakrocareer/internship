@@ -131,6 +131,44 @@ function verifySessionToken_(token) {
 }
 
 // ════════════════════════════════════════════════════════════
+// ความสัมพันธ์พี่เลี้ยง–นักศึกษา
+// ════════════════════════════════════════════════════════════
+
+/** แคชต่อ 1 request (Apps Script เริ่ม global ใหม่ทุกครั้งที่ถูกเรียก) */
+var MENTOR_STUDENTS_CACHE_ = {};
+
+/**
+ * รหัสนักศึกษาที่อยู่ในความดูแลของพี่เลี้ยง (แถวที่ isActive = true)
+ * ครอบทั้งการมอบหมายโดยแอดมิน (assignMentor) และที่นักศึกษาเพิ่มเอง (addMentorContact)
+ * @param {string} mentorId
+ * @return {string[]}
+ */
+function mentorStudentIds_(mentorId) {
+  var key = String(mentorId);
+  if (MENTOR_STUDENTS_CACHE_[key]) return MENTOR_STUDENTS_CACHE_[key];
+
+  var rows = getRows(CONFIG.SHEETS.MENTOR_STUDENTS, { mentorId: key });
+  var ids = [];
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].isActive) === 'true') ids.push(String(rows[i].studentId));
+  }
+
+  MENTOR_STUDENTS_CACHE_[key] = ids;
+  return ids;
+}
+
+/**
+ * พี่เลี้ยงคนนี้ดูแลนักศึกษาคนนี้อยู่หรือไม่ (ข้อมูลของตัวเองถือว่าใช่)
+ * @param {string} mentorId
+ * @param {string} studentId
+ * @return {boolean}
+ */
+function mentorOwnsStudent_(mentorId, studentId) {
+  if (String(mentorId) === String(studentId)) return true;
+  return mentorStudentIds_(mentorId).indexOf(String(studentId)) !== -1;
+}
+
+// ════════════════════════════════════════════════════════════
 // Authorization policy
 // ════════════════════════════════════════════════════════════
 
@@ -143,6 +181,8 @@ function verifySessionToken_(token) {
  *   own       - พารามิเตอร์ "เจ้าของข้อมูล" บังคับเป็นตัวเองเมื่อเป็น STUDENT
  *               (MENTOR/ADMIN ยังส่ง id ของนักศึกษาที่ดูแลได้)
  *   ownMentor - พารามิเตอร์ mentor บังคับเป็นตัวเองเมื่อเป็น MENTOR
+ *   mentorScope - พารามิเตอร์ที่ชี้ตัวนักศึกษา: ถ้าผู้เรียกเป็น MENTOR ต้องเป็น
+ *               นักศึกษาในความดูแล (ตามชีท MentorStudents) ไม่งั้นตอบ FORBIDDEN
  *   studentSignOnly - นักศึกษาลงชื่อได้เฉพาะช่อง 'student' (ห้ามลงชื่อแทนผู้ฝึกสอน)
  */
 var ACTION_POLICY_ = {
@@ -160,12 +200,13 @@ var ACTION_POLICY_ = {
   changePassword: { actor: ['userId'] },
 
   // ── Users / Students ──────────────────────────────────────
-  getStudents: { roles: ['ADMIN', 'MENTOR'] },
-  getStudent: { roles: ['ADMIN', 'MENTOR'] },
+  // รายชื่อนักศึกษาทั้งระบบใช้แต่ในหน้าแอดมิน — พี่เลี้ยงใช้ getStudentsByMentor
+  getStudents: { roles: ['ADMIN'] },
+  getStudent: { roles: ['ADMIN'] },
   createStudent: { roles: ['ADMIN'] },
   updateStudent: { roles: ['ADMIN'] },
   deactivateStudent: { roles: ['ADMIN'] },
-  getUserProfile: { own: ['userId'] },
+  getUserProfile: { own: ['userId'], mentorScope: ['userId'] },
   updateProfile: { actor: ['userId'] },
 
   // ── Mentors ───────────────────────────────────────────────
@@ -187,12 +228,12 @@ var ACTION_POLICY_ = {
   createRoadmapStep: { roles: ['ADMIN'] },
   updateRoadmapStep: { roles: ['ADMIN'] },
   deleteRoadmapStep: { roles: ['ADMIN'] },
-  getRoadmapProgress: { own: ['userId'] },
-  updateRoadmapProgress: { own: ['userId'] },
+  getRoadmapProgress: { own: ['userId'], mentorScope: ['userId'] },
+  updateRoadmapProgress: { own: ['userId'], mentorScope: ['userId'] },
 
   // ── Training plan + QR ประเมิน ────────────────────────────
-  updateStepPlan: { own: ['userId'], actor: ['actorId'] },
-  getEvalToken: { own: ['userId'] },
+  updateStepPlan: { own: ['userId'], mentorScope: ['userId'], actor: ['actorId'] },
+  getEvalToken: { own: ['userId'], mentorScope: ['userId'] },
   getEvalByToken: { public: true },
   submitEvalByToken: { public: true },
 
@@ -203,7 +244,8 @@ var ACTION_POLICY_ = {
   updateAssignment: { roles: ['ADMIN'] },
   deleteAssignment: { roles: ['ADMIN'] },
   submitAssignment: { actor: ['userId'] },
-  getSubmissions: { own: ['userId'] },
+  // พี่เลี้ยงที่ไม่ระบุ userId จะถูกกรองเหลือนักศึกษาในความดูแล (ดู getSubmissions)
+  getSubmissions: { own: ['userId'], mentorScope: ['userId'] },
   reviewSubmission: { roles: ['ADMIN', 'MENTOR'], actor: ['reviewerId'] },
 
   // ── Evaluations ───────────────────────────────────────────
@@ -211,7 +253,7 @@ var ACTION_POLICY_ = {
   // นักศึกษาส่งได้เฉพาะแบบประเมินของตัวเอง (แบบประเมินหลังฝึกงาน)
   // MENTOR/ADMIN ประเมินนักศึกษาคนอื่นได้ตามปกติ
   createEvaluation: { actor: ['evaluatorId'], own: ['evaluateeId'] },
-  getEvaluationsByUser: { own: ['userId'] },
+  getEvaluationsByUser: { own: ['userId'], mentorScope: ['userId'] },
 
   // ── Resources ─────────────────────────────────────────────
   getResources: {},
@@ -221,25 +263,26 @@ var ACTION_POLICY_ = {
   deleteResource: { roles: ['ADMIN'] },
 
   // ── Notifications ─────────────────────────────────────────
-  getNotifications: { own: ['userId'] },
-  getUnreadCount: { own: ['userId'] },
+  // ไม่มีหน้าไหนอ่านการแจ้งเตือนของคนอื่น จึงบังคับเป็นของตัวเองทุกบทบาท
+  getNotifications: { actor: ['userId'] },
+  getUnreadCount: { actor: ['userId'] },
   markAsRead: {},
-  markAllAsRead: { own: ['userId'] },
+  markAllAsRead: { actor: ['userId'] },
   sendBroadcast: { roles: ['ADMIN'], actor: ['senderId'] },
 
   // ── Training Passport ─────────────────────────────────────
-  getTrainingPassport: { own: ['userId'] },
-  getTrainingPassportSummary: { own: ['userId'] },
+  getTrainingPassport: { own: ['userId'], mentorScope: ['userId'] },
+  getTrainingPassportSummary: { own: ['userId'], mentorScope: ['userId'] },
   getTrainingPassportByMentor: { roles: ['ADMIN', 'MENTOR'], ownMentor: ['mentorId'] },
   getTrainingPassportOverview: { roles: ['ADMIN'] },
-  signOffWeek: { own: ['userId'], studentSignOnly: true },
+  signOffWeek: { own: ['userId'], mentorScope: ['userId'], studentSignOnly: true },
 
   // ── Knowledge Management ──────────────────────────────────
-  getKnowledgeEntries: { own: ['userId'] },
-  saveKnowledgeEntry: { own: ['userId'] },
-  selectPresentationTopic: { own: ['userId'] },
-  scorePresentationKM: { roles: ['ADMIN', 'MENTOR'], actor: ['evaluatorId'] },
-  getKnowledgeSummary: { own: ['userId'] },
+  getKnowledgeEntries: { own: ['userId'], mentorScope: ['userId'] },
+  saveKnowledgeEntry: { own: ['userId'], mentorScope: ['userId'] },
+  selectPresentationTopic: { own: ['userId'], mentorScope: ['userId'] },
+  scorePresentationKM: { roles: ['ADMIN', 'MENTOR'], mentorScope: ['userId'], actor: ['evaluatorId'] },
+  getKnowledgeSummary: { own: ['userId'], mentorScope: ['userId'] },
   getAllKnowledgeSummaries: { roles: ['ADMIN', 'MENTOR'] },
 
   // ── Files (Google Drive) ──────────────────────────────────
@@ -267,6 +310,7 @@ var ACTION_POLICY_ = {
  */
 function authorizeRequest_(action, params) {
   setSessionContext_(null);
+  MENTOR_STUDENTS_CACHE_ = {};
 
   if (!action) {
     return { allowed: false, code: 'BAD_REQUEST', message: 'ไม่ได้ระบุ action' };
@@ -322,6 +366,21 @@ function authorizeRequest_(action, params) {
       message: 'คุณไม่มีสิทธิ์ใช้งานส่วนนี้',
       session: session
     };
+  }
+
+  // พี่เลี้ยงเข้าถึงได้เฉพาะนักศึกษาในความดูแลของตัวเอง
+  if (policy.mentorScope && session.role === CONFIG.ROLES.MENTOR) {
+    for (var m = 0; m < policy.mentorScope.length; m++) {
+      var target = params[policy.mentorScope[m]];
+      if (target && !mentorOwnsStudent_(session.userId, target)) {
+        return {
+          allowed: false,
+          code: 'FORBIDDEN',
+          message: 'คุณเข้าถึงได้เฉพาะข้อมูลของนักศึกษาในความดูแลของคุณ',
+          session: session
+        };
+      }
+    }
   }
 
   applyIdentityGuards_(policy, params, session);

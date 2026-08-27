@@ -8,11 +8,14 @@
  * @param {Object} filter - Optional filter (type, evaluatorId, evaluateeId)
  * @return {Object} Result with evaluations array
  */
-function getEvaluations(filter) {
+function getEvaluations(params) {
   try {
-    var evaluations;
+    // คัดเฉพาะคอลัมน์ที่ใช้กรองได้ — params ที่ router ส่งมามี action/authToken ปนอยู่
+    var filter = sheetFilter_(CONFIG.SHEETS.EVALUATIONS, params,
+      ['type', 'evaluatorId', 'evaluateeId', 'period']);
 
-    if (filter && Object.keys(filter).length > 0) {
+    var evaluations;
+    if (Object.keys(filter).length > 0) {
       evaluations = getRows(CONFIG.SHEETS.EVALUATIONS, filter);
     } else {
       evaluations = getAllRows(CONFIG.SHEETS.EVALUATIONS);

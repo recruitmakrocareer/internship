@@ -277,14 +277,25 @@ function submitAssignment(assignmentId, userId, content, fileUrl, fileName) {
  * @param {Object} filter - Optional filter (assignmentId, userId, status)
  * @return {Object} Result with submissions array
  */
-function getSubmissions(filter) {
+function getSubmissions(params) {
   try {
-    var submissions;
+    // คัดเฉพาะคอลัมน์ที่ใช้กรองได้ — params ที่ router ส่งมามี action/authToken ปนอยู่
+    var filter = sheetFilter_(CONFIG.SHEETS.SUBMISSIONS, params, ['assignmentId', 'userId', 'status']);
 
-    if (filter && Object.keys(filter).length > 0) {
+    var submissions;
+    if (Object.keys(filter).length > 0) {
       submissions = getRows(CONFIG.SHEETS.SUBMISSIONS, filter);
     } else {
       submissions = getAllRows(CONFIG.SHEETS.SUBMISSIONS);
+    }
+
+    // พี่เลี้ยงที่ไม่ระบุ userId เห็นได้เฉพาะงานของนักศึกษาในความดูแลของตัวเอง
+    var session = typeof getSessionContext_ === 'function' ? getSessionContext_() : null;
+    if (session && session.role === CONFIG.ROLES.MENTOR && !filter.userId) {
+      var ownStudents = mentorStudentIds_(session.userId);
+      submissions = submissions.filter(function(s) {
+        return ownStudents.indexOf(String(s.userId)) !== -1;
+      });
     }
 
     // Enrich with user and assignment info

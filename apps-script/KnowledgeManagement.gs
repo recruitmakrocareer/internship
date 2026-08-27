@@ -384,6 +384,15 @@ function getAllKnowledgeSummaries() {
   try {
     var students = getRows(CONFIG.SHEETS.USERS, { role: CONFIG.ROLES.STUDENT });
 
+    // พี่เลี้ยงเห็นภาพรวมเฉพาะนักศึกษาในความดูแลของตัวเอง
+    var session = typeof getSessionContext_ === 'function' ? getSessionContext_() : null;
+    if (session && session.role === CONFIG.ROLES.MENTOR) {
+      var ownStudents = mentorStudentIds_(session.userId);
+      students = students.filter(function(s) {
+        return ownStudents.indexOf(String(s.id)) !== -1;
+      });
+    }
+
     var results = [];
     for (var i = 0; i < students.length; i++) {
       var student = students[i];

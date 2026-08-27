@@ -91,6 +91,36 @@ function reconcileHeaders(sheet, expected) {
 }
 
 /**
+ * สร้าง filter สำหรับ getRows จากพารามิเตอร์ที่ส่งมาทาง API
+ *
+ * getRows เทียบ "ทุกคีย์" ใน filter กับค่าในแถว รวมคีย์ที่ไม่ใช่คอลัมน์ (จงใจให้
+ * fail closed เพื่อไม่ให้คีย์ที่สะกดผิดกลายเป็น "ไม่กรองอะไรเลย") แต่ router ส่ง
+ * params ทั้งก้อนซึ่งมี action/authToken ติดมาด้วย ถ้าไม่คัดออกก่อน จะไม่ตรงกับ
+ * แถวไหนเลยและได้ผลลัพธ์ว่างทุกครั้ง
+ *
+ * @param {string} sheetName - ชื่อชีท (คีย์ใน CONFIG.HEADERS)
+ * @param {Object} params - พารามิเตอร์จาก request
+ * @param {string[]} allowedFields - คอลัมน์ที่อนุญาตให้ใช้กรอง
+ * @return {Object} filter ที่มีแต่คอลัมน์จริงและมีค่า
+ */
+function sheetFilter_(sheetName, params, allowedFields) {
+  var filter = {};
+  if (!params) return filter;
+
+  var headers = CONFIG.HEADERS[sheetName] || [];
+  for (var i = 0; i < allowedFields.length; i++) {
+    var field = allowedFields[i];
+    if (headers.indexOf(field) === -1) continue;
+
+    var value = params[field];
+    if (value !== undefined && value !== null && String(value) !== '') {
+      filter[field] = value;
+    }
+  }
+  return filter;
+}
+
+/**
  * ตรวจว่าชีทเป็นข้อมูลอ้างอิงที่นำเข้าจากภายนอก (อ่านเท่านั้น ห้ามเขียนหัวตาราง)
  * @param {string} sheetName
  * @return {boolean}
