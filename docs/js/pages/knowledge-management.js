@@ -11,6 +11,11 @@ function renderKnowledgeManagement() {
   const user = getCurrentUser();
   if (!user) return navigateTo('login');
 
+  // พี่เลี้ยง/แอดมินใช้หน้าเดียวกันนี้เพื่อติดตามและให้คะแนนการนำเสนอของนักศึกษา
+  if (user.role === 'MENTOR' || user.role === 'ADMIN') {
+    return renderKmReview(user);
+  }
+
   const content = initLayout(user);
   content.innerHTML = `
         <div class="flex items-center justify-between mb-6">
@@ -384,4 +389,376 @@ async function saveKmEntry(topicNumber) {
     showToast('เกิดข้อผิดพลาด', 'error');
   }
   hideLoading();
+}
+
+// ==================== มุมมองพี่เลี้ยง / แอดมิน: ติดตาม + ให้คะแนนการนำเสนอ ====================
+
+/** สีตามธีม CP AXTRA */
+const KM_THEME = {
+  blue: '#306FC7',
+  yellow: '#F6C24A',
+  green: '#43938F',
+  red: '#DA3832'
+};
+
+/**
+ * เกณฑ์ให้คะแนนการนำเสนอ KM — น้ำหนักต้องตรงกับ scorePresentationKM() ใน backend
+ * คะแนนแต่ละด้าน 1–10 คูณน้ำหนักแล้วคูณ 10 = คะแนนเต็ม 100
+ */
+const KM_CRITERIA = [
+  { id: 'format', label: 'รูปแบบ Presentation', weight: 0.15 },
+  { id: 'content', label: 'เนื้อหา', weight: 0.40 },
+  { id: 'timeManagement', label: 'ความเหมาะสมของเวลา', weight: 0.15 },
+  { id: 'presentationSkill', label: 'ทักษะการนำเสนอ', weight: 0.15 },
+  { id: 'qaSkill', label: 'คำตอบและไหวพริบ', weight: 0.15 }
+];
+
+const KM_TOTAL_TOPICS = 6;
+
+function renderKmReview(user) {
+  const content = initLayout(user);
+  content.innerHTML = `
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Knowledge Management</h1>
+        <p class="text-gray-500">${user.role === 'MENTOR' ? 'ติดตามและให้คะแนนการนำเสนอของนักศึกษาในความดูแล' : 'ติดตามและให้คะแนนการนำเสนอของนักศึกษาทั้งหมด'}</p>
+      </div>
+      <button onclick="loadKmReview()" class="text-sm border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50">รีเฟรช</button>
+    </div>
+
+    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-5 mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-indigo-800">📅 กำหนดการนำเสนอ Report-Out</h3>
+        ${user.role === 'ADMIN' ? '<button onclick="openScheduleModal()" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700">ตั้งค่ากำหนดการ</button>' : ''}
+      </div>
+      <div id="km-schedule" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="text-center text-sm text-gray-400 col-span-full">กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <div id="km-review-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500">
+            <tr>
+              <th class="text-left font-medium px-4 py-3">นักศึกษา</th>
+              <th class="text-left font-medium px-4 py-3">บันทึกการเรียนรู้</th>
+              <th class="text-left font-medium px-4 py-3">หัวข้อนำเสนอ</th>
+              <th class="text-center font-medium px-4 py-3">คะแนน</th>
+              <th class="text-right font-medium px-4 py-3">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="km-review-rows" class="divide-y divide-gray-100">
+            <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="km-scoring-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+        <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 class="text-lg font-bold" id="km-scoring-title">ให้คะแนนการนำเสนอ</h3>
+          <button onclick="closeKmScoring()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="p-6" id="km-scoring-content"></div>
+      </div>
+    </div>
+
+    <div id="km-entries-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
+        <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 class="text-lg font-bold" id="km-entries-title">บันทึกการเรียนรู้</h3>
+          <button onclick="document.getElementById('km-entries-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="p-6" id="km-entries-content"></div>
+      </div>
+    </div>
+
+    <div id="km-schedule-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4">
+        <div class="p-6 border-b flex justify-between items-center">
+          <h3 class="text-lg font-bold">ตั้งค่ากำหนดการนำเสนอ</h3>
+          <button onclick="document.getElementById('km-schedule-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="p-6" id="km-schedule-form"></div>
+      </div>
+    </div>
+  `;
+
+  loadKmSchedule();
+  loadKmReview();
+}
+
+/** เรียงให้คนที่ "รอให้คะแนน" ขึ้นก่อน แล้วค่อยคนที่ให้คะแนนแล้ว และคนที่ยังไม่เลือกหัวข้อ */
+function kmReviewRank(s) {
+  const km = s.km || {};
+  if (km.selectedTopic && (km.presentationScore === null || km.presentationScore === undefined || km.presentationScore === '')) return 0;
+  if (km.selectedTopic) return 1;
+  return 2;
+}
+
+async function loadKmReview() {
+  const rows = document.getElementById('km-review-rows');
+  const statsEl = document.getElementById('km-review-stats');
+  if (!rows) return;
+
+  try {
+    const res = await callApi('getAllKnowledgeSummaries');
+    if (res.success === false) {
+      rows.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">' + escAttr(res.message || 'ไม่สามารถโหลดข้อมูลได้') + '</td></tr>';
+      return;
+    }
+
+    const list = (res.data || []).slice().sort((a, b) => {
+      const diff = kmReviewRank(a) - kmReviewRank(b);
+      return diff !== 0 ? diff : String(a.name || '').localeCompare(String(b.name || ''), 'th');
+    });
+    window._kmSummaries = list;
+
+    const withTopic = list.filter(s => s.km && s.km.selectedTopic);
+    const scored = withTopic.filter(s => s.km.presentationScore !== null && s.km.presentationScore !== undefined && s.km.presentationScore !== '');
+    const avg = scored.length
+      ? Math.round(scored.reduce((sum, s) => sum + Number(s.km.presentationScore), 0) / scored.length)
+      : null;
+
+    // สีแดงสงวนไว้สำหรับสิ่งที่ต้องแก้ไขจริง — ตัวเลขสถิติทั่วไปใช้น้ำเงิน/เขียว/เหลือง
+    statsEl.innerHTML = [
+      { label: 'นักศึกษา', value: list.length, color: KM_THEME.blue },
+      { label: 'เลือกหัวข้อแล้ว', value: withTopic.length, color: KM_THEME.blue },
+      { label: 'รอให้คะแนน', value: withTopic.length - scored.length, color: KM_THEME.yellow },
+      { label: 'คะแนนเฉลี่ย', value: avg === null ? '–' : avg + '/100', color: KM_THEME.green }
+    ].map(c => `
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="text-2xl font-bold" style="color:${c.color}">${c.value}</div>
+        <div class="text-xs text-gray-500 mt-1">${c.label}</div>
+      </div>
+    `).join('');
+
+    if (list.length === 0) {
+      rows.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">ยังไม่มีนักศึกษาในความดูแล</td></tr>';
+      return;
+    }
+
+    rows.innerHTML = list.map(s => {
+      const km = s.km || {};
+      const done = km.completedTopics || 0;
+      const pct = Math.round((done / KM_TOTAL_TOPICS) * 100);
+      const hasScore = km.presentationScore !== null && km.presentationScore !== undefined && km.presentationScore !== '';
+      const name = s.name || '-';
+
+      return `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3">
+            <div class="font-medium text-gray-800">${escAttr(name)}</div>
+            <div class="text-xs text-gray-400">${escAttr(s.studentId || '-')}${s.department ? ' · ' + escAttr(s.department) : ''}</div>
+          </td>
+          <td class="px-4 py-3 w-48">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 bg-gray-200 rounded-full h-2">
+                <div class="h-2 rounded-full" style="width:${pct}%;background:${KM_THEME.blue}"></div>
+              </div>
+              <span class="text-xs text-gray-500 whitespace-nowrap">${done}/${KM_TOTAL_TOPICS}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3">
+            ${km.selectedTopic
+              ? '<span class="text-gray-700">' + escAttr(km.selectedTopic.topicName || '-') + '</span>'
+              : '<span class="text-xs px-2 py-1 rounded-full" style="background:#FEF3C7;color:#92400E">ยังไม่เลือกหัวข้อ</span>'}
+          </td>
+          <td class="px-4 py-3 text-center">
+            ${hasScore
+              ? '<span class="font-bold" style="color:' + KM_THEME.green + '">' + escAttr(km.presentationScore) + '<span class="text-gray-400 font-normal text-xs">/100</span></span>'
+              : '<span class="text-gray-300">–</span>'}
+          </td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <button onclick="openKmStudentEntries('${escJs(s.userId)}', '${escJs(name)}')"
+              class="text-sm border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50">ดูบันทึก</button>
+            ${km.selectedTopic
+              ? '<button onclick="openKmScoring(\'' + escJs(s.userId) + '\', \'' + escJs(name) + '\')" class="ml-2 text-sm text-white px-3 py-1.5 rounded-lg" style="background:' + (hasScore ? '#6B7280' : KM_THEME.blue) + '">' + (hasScore ? 'แก้ไขคะแนน' : 'ให้คะแนน') + '</button>'
+              : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    rows.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>';
+  }
+}
+
+/** คะแนนรวมถ่วงน้ำหนัก (เต็ม 100) — สูตรเดียวกับ backend */
+function kmWeightedTotal(scores) {
+  let weighted = 0;
+  KM_CRITERIA.forEach(c => { weighted += (Number(scores[c.id]) || 0) * c.weight; });
+  return Math.round(weighted * 10);
+}
+
+function updateKmScoreDisplay(id) {
+  const input = document.getElementById('km-score-' + id);
+  if (!input) return;
+  document.getElementById('km-score-value-' + id).textContent = input.value;
+
+  const scores = {};
+  KM_CRITERIA.forEach(c => {
+    const el = document.getElementById('km-score-' + c.id);
+    scores[c.id] = el ? Number(el.value) : 0;
+  });
+  document.getElementById('km-score-total').textContent = kmWeightedTotal(scores) + '/100';
+}
+
+async function openKmScoring(userId, name) {
+  const modal = document.getElementById('km-scoring-modal');
+  const box = document.getElementById('km-scoring-content');
+  document.getElementById('km-scoring-title').textContent = 'ให้คะแนนการนำเสนอ — ' + name;
+  box.innerHTML = '<p class="text-center text-gray-400 py-8">กำลังโหลด...</p>';
+  modal.classList.remove('hidden');
+
+  // ดึงบันทึกของนักศึกษาเพื่อรู้หัวข้อที่เลือก และคะแนนเดิม (ถ้าเคยให้ไว้)
+  let selected = null;
+  try {
+    const res = await callApi('getKnowledgeEntries', { userId: userId });
+    if (res.success === false) {
+      box.innerHTML = '<p class="text-center py-8" style="color:' + KM_THEME.red + '">' + escAttr(res.message || 'ไม่สามารถโหลดข้อมูลได้') + '</p>';
+      return;
+    }
+    selected = (res.data || []).filter(e => e.isSelectedForPresentation)[0] || null;
+  } catch (e) {
+    box.innerHTML = '<p class="text-center py-8" style="color:' + KM_THEME.red + '">เกิดข้อผิดพลาดในการเชื่อมต่อ</p>';
+    return;
+  }
+
+  if (!selected) {
+    box.innerHTML = '<p class="text-center text-gray-500 py-8">นักศึกษายังไม่ได้เลือกหัวข้อนำเสนอ</p>';
+    return;
+  }
+
+  const prev = selected.presentationScoreDetail || {};
+
+  box.innerHTML = `
+    <div class="rounded-lg border border-gray-200 p-4 mb-5">
+      <div class="text-xs text-gray-400">หัวข้อนำเสนอ</div>
+      <div class="font-medium" style="color:${KM_THEME.blue}">${escAttr(selected.topicName || '-')}</div>
+      ${selected.fileUrl ? '<a href="' + safeUrl(selected.fileUrl) + '" target="_blank" rel="noopener" class="text-sm hover:underline mt-2 inline-block" style="color:' + KM_THEME.blue + '">📎 ' + escAttr(selected.fileName || 'ไฟล์ที่แนบ') + '</a>' : ''}
+    </div>
+
+    <div class="space-y-5">
+      ${KM_CRITERIA.map(c => {
+        const val = Number(prev[c.id]) >= 1 && Number(prev[c.id]) <= 10 ? Number(prev[c.id]) : 5;
+        return `
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label for="km-score-${c.id}" class="text-sm font-semibold text-gray-700">
+              ${c.label} <span class="text-gray-400 font-normal">(น้ำหนัก ${Math.round(c.weight * 100)}%)</span>
+            </label>
+            <span id="km-score-value-${c.id}" class="text-lg font-bold" style="color:${KM_THEME.blue}">${val}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-400">1</span>
+            <input type="range" id="km-score-${c.id}" min="1" max="10" step="1" value="${val}"
+              class="flex-1 accent-blue-600" oninput="updateKmScoreDisplay('${c.id}')">
+            <span class="text-xs text-gray-400">10</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="mt-6 rounded-xl p-4 border" style="background:#EFF6FF;border-color:#BFDBFE">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold text-gray-700">คะแนนรวม (ถ่วงน้ำหนัก)</span>
+        <span id="km-score-total" class="text-2xl font-bold" style="color:${KM_THEME.blue}">0/100</span>
+      </div>
+      <p class="text-xs text-gray-500 mt-1">รูปแบบ×0.15 + เนื้อหา×0.40 + เวลา×0.15 + ทักษะ×0.15 + ไหวพริบ×0.15 แล้วคูณ 10</p>
+    </div>
+
+    ${selected.presentationScore ? '<p class="text-xs text-gray-400 mt-3">คะแนนที่บันทึกไว้ปัจจุบัน: ' + escAttr(selected.presentationScore) + '/100</p>' : ''}
+
+    <div class="flex gap-3 mt-6">
+      <button id="km-score-submit" onclick="submitKmScore('${escJs(userId)}')"
+        class="flex-1 text-white py-2.5 rounded-lg text-sm font-medium" style="background:${KM_THEME.blue}">บันทึกคะแนน</button>
+      <button onclick="closeKmScoring()" class="px-6 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">ยกเลิก</button>
+    </div>
+  `;
+
+  updateKmScoreDisplay(KM_CRITERIA[0].id);
+}
+
+function closeKmScoring() {
+  document.getElementById('km-scoring-modal').classList.add('hidden');
+}
+
+async function submitKmScore(userId) {
+  const user = getCurrentUser();
+  const btn = document.getElementById('km-score-submit');
+  const scores = {};
+  KM_CRITERIA.forEach(c => {
+    const el = document.getElementById('km-score-' + c.id);
+    scores[c.id] = el ? String(el.value) : '5';
+  });
+
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; }
+  showLoading();
+  try {
+    const res = await callApiPost('scorePresentationKM', Object.assign({
+      userId: userId,
+      evaluatorId: user.id
+    }, scores));
+
+    hideLoading();
+    if (res.success) {
+      showToast('บันทึกคะแนนสำเร็จ — รวม ' + (res.data ? res.data.totalScore : '') + '/100', 'success');
+      closeKmScoring();
+      await loadKmReview();
+      return;
+    }
+    showToast(res.message || 'ไม่สามารถบันทึกคะแนนได้', 'error');
+  } catch (e) {
+    hideLoading();
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'บันทึกคะแนน'; }
+}
+
+async function openKmStudentEntries(userId, name) {
+  const modal = document.getElementById('km-entries-modal');
+  const box = document.getElementById('km-entries-content');
+  document.getElementById('km-entries-title').textContent = 'บันทึกการเรียนรู้ — ' + name;
+  box.innerHTML = '<p class="text-center text-gray-400 py-8">กำลังโหลด...</p>';
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await callApi('getKnowledgeEntries', { userId: userId });
+    if (res.success === false) {
+      box.innerHTML = '<p class="text-center py-8" style="color:' + KM_THEME.red + '">' + escAttr(res.message || 'ไม่สามารถโหลดข้อมูลได้') + '</p>';
+      return;
+    }
+
+    const entries = res.data || [];
+    box.innerHTML = entries.map(e => {
+      const topic = KM_TOPICS.filter(t => t.number === e.topicNumber)[0] || {};
+      const field = (label, value) => value
+        ? '<div class="mt-2"><div class="text-xs text-gray-400">' + label + '</div><div class="text-sm text-gray-700 whitespace-pre-wrap">' + escAttr(value) + '</div></div>'
+        : '';
+
+      return `
+        <div class="border rounded-xl p-4 mb-3 ${e.hasContent ? 'border-gray-200' : 'border-dashed border-gray-200 bg-gray-50'}">
+          <div class="flex items-start justify-between gap-3">
+            <div class="font-medium text-gray-800">${topic.icon ? topic.icon + ' ' : ''}${e.topicNumber}. ${escAttr(e.topicName || '')}</div>
+            ${e.isSelectedForPresentation
+              ? '<span class="text-xs px-2 py-1 rounded-full whitespace-nowrap text-white" style="background:' + KM_THEME.green + '">หัวข้อนำเสนอ</span>'
+              : ''}
+          </div>
+          ${e.hasContent ? '' : '<div class="text-sm text-gray-400 mt-1">ยังไม่ได้บันทึก</div>'}
+          ${field('สิ่งที่ได้เรียนรู้', e.keyTakeaways)}
+          ${field('ปัญหา/อุปสรรค', e.challenges)}
+          ${field('การนำไปใช้', e.knowledgeApply)}
+          ${field('ข้อเสนอแนะ', e.feedback)}
+          ${e.fileUrl ? '<a href="' + safeUrl(e.fileUrl) + '" target="_blank" rel="noopener" class="text-sm hover:underline mt-3 inline-block" style="color:' + KM_THEME.blue + '">📎 ' + escAttr(e.fileName || 'ไฟล์ที่แนบ') + '</a>' : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    box.innerHTML = '<p class="text-center py-8" style="color:' + KM_THEME.red + '">เกิดข้อผิดพลาดในการเชื่อมต่อ</p>';
+  }
 }
