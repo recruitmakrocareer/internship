@@ -132,6 +132,13 @@ var CONFIG = {
     DepartmentList: ['division', 'department']
   },
 
+  /**
+   * ชีทข้อมูลอ้างอิงที่นำเข้าจากภายนอก (master data) — ระบบ "อ่านเท่านั้น"
+   * ห้ามเขียนทับแถวหัวตาราง เพราะเจ้าของข้อมูลตั้งชื่อคอลัมน์เองได้
+   * (เช่น 'Store_No' แทน 'storeNo') โค้ดจับคู่ชื่อคอลัมน์ให้เองตอนอ่าน
+   */
+  REFERENCE_SHEETS: ['StoreList', 'DepartmentList'],
+
   // User roles
   ROLES: {
     STUDENT: 'STUDENT',
@@ -555,6 +562,11 @@ function getSheet(sheetName) {
 
   var expectedHeaders = CONFIG.HEADERS[sheetName];
 
+  // ชีทข้อมูลอ้างอิงที่มีอยู่แล้ว: ห้ามแตะแถวหัวตารางของเจ้าของข้อมูล
+  if (sheet && isReferenceSheet(sheetName)) {
+    return sheet;
+  }
+
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     if (expectedHeaders && expectedHeaders.length > 0) {
@@ -612,6 +624,16 @@ function reconcileHeaders(sheet, expected) {
   }
 
   return 'ok (' + currentLen + ' cols)';
+}
+
+/**
+ * ตรวจว่าชีทเป็นข้อมูลอ้างอิงที่นำเข้าจากภายนอก (อ่านเท่านั้น ห้ามเขียนหัวตาราง)
+ * @param {string} sheetName
+ * @return {boolean}
+ */
+function isReferenceSheet(sheetName) {
+  var list = CONFIG.REFERENCE_SHEETS || [];
+  return list.indexOf(sheetName) !== -1;
 }
 
 /**
@@ -908,7 +930,11 @@ function syncAllHeaders() {
       var expected = CONFIG.HEADERS[name];
       if (!expected || expected.length === 0) continue;
       var sheet = ss.getSheetByName(name);
-      if (!sheet) {
+      if (sheet && isReferenceSheet(name)) {
+        // ข้อมูลอ้างอิงนำเข้าจากภายนอก — ชื่อคอลัมน์เป็นของเจ้าของข้อมูล
+        // โค้ดจับคู่ชื่อให้เองตอนอ่าน (ดู referenceRows_ ใน UserService.gs)
+        results.push(name + ': skipped (reference sheet, ' + sheet.getLastColumn() + ' cols)');
+      } else if (!sheet) {
         sheet = ss.insertSheet(name);
         sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
         sheet.getRange(1, 1, 1, expected.length).setFontWeight('bold');
@@ -5467,24 +5493,90 @@ function getUserProfile(userId) {
   }
 }
 
+/**
+ * ตัดตัวพิมพ์/ขีด/ช่องว่างออกจากชื่อคอลัมน์เพื่อเทียบแบบหลวม ๆ
+ * 'Store_No' / 'STORE NO' / 'store-no' → 'storeno'
+ * @param {*} header
+ * @return {string}
+ */
+function normalizeHeaderKey_(header) {
+  return String(header == null ? '' : header).replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+}
+
+/**
+ * ชื่อคอลัมน์ที่พบในชีทจริงแต่เทียบกับ CONFIG.HEADERS ตรง ๆ ไม่ได้
+ * (รวมคำที่สะกดต่างจากไฟล์ต้นทาง)
+ */
+var REFERENCE_HEADER_ALIASES_ = {
+  divison: 'division',
+  divisionname: 'division',
+  departmentname: 'department',
+  storeid: 'storeNo',
+  storecode: 'storeNo',
+  storenamethai: 'storeNameTH',
+  storenameeng: 'storeName'
+};
+
+/**
+ * อ่านชีทข้อมูลอ้างอิงเป็น array ของ object โดยจับคู่ชื่อคอลัมน์ของเจ้าของข้อมูล
+ * เข้ากับคีย์มาตรฐานใน CONFIG.HEADERS (หน้าเว็บอ่านคีย์แบบ camelCase)
+ *
+ * ชีทเหล่านี้นำเข้าจากภายนอก หัวตารางจึงเขียนได้หลายแบบ เช่น 'Store_No' แทน
+ * 'storeNo' ถ้าอ่านด้วยชื่อคอลัมน์ดิบ ๆ หน้าเว็บจะได้ค่า undefined ทั้งหมด
+ * คอลัมน์ที่จับคู่ไม่ได้ยังคงคีย์เดิมไว้ เพื่อไม่ทิ้งข้อมูลที่เจ้าของเพิ่มมาเอง
+ *
+ * @param {string} sheetName - ชื่อชีท (คีย์ใน CONFIG.HEADERS)
+ * @param {string[]} fallbackKeys - คีย์ประจำตำแหน่งคอลัมน์ ใช้เมื่อจับคู่หัวตารางไม่ได้เลย
+ * @return {Object[]} แถวข้อมูล (ไม่รวมแถวหัวตาราง)
+ */
+function referenceRows_(sheetName, fallbackKeys) {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  // สร้างตารางแปลง: ชื่อคอลัมน์ที่ normalize แล้ว → คีย์มาตรฐาน
+  var canonical = {};
+  var expected = CONFIG.HEADERS[sheetName] || [];
+  for (var e = 0; e < expected.length; e++) {
+    canonical[normalizeHeaderKey_(expected[e])] = expected[e];
+  }
+
+  var sheetHeaders = data[0];
+  var keys = [];
+  for (var h = 0; h < sheetHeaders.length; h++) {
+    var norm = normalizeHeaderKey_(sheetHeaders[h]);
+    var mapped = canonical[norm] || REFERENCE_HEADER_ALIASES_[norm] || '';
+    keys.push(mapped || String(sheetHeaders[h] == null ? '' : sheetHeaders[h]));
+  }
+
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === '' && String(data[i][1]) === '') continue;
+
+    var row = {};
+    for (var j = 0; j < keys.length; j++) {
+      if (keys[j] === '') continue;
+      row[keys[j]] = String(data[i][j] != null ? data[i][j] : '');
+    }
+
+    // หัวตารางแปลกไปจนจับคู่ไม่ได้ → ใช้ตำแหน่งคอลัมน์เป็นทางสำรอง
+    for (var f = 0; f < fallbackKeys.length; f++) {
+      if (!row[fallbackKeys[f]]) {
+        row[fallbackKeys[f]] = String(data[i][f] != null ? data[i][f] : '');
+      }
+    }
+
+    rows.push(row);
+  }
+  return rows;
+}
+
 function getStoreList() {
   try {
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.SHEETS.STORE_LIST);
-    if (!sheet) return { success: true, data: [] };
-    var data = sheet.getDataRange().getValues();
-    if (data.length < 2) return { success: true, data: [] };
-    var headers = data[0];
-    var stores = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === '' && data[i][1] === '') continue;
-      var row = {};
-      for (var j = 0; j < headers.length; j++) {
-        row[headers[j]] = String(data[i][j] != null ? data[i][j] : '');
-      }
-      stores.push(row);
-    }
-    return { success: true, data: stores };
+    return { success: true, data: referenceRows_(CONFIG.SHEETS.STORE_LIST, ['storeNo', 'storeName']) };
   } catch (err) {
     Logger.log('Error in getStoreList: ' + err.message);
     return { success: false, message: err.message };
@@ -5493,16 +5585,10 @@ function getStoreList() {
 
 function getDepartmentList() {
   try {
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.SHEETS.DEPARTMENT_LIST);
-    if (!sheet) return { success: true, data: [] };
-    var data = sheet.getDataRange().getValues();
-    if (data.length < 2) return { success: true, data: [] };
+    var rows = referenceRows_(CONFIG.SHEETS.DEPARTMENT_LIST, ['division', 'department']);
     var departments = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] !== '' && data[i][1] !== '') {
-        departments.push({ division: String(data[i][0]), department: String(data[i][1]) });
-      }
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].division && rows[i].department) departments.push(rows[i]);
     }
     return { success: true, data: departments };
   } catch (err) {

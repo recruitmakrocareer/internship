@@ -26,6 +26,11 @@ function getSheet(sheetName) {
 
   var expectedHeaders = CONFIG.HEADERS[sheetName];
 
+  // ชีทข้อมูลอ้างอิงที่มีอยู่แล้ว: ห้ามแตะแถวหัวตารางของเจ้าของข้อมูล
+  if (sheet && isReferenceSheet(sheetName)) {
+    return sheet;
+  }
+
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     if (expectedHeaders && expectedHeaders.length > 0) {
@@ -83,6 +88,16 @@ function reconcileHeaders(sheet, expected) {
   }
 
   return 'ok (' + currentLen + ' cols)';
+}
+
+/**
+ * ตรวจว่าชีทเป็นข้อมูลอ้างอิงที่นำเข้าจากภายนอก (อ่านเท่านั้น ห้ามเขียนหัวตาราง)
+ * @param {string} sheetName
+ * @return {boolean}
+ */
+function isReferenceSheet(sheetName) {
+  var list = CONFIG.REFERENCE_SHEETS || [];
+  return list.indexOf(sheetName) !== -1;
 }
 
 /**
@@ -379,7 +394,11 @@ function syncAllHeaders() {
       var expected = CONFIG.HEADERS[name];
       if (!expected || expected.length === 0) continue;
       var sheet = ss.getSheetByName(name);
-      if (!sheet) {
+      if (sheet && isReferenceSheet(name)) {
+        // ข้อมูลอ้างอิงนำเข้าจากภายนอก — ชื่อคอลัมน์เป็นของเจ้าของข้อมูล
+        // โค้ดจับคู่ชื่อให้เองตอนอ่าน (ดู referenceRows_ ใน UserService.gs)
+        results.push(name + ': skipped (reference sheet, ' + sheet.getLastColumn() + ' cols)');
+      } else if (!sheet) {
         sheet = ss.insertSheet(name);
         sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
         sheet.getRange(1, 1, 1, expected.length).setFontWeight('bold');

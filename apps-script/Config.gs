@@ -113,6 +113,13 @@ var CONFIG = {
     DepartmentList: ['division', 'department']
   },
 
+  /**
+   * ชีทข้อมูลอ้างอิงที่นำเข้าจากภายนอก (master data) — ระบบ "อ่านเท่านั้น"
+   * ห้ามเขียนทับแถวหัวตาราง เพราะเจ้าของข้อมูลตั้งชื่อคอลัมน์เองได้
+   * (เช่น 'Store_No' แทน 'storeNo') โค้ดจับคู่ชื่อคอลัมน์ให้เองตอนอ่าน
+   */
+  REFERENCE_SHEETS: ['StoreList', 'DepartmentList'],
+
   // User roles
   ROLES: {
     STUDENT: 'STUDENT',
