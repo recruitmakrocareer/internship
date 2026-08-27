@@ -6,7 +6,8 @@
 
 1. **ระบบนักศึกษา** - จัดการโปรไฟล์, ลงทะเบียน
 2. **ระบบ Admin** - จัดการนักศึกษา, พี่เลี้ยง, งาน
-3. **ระบบ Tracking** - ติดตามการเรียนรู้ตาม Roadmap + Training Passport
+3. **ระบบ Tracking** - ติดตามการเรียนรู้ตาม Roadmap + Training Passport 16 สัปดาห์
+   (นักศึกษาอัปเดตสถานะรายสัปดาห์ พี่เลี้ยง/แอดมินดูภาพรวมและลงชื่อรับรองรายสัปดาห์)
 4. **ระบบส่งงาน** - ส่งงาน, ตรวจงาน, ให้คะแนน
 5. **แจ้งเตือนไลน์** - ส่งข้อความผ่าน LINE Messaging API
 6. **ระบบประเมิน** - ประเมินทั้งผู้ฝึกและผู้เรียน (รวมประเมินรายหัวข้อผ่าน QR Code)
@@ -108,7 +109,7 @@ Web App ถูก deploy เป็น "Anyone" เพราะ GitHub Pages เ�
 npm run build:gs   # รวมไฟล์โมดูล .gs ทั้งหมดเป็น apps-script/ALL_IN_ONE.gs
 npm run check:gs   # ตรวจว่า ALL_IN_ONE.gs ตรงกับไฟล์โมดูล (ใช้ใน CI ได้)
 npm test           # ทดสอบ backend: สิทธิ์, การกรองข้อมูล, ชีทข้อมูลอ้างอิง
-npm run test:ui    # ทดสอบหน้า KM ฝั่งพี่เลี้ยง/แอดมินด้วยเบราว์เซอร์จริง (ต้องมี playwright)
+npm run test:ui    # ทดสอบหน้า KM + Training Passport ด้วยเบราว์เซอร์จริง (ต้องมี playwright)
 ```
 
 `npm test` ไม่ต้องติดตั้งอะไรเลย ส่วน `npm run test:ui` ต้องติดตั้งก่อน:
@@ -150,5 +151,7 @@ npm i -D playwright && npx playwright install chromium
     ├── test-auth.js            # ทดสอบสิทธิ์ทุก action
     ├── test-filters.js         # ทดสอบการกรองข้อมูลและขอบเขตพี่เลี้ยง
     ├── test-reference-data.js  # ทดสอบการอ่านชีท StoreList/DepartmentList
-    └── test-km-ui.js           # ทดสอบหน้า KM ด้วยเบราว์เซอร์จริง (ต้องมี playwright)
+    ├── ui-harness.js           # ตัวช่วยรัน UI test (static server + stub API)
+    ├── test-km-ui.js           # ทดสอบหน้า Knowledge Management ด้วยเบราว์เซอร์จริง
+    └── test-passport-ui.js     # ทดสอบหน้า Training Passport ด้วยเบราว์เซอร์จริง
 ```

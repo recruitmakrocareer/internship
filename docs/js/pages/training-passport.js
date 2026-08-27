@@ -1,13 +1,41 @@
+/** สีตามธีม CP AXTRA */
+const PASSPORT_THEME = {
+  blue: '#306FC7',
+  yellow: '#F6C24A',
+  green: '#43938F',
+  red: '#DA3832'
+};
+
+/**
+ * รหัสนักศึกษาที่กำลังเปิด Passport อยู่
+ * นักศึกษา = ตัวเอง / พี่เลี้ยงและแอดมิน = คนที่เลือกจากรายชื่อ (ผ่าน ?userId= ใน hash)
+ * @returns {string}
+ */
+function passportTargetId() {
+  const user = getCurrentUser();
+  if (!user) return '';
+  if (user.role === 'STUDENT') return user.id;
+  const query = window.location.hash.split('?')[1] || '';
+  return new URLSearchParams(query).get('userId') || '';
+}
+
 function renderTrainingPassport() {
   const user = getCurrentUser();
   if (!user) return navigateTo('login');
 
+  // พี่เลี้ยง/แอดมินต้องเลือกนักศึกษาก่อน ไม่งั้นจะเป็นการเปิด passport ของตัวเอง
+  if (user.role !== 'STUDENT' && !passportTargetId()) {
+    return renderPassportPicker(user);
+  }
+
+  const isOwnPassport = user.role === 'STUDENT';
   const content = initLayout(user);
   content.innerHTML = `
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
+            ${isOwnPassport ? '' : '<a href="#training-passport" class="text-sm hover:underline" style="color:' + PASSPORT_THEME.blue + '">← กลับไปรายชื่อนักศึกษา</a>'}
             <h1 class="text-2xl font-bold text-gray-800">Training Passport</h1>
-            <p class="text-gray-500">โปรแกรมฝึกงาน Makro 16 สัปดาห์</p>
+            <p class="text-gray-500">โปรแกรมฝึกงาน Makro 16 สัปดาห์${isOwnPassport ? '' : ' — <span id="passport-student-name" class="font-medium text-gray-700">กำลังโหลด...</span>'}</p>
           </div>
           <div id="progress-summary" class="text-right">
             <div class="text-3xl font-bold text-blue-600" id="progress-pct">--%</div>
@@ -63,9 +91,23 @@ const WEEKS_DATA = [
 async function loadTrainingPassport() {
   try {
     const user = getCurrentUser();
+    const targetId = passportTargetId();
+
+    // พี่เลี้ยง/แอดมิน: แสดงชื่อนักศึกษาที่กำลังดู และใช้ชื่อนี้ในช่องลงชื่อนักศึกษา
+    if (user.role !== 'STUDENT') {
+      callApi('getUserProfile', { userId: targetId }).then(res => {
+        const p = (res && res.data) || {};
+        window._passportStudentName = displayName(p, targetId);
+        const el = document.getElementById('passport-student-name');
+        if (el) el.textContent = window._passportStudentName;
+      }).catch(() => {});
+    } else {
+      window._passportStudentName = displayName(user, user.email);
+    }
+
     const [passportRes, progressRes] = await Promise.all([
       callApi('getRoadmaps'),
-      callApi('getRoadmapProgress', { userId: user.id })
+      callApi('getRoadmapProgress', { userId: targetId })
     ]);
 
     const roadmaps = passportRes.success !== false ? (passportRes.data || passportRes) : [];
@@ -264,7 +306,7 @@ function openWeekDetail(weekIndex, stepId) {
         </div>
         <div class="border rounded-lg p-4 border-green-300 bg-green-50">
           <h4 class="font-medium text-gray-700 mb-2">นักศึกษา</h4>
-          <p class="text-green-600 font-medium">✓ ${escAttr(user.name || user.email || 'นักศึกษา')}</p>
+          <p class="text-green-600 font-medium">✓ ${escAttr(window._passportStudentName || 'นักศึกษา')}</p>
           <p class="text-xs text-gray-400 mt-1">ลงชื่ออัตโนมัติ (Sync กับผู้ใช้)</p>
         </div>
       </div>
@@ -289,7 +331,7 @@ async function updateWeekStatus(stepId, status, weekIndex) {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApiPost('updateRoadmapProgress', { userId: user.id, stepId, status });
+    await callApiPost('updateRoadmapProgress', { userId: passportTargetId(), stepId, status });
     showToast('อัพเดทสถานะสำเร็จ', 'success');
     closePassportModal();
     await loadTrainingPassport();
@@ -305,7 +347,7 @@ async function signOff(stepId, role, weekIndex) {
   try {
     // Sign-off state is read per stepId (progressMap keyed by step.id, see renderTimeline/openWeekDetail),
     // so the write must identify the row by stepId too — weekIndex alone can desync from the actual step.
-    await callApiPost('signOffWeek', { userId: user.id, stepId: stepId, weekNumber: String(weekIndex), role, notes: '' });
+    await callApiPost('signOffWeek', { userId: passportTargetId(), stepId: stepId, weekNumber: String(weekIndex), role, notes: '' });
     showToast('ลงชื่อสำเร็จ', 'success');
     closePassportModal();
     await loadTrainingPassport();
@@ -320,10 +362,137 @@ async function saveWeekNotes(stepId, weekIndex) {
   const user = getCurrentUser();
   showLoading();
   try {
-    await callApiPost('updateRoadmapProgress', { userId: user.id, stepId, status: 'IN_PROGRESS', note: notes });
+    await callApiPost('updateRoadmapProgress', { userId: passportTargetId(), stepId, status: 'IN_PROGRESS', note: notes });
     showToast('บันทึกสำเร็จ', 'success');
   } catch (e) {
     showToast('เกิดข้อผิดพลาด', 'error');
   }
   hideLoading();
+}
+
+// ==================== มุมมองพี่เลี้ยง / แอดมิน: เลือกนักศึกษาก่อนเปิด Passport ====================
+
+/**
+ * รายชื่อนักศึกษาพร้อมความคืบหน้า Training Passport
+ * พี่เลี้ยงเห็นเฉพาะนักศึกษาในความดูแล แอดมินเห็นทั้งหมด (บังคับฝั่ง server อีกชั้น)
+ */
+function renderPassportPicker(user) {
+  const content = initLayout(user);
+  content.innerHTML = `
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Training Passport</h1>
+        <p class="text-gray-500">${user.role === 'MENTOR' ? 'เลือกนักศึกษาในความดูแลเพื่อดูและลงชื่อรับรองรายสัปดาห์' : 'ภาพรวมความคืบหน้าของนักศึกษาทั้งหมด'}</p>
+      </div>
+      <button onclick="loadPassportPicker()" class="text-sm border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50">รีเฟรช</button>
+    </div>
+
+    <div id="passport-picker-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500">
+            <tr>
+              <th class="text-left font-medium px-4 py-3">นักศึกษา</th>
+              <th class="text-left font-medium px-4 py-3">ความคืบหน้า</th>
+              <th class="text-center font-medium px-4 py-3">สัปดาห์ปัจจุบัน</th>
+              <th class="text-center font-medium px-4 py-3">รอผู้ฝึกสอนลงชื่อ</th>
+              <th class="text-right font-medium px-4 py-3">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="passport-picker-rows" class="divide-y divide-gray-100">
+            <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  loadPassportPicker();
+}
+
+async function loadPassportPicker() {
+  const user = getCurrentUser();
+  const rows = document.getElementById('passport-picker-rows');
+  const statsEl = document.getElementById('passport-picker-stats');
+  if (!rows) return;
+
+  try {
+    const res = user.role === 'MENTOR'
+      ? await callApi('getTrainingPassportByMentor', { mentorId: user.id })
+      : await callApi('getTrainingPassportOverview');
+
+    if (res.success === false) {
+      rows.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">' + escAttr(res.message || 'ไม่สามารถโหลดข้อมูลได้') + '</td></tr>';
+      return;
+    }
+
+    // คนที่มีสัปดาห์รอลงชื่อมากที่สุดขึ้นก่อน เพราะเป็นงานที่ต้องทำ
+    const list = (res.data || []).slice().sort((a, b) => {
+      const pa = (a.passport && a.passport.pendingTrainerSignOffs) || 0;
+      const pb = (b.passport && b.passport.pendingTrainerSignOffs) || 0;
+      return pb - pa || String(a.name || '').localeCompare(String(b.name || ''), 'th');
+    });
+
+    const avg = list.length
+      ? Math.round(list.reduce((sum, s) => sum + ((s.passport && s.passport.progressPercent) || 0), 0) / list.length)
+      : 0;
+    const pendingTotal = list.reduce((sum, s) => sum + ((s.passport && s.passport.pendingTrainerSignOffs) || 0), 0);
+    const finished = list.filter(s => s.passport && s.passport.totalWeeks > 0 && s.passport.completedWeeks >= s.passport.totalWeeks).length;
+
+    statsEl.innerHTML = [
+      { label: 'นักศึกษา', value: list.length, color: PASSPORT_THEME.blue },
+      { label: 'ความคืบหน้าเฉลี่ย', value: avg + '%', color: PASSPORT_THEME.blue },
+      { label: 'สัปดาห์ที่รอลงชื่อ', value: pendingTotal, color: PASSPORT_THEME.yellow },
+      { label: 'ฝึกครบแล้ว', value: finished, color: PASSPORT_THEME.green }
+    ].map(c => `
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="text-2xl font-bold" style="color:${c.color}">${c.value}</div>
+        <div class="text-xs text-gray-500 mt-1">${c.label}</div>
+      </div>
+    `).join('');
+
+    if (list.length === 0) {
+      rows.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">'
+        + (user.role === 'MENTOR' ? 'ยังไม่มีนักศึกษาในความดูแล' : 'ยังไม่มีนักศึกษาในระบบ')
+        + '</td></tr>';
+      return;
+    }
+
+    rows.innerHTML = list.map(s => {
+      const p = s.passport || {};
+      const pct = p.progressPercent || 0;
+      const pending = p.pendingTrainerSignOffs || 0;
+
+      return `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3">
+            <div class="font-medium text-gray-800">${escAttr(s.name || '-')}</div>
+            <div class="text-xs text-gray-400">${escAttr(s.studentId || '-')}${s.department ? ' · ' + escAttr(s.department) : ''}</div>
+          </td>
+          <td class="px-4 py-3 w-56">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 bg-gray-200 rounded-full h-2">
+                <div class="h-2 rounded-full" style="width:${pct}%;background:${PASSPORT_THEME.blue}"></div>
+              </div>
+              <span class="text-xs text-gray-500 whitespace-nowrap">${p.completedWeeks || 0}/${p.totalWeeks || 0} สัปดาห์</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-center text-gray-700">${p.currentWeek ? 'สัปดาห์ที่ ' + p.currentWeek : '–'}</td>
+          <td class="px-4 py-3 text-center">
+            ${pending > 0
+              ? '<span class="text-xs px-2 py-1 rounded-full font-medium" style="background:#FEF3C7;color:#92400E">' + pending + ' สัปดาห์</span>'
+              : '<span class="text-gray-300">–</span>'}
+          </td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <a href="#training-passport?userId=${encodeURIComponent(s.userId)}"
+              class="inline-block text-sm text-white px-3 py-1.5 rounded-lg" style="background:${PASSPORT_THEME.blue}">เปิด Passport</a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    rows.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>';
+  }
 }

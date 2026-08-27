@@ -7,6 +7,8 @@
     "build:gs": "node tools/build-all-in-one.js",
     "check:gs": "node tools/build-all-in-one.js --check",
     "test": "node tools/test-auth.js && node tools/test-reference-data.js && node tools/test-filters.js",
-    "test:ui": "node tools/test-km-ui.js"
+    "test:ui": "node tools/test-km-ui.js && node tools/test-passport-ui.js",
+    "test:ui:km": "node tools/test-km-ui.js",
+    "test:ui:passport": "node tools/test-passport-ui.js"
   }
 }
