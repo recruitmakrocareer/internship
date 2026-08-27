@@ -102,7 +102,7 @@ Web App ถูก deploy เป็น "Anyone" เพราะ GitHub Pages เ�
 
 ## คำสั่งสำหรับผู้พัฒนา
 
-ต้องมี Node.js เฉพาะเวลารันสคริปต์เหล่านี้ (ไม่มี dependency ให้ติดตั้ง)
+ต้องมี Node.js เฉพาะเวลารันสคริปต์เหล่านี้
 
 ```bash
 npm run build:gs   # รวมไฟล์โมดูล .gs ทั้งหมดเป็น apps-script/ALL_IN_ONE.gs
