@@ -6,72 +6,135 @@
 
 1. **ระบบนักศึกษา** - จัดการโปรไฟล์, ลงทะเบียน
 2. **ระบบ Admin** - จัดการนักศึกษา, พี่เลี้ยง, งาน
-3. **ระบบ Tracking** - ติดตามการเรียนรู้ตาม Roadmap
+3. **ระบบ Tracking** - ติดตามการเรียนรู้ตาม Roadmap + Training Passport
 4. **ระบบส่งงาน** - ส่งงาน, ตรวจงาน, ให้คะแนน
 5. **แจ้งเตือนไลน์** - ส่งข้อความผ่าน LINE Messaging API
-6. **ระบบประเมิน** - ประเมินทั้งผู้ฝึกและผู้เรียน
-7. **แหล่งความรู้** - รวมไฟล์, บทเรียน, เอกสาร
+6. **ระบบประเมิน** - ประเมินทั้งผู้ฝึกและผู้เรียน (รวมประเมินรายหัวข้อผ่าน QR Code)
+7. **แหล่งความรู้** - รวมไฟล์, บทเรียน, เอกสาร, Knowledge Management
+
+## สถาปัตยกรรม
+
+ระบบมี 2 ชั้น ไม่ต้องติดตั้งอะไรบนเครื่อง ใช้งานผ่าน browser ได้ทั้งหมด
+
+| ชั้น | เทคโนโลยี | หน้าที่ |
+|------|-----------|---------|
+| `docs/` | HTML + Tailwind (CDN) + vanilla JS, hash router | หน้าเว็บทั้งหมด host บน GitHub Pages |
+| `apps-script/` | Google Apps Script | REST API + Google Sheets เป็นฐานข้อมูล + Google Drive เก็บไฟล์ |
+
+หน้าเว็บเรียก API ผ่าน `callApi()` / `callApiPost()` (`docs/js/api.js`) ไปยัง Web App URL
+ของ Apps Script ทุก request ต้องผ่านการตรวจสิทธิ์ที่ `authorizeRequest_()` ใน
+`apps-script/Session.gs` ก่อนเข้าถึง handler
 
 ## วิธี Deploy
 
-### แบบที่ 1: GitHub Pages + Google Apps Script (แนะนำ)
+### ขั้นตอนที่ 1: ตั้งค่า Google Sheets
+สร้าง Google Spreadsheet ใหม่ 1 ไฟล์ (ระบบจะสร้างชีทและหัวตารางให้เองในขั้นตอนที่ 4)
 
-ไม่ต้องติดตั้งอะไรบนเครื่อง ใช้ได้ผ่าน browser เท่านั้น
-
-#### ขั้นตอนที่ 1: ตั้งค่า Google Sheets
-1. สร้าง Google Spreadsheet ใหม่
-
-#### ขั้นตอนที่ 2: ตั้งค่า Google Apps Script
-1. ไปที่ [script.google.com](https://script.google.com) -> สร้างโปรเจคใหม่
-2. Copy ไฟล์ `.gs` ทั้งหมดจากโฟลเดอร์ `apps-script/` ไปวางใน Apps Script Editor
-3. Copy ไฟล์ `.html` ทั้งหมดจากโฟลเดอร์ `apps-script/` ไปวางเช่นกัน
-4. ที่ `Config.gs` แก้ `SPREADSHEET_ID` เป็น ID ของ Google Sheet ที่สร้าง
-5. Deploy -> New Deployment -> Web App
+### ขั้นตอนที่ 2: ตั้งค่า Google Apps Script
+1. ที่ Spreadsheet เลือก **Extensions → Apps Script** (ต้องเป็นสคริปต์ที่ผูกกับ Sheet
+   เพราะ `Config.gs` อ่าน ID จาก `SpreadsheetApp.getActiveSpreadsheet()`)
+2. คัดลอกไฟล์ `.gs` **ทุกไฟล์** จากโฟลเดอร์ `apps-script/` ไปวางใน Apps Script Editor
+   โดย**ไม่ต้องเอา `ALL_IN_ONE.gs`** — ไฟล์นั้นเป็นทางเลือกสำหรับคนที่อยากวางไฟล์เดียว
+   (ถ้าเลือกใช้ `ALL_IN_ONE.gs` ต้องไม่มีไฟล์โมดูลอื่นในโปรเจกต์ ห้ามวางทั้งสองแบบพร้อมกัน
+   เพราะฟังก์ชันชื่อซ้ำกันจะทับกันเงียบ ๆ)
+3. แก้ `CONFIG.FRONTEND_URL` ใน `Config.gs` ให้เป็น URL ของ GitHub Pages ของคุณ
+4. ถ้าใช้แจ้งเตือน LINE: **Project Settings → Script Properties** เพิ่ม
+   `LINE_CHANNEL_ACCESS_TOKEN`
+5. **Deploy → New Deployment → Web App**
    - Execute as: **Me**
    - Who has access: **Anyone**
 6. Copy URL ที่ได้
 
-#### ขั้นตอนที่ 3: ตั้งค่า GitHub Pages
-1. แก้ไฟล์ `docs/js/config.js` ใส่ URL ของ Apps Script Web App
+> ทุกครั้งที่แก้โค้ดต้อง **Deploy → Manage deployments → Edit → New version** ไม่ใช่แค่ Save
+
+### ขั้นตอนที่ 3: ตั้งค่า GitHub Pages
+1. แก้ `docs/js/config.js` ใส่ URL ของ Apps Script Web App
 2. Push code ขึ้น GitHub
-3. Settings -> Pages -> Source: Deploy from branch -> Branch: main, Folder: /docs
-4. เว็บจะพร้อมใช้ที่ `https://username.github.io/internship/`
+3. Settings → Pages → Source: Deploy from branch → Branch: `main`, Folder: `/docs`
+4. เว็บจะพร้อมใช้ที่ `https://<username>.github.io/internship/`
 
-#### ขั้นตอนที่ 4: Setup ระบบ
-1. เปิดเว็บ -> เข้าหน้า Login
-2. กด "Setup ระบบ" หรือเรียก API: `?action=setupSystem`
-3. ระบบจะสร้าง Sheet + ข้อมูลตัวอย่างให้อัตโนมัติ
+### ขั้นตอนที่ 4: Setup ระบบ
+เปิด `YOUR_WEB_APP_URL?action=setupSystem` ครั้งเดียว ระบบจะสร้างชีททั้งหมด
+พร้อมข้อมูลตัวอย่างและบัญชีทดสอบ
 
-### แบบที่ 2: Google Apps Script อย่างเดียว
+> `setupSystem` เรียกได้โดยไม่ต้องล็อกอิน **เฉพาะตอนที่ยังไม่มีบัญชี ADMIN ในระบบ**
+> หลังจากนั้นต้องเป็น ADMIN เท่านั้น
 
-1. สร้าง Google Sheet + Apps Script (เหมือนขั้นตอนที่ 1-2 ด้านบน)
-2. Deploy -> Web App
-3. เปิด URL ที่ได้ -> ใช้งานได้เลย
+คู่มือฉบับละเอียดพร้อมภาพ: `docs/SETUP-GUIDE.html`
+
+## การตรวจสิทธิ์ (สำคัญ)
+
+Web App ถูก deploy เป็น "Anyone" เพราะ GitHub Pages เรียกข้ามโดเมน ดังนั้นการป้องกัน
+ทั้งหมดอยู่ที่ชั้น API:
+
+- **Session token** — ล็อกอินสำเร็จจะได้โทเคนที่เซ็นด้วย HMAC-SHA256 (secret สร้าง
+  อัตโนมัติเก็บใน Script Properties ชื่อ `SESSION_SECRET`) frontend เก็บไว้ใน
+  localStorage และแนบไปกับทุก request เป็นพารามิเตอร์ `authToken`
+- **ตารางสิทธิ์ต่อ action** — `ACTION_POLICY_` ใน `Session.gs` กำหนดว่า action ไหน
+  เปิดสาธารณะ / ต้องล็อกอิน / ต้องเป็น ADMIN หรือ MENTOR
+- **บังคับตัวตน** — พารามิเตอร์อย่าง `userId`, `studentId`, `evaluatorId`, `reviewerId`
+  ถูกเขียนทับด้วยผู้ใช้ในโทเคน ทำให้ปลอมเป็นคนอื่นไม่ได้ (นักศึกษาอ่าน/แก้ได้แค่ข้อมูลตัวเอง)
+- **อายุโทเคน** 12 ชั่วโมง ปรับได้ที่ `CONFIG.AUTH.SESSION_TTL_HOURS`
+- **เพิกถอนทุกเซสชันทันที** — ลบ `SESSION_SECRET` ใน Project Settings (ทุกคนต้องล็อกอินใหม่)
+- `CONFIG.AUTH.ENFORCE = false` ปิดการตรวจสิทธิ์ทั้งหมด — มีไว้เพื่อ debug ชั่วคราวเท่านั้น
+  **ห้ามใช้บนระบบจริง**
+
+**หลัง deploy เวอร์ชันนี้ ผู้ใช้ทุกคนต้องล็อกอินใหม่ 1 ครั้ง** เพราะเซสชันเดิมไม่มีโทเคน
+
+ข้อจำกัดที่ทราบ: โทเคนเป็น stateless จึงเพิกถอนรายใบไม่ได้ — การระงับบัญชีหรือเปลี่ยน role
+จะมีผลเต็มที่หลังโทเคนเดิมหมดอายุ และพี่เลี้ยงยังดูข้อมูลนักศึกษาที่ไม่ได้อยู่ในความดูแลได้
+(ยังไม่ผูกกับตาราง MentorStudents)
 
 ## บัญชีทดสอบ (หลัง Setup)
 
 | บทบาท | อีเมล | รหัสผ่าน |
 |-------|-------|---------|
-| Admin | admin@example.com | admin123 |
-| พี่เลี้ยง | mentor@example.com | mentor123 |
-| นักศึกษา 1 | student1@example.com | student123 |
-| นักศึกษา 2 | student2@example.com | student123 |
+| Admin | admin@internship.com | admin123 |
+| พี่เลี้ยง | mentor@internship.com | mentor123 |
+| นักศึกษา 1 | student1@internship.com | student123 |
+| นักศึกษา 2 | student2@internship.com | student123 |
+
+> เปลี่ยนรหัสผ่านทันทีหลังใช้งานจริง
+
+## คำสั่งสำหรับผู้พัฒนา
+
+ต้องมี Node.js เฉพาะเวลารันสคริปต์เหล่านี้ (ไม่มี dependency ให้ติดตั้ง)
+
+```bash
+npm run build:gs   # รวมไฟล์โมดูล .gs ทั้งหมดเป็น apps-script/ALL_IN_ONE.gs
+npm run check:gs   # ตรวจว่า ALL_IN_ONE.gs ตรงกับไฟล์โมดูล (ใช้ใน CI ได้)
+npm test           # ทดสอบชั้นตรวจสิทธิ์ใน Session.gs
+```
+
+`ALL_IN_ONE.gs` เป็นไฟล์ที่ถูก generate — **ห้ามแก้โดยตรง** ให้แก้ไฟล์โมดูลแล้วรัน
+`npm run build:gs` (สคริปต์จะเตือนด้วยถ้ามี action ที่ยังไม่มีนโยบายสิทธิ์
+หรือเรียกฟังก์ชันที่ไม่มีอยู่)
 
 ## โครงสร้างโปรเจค
 
 ```
-├── apps-script/        # Google Apps Script (backend + standalone web app)
-│   ├── *.gs            # Server-side code (11 files)
-│   ├── *.html          # HTML pages for standalone mode (18 files)
-│   └── appsscript.json # Apps Script config
-├── docs/               # GitHub Pages (static frontend)
-│   ├── index.html      # Main SPA entry point
-│   ├── js/             # JavaScript files
-│   │   ├── config.js   # API URL configuration
-│   │   ├── api.js      # API helper functions
-│   │   ├── app.js      # Shared app logic
-│   │   ├── router.js   # Hash-based router
-│   │   └── pages/      # Page render functions (17 files)
-│   └── css/            # Stylesheets
-└── src/                # Next.js version (alternative)
+├── apps-script/                # Backend (Google Apps Script)
+│   ├── Code.gs                 # doGet/doPost + ตาราง routing ของ action
+│   ├── Config.gs               # ชื่อชีท, หัวตาราง, role, ค่า session
+│   ├── Session.gs              # session token + ตารางสิทธิ์ต่อ action
+│   ├── Database.gs             # CRUD บน Google Sheets (มี LockService)
+│   ├── Auth.gs                 # login/register/reset/change password
+│   ├── *Service.gs             # ตรรกะแต่ละโมดูล
+│   ├── TrainingPassport.gs     # Training Passport 16 สัปดาห์
+│   ├── KnowledgeManagement.gs  # Knowledge Management
+│   ├── FileUpload.gs           # อัปโหลดไฟล์ลง Google Drive
+│   └── ALL_IN_ONE.gs           # ไฟล์รวม (generated — ห้ามแก้)
+├── docs/                       # Frontend (GitHub Pages)
+│   ├── index.html              # SPA entry point
+│   ├── SETUP-GUIDE.html        # คู่มือติดตั้งฉบับละเอียด
+│   └── js/
+│       ├── config.js           # URL ของ Apps Script Web App
+│       ├── api.js              # ตัวเรียก API + จัดการ session token
+│       ├── app.js              # helper และ layout ที่ใช้ร่วมกัน
+│       ├── router.js           # hash-based router
+│       ├── thai-address-data.js
+│       └── pages/              # ฟังก์ชัน render ของแต่ละหน้า (25 ไฟล์)
+└── tools/                      # สคริปต์ผู้พัฒนา (Node.js)
+    ├── build-all-in-one.js
+    └── test-auth.js
 ```

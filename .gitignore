@@ -1,18 +1,5 @@
-# dependencies
+# dependencies (โปรเจกต์นี้ไม่มี dependency แต่กันไว้เผื่อรัน npm)
 /node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
 
 # misc
 .DS_Store
@@ -24,19 +11,5 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
 .env
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# uploads
-public/uploads/*
-!public/uploads/.gitkeep
-
-# prisma
-prisma/*.db
+.env*.local
